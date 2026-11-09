@@ -1,0 +1,35 @@
+Hexfront Rush - third-party assets
+==================================
+
+All code and art in this game are original. The assets below come from others, under the licences
+named. Nothing here requires attribution except where a licence says so (the font); it is listed
+anyway, with thanks.
+
+FONT
+----
+Lilita One  (fonts/LilitaOne-Regular.ttf)
+  Copyright (c) 2011 Juan Montoreano. SIL Open Font License, Version 1.1.
+  The full licence text ships beside the font: fonts/OFL-LilitaOne.txt
+
+SOUND EFFECTS  (sfx/)  - all CC0 1.0 (public domain dedication)
+------------------------------------------------------------------
+Kenney (www.kenney.nl), CC0:
+  Interface Sounds  - tap (click_002), pop (drop_002), quest (select_002), spawn (drop_001),
+                      beep (tick_001), nothing (minimize_001), error (error_004)
+  Impact Sounds     - hit (impactGeneric_light_003), build (impactSoft_heavy_000),
+                      go (impactBell_heavy_000)
+  Sci-fi Sounds     - destroy (explosionCrunch_001)
+  RPG Audio         - coin (handleCoins)
+  8-Bit Jingles     - win (NES03), lose (NES00), legend (NES12)
+qubodup, "swosh-05" (OpenGameArt.org), CC0 - shoot
+
+MUSIC  (music/)  - CC0 1.0
+--------------------------
+TinyWorlds, "Happy Adventure" (OpenGameArt.org), CC0 - lobby.mp3
+HydroGene, "Space Shooter" (OpenGameArt.org), CC0  - battle.mp3
+
+Files were trimmed, level-normalized and re-encoded to MP3; no other changes.
+
+SDK
+---
+playgama-bridge.js - Playgama Bridge, distributed by Playgama for games on its platform.
