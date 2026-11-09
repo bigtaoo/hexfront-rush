@@ -43,7 +43,8 @@ export interface Tile {
   owner: number;
   bld: number;
   rubble: number;
-  chest: number;
+  /** The map event waiting here (EVENT_LIST index, 0: none or claimed). */
+  event: number;
 }
 
 export interface GameMap {
@@ -65,7 +66,7 @@ export function generateMap(seed: number): GameMap {
       tiles.push({
         i: idx(c, r), c, r, x: hexX(c, r), y: hexY(r), obst: '', nb: neighbors(c, r),
         shade: (c * 7 + r * 3) % 2, deco: rng.int(1000),
-        owner: TEAM_NONE, bld: 0, rubble: 0, chest: 0,
+        owner: TEAM_NONE, bld: 0, rubble: 0, event: 0,
       });
     }
   }

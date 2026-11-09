@@ -6,7 +6,7 @@
 //
 // The world container carries the camera (zoom and offset, plus the screen shake); under it the
 // layers go ground, offer cards, tap marker, y-sorted sprites, projectiles and effects. Over it,
-// in screen pixels: the minimap, the HUD and the overlays.
+// in screen pixels: the edge markers and the overview button, the HUD and the overlays.
 
 import { Container, type Application } from 'pixi.js';
 import { T } from '../app/i18n';
@@ -19,8 +19,8 @@ import { Camera } from './camera';
 import { EffectLayer } from './effects';
 import { Juice, type DrawUi, type Frame, type Vis } from './frame';
 import { GroundLayer } from './ground';
+import { EdgeLayer } from './edges';
 import { Hud, type Status } from './hud';
-import { Minimap, type MiniRect } from './minimap';
 import { OfferLayer } from './offers';
 import { Overlays, type BannerOpts, type CardPop } from './overlays';
 import { SpriteLayer } from './sprites';
@@ -34,7 +34,7 @@ export class Renderer {
   private offers = new OfferLayer();
   private effects = new EffectLayer();
   private sprites = new SpriteLayer();
-  private minimap = new Minimap();
+  private edges = new EdgeLayer();
   private hud = new Hud(this.juice);
   private overlays = new Overlays(this.juice);
   private eng: Engine | null = null;
@@ -43,16 +43,13 @@ export class Renderer {
 
   constructor(private readonly app: Application) {
     this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.root, this.effects.root);
-    app.stage.addChild(this.world, this.minimap.root, this.hud.root, this.overlays.root);
+    app.stage.addChild(this.world, this.edges.root, this.hud.root, this.overlays.root);
     this.resize();
   }
 
   // ---------- what main and the input code read and set ----------
   get fitAll(): boolean {
     return this.cam.fitAll;
-  }
-  get mm(): MiniRect | null {
-    return this.minimap.rect;
   }
   get status(): Status | null {
     return this.hud.status;
@@ -89,7 +86,7 @@ export class Renderer {
     this.sprites.build(eng, this.cam);
     this.offers.reset();
     this.effects.reset();
-    this.minimap.reset();
+    this.edges.reset();
   }
   /** Clears per-match juice. */
   reset(): void {
@@ -98,8 +95,11 @@ export class Renderer {
     this.offers.reset();
     this.juice.reset();
     this.hud.status = null;
+    this.edges.reset();
     this.cam.cam = null;
     this.cam.camGoal = null;
+    this.cam.overview = false;
+    this.cam.zoomK = 0;
   }
   resize(): void {
     this.cam.resize(this.app.screen.width, this.app.screen.height);
@@ -118,9 +118,21 @@ export class Renderer {
   screenToWorld(sx: number, sy: number): Pt {
     return this.cam.screenToWorld(sx, sy);
   }
-  /** A tap on the minimap: the world point under it (fixed point), or null. */
-  minimapWorld(sx: number, sy: number): Pt | null {
-    return this.minimap.worldAt(sx, sy);
+  get overview(): boolean {
+    return this.cam.overview;
+  }
+  /** Zoom out to the whole map, or back in (centred on `at`, a screen point, when given). */
+  setOverview(on: boolean, at?: Pt): void {
+    const v = at ? { x: (at.x - this.cam.ox) / this.cam.scale, y: (at.y - this.cam.oy) / this.cam.scale } : undefined;
+    this.cam.setOverview(on, v);
+  }
+  /** A tap on the overview button or an edge marker: handled (true) or not on one (false). */
+  edgeTap(sx: number, sy: number): boolean {
+    const h = this.edges.hit(sx, sy);
+    if (!h) return false;
+    if (h === 'overview') this.cam.setOverview(!this.cam.overview);
+    else this.cam.lookAt(h.x, h.y);
+    return true;
   }
 
   // ---------- juice ----------
@@ -148,6 +160,7 @@ export class Renderer {
 
   /** Visual reaction to one sim event (sound and UI flow stay in the app). */
   onEvent(e: SimEvent): void {
+    if (this.eng) this.edges.onEvent(e, this.eng, this.cam, this.local);
     const mine = e.team === this.local;
     const p = e.x !== undefined && e.y !== undefined ? this.cam.view(e.x, e.y) : null;
     const fx = this.effects;
@@ -167,10 +180,12 @@ export class Renderer {
           this.coinFly(p.x, p.y, 1);
         }
         break;
-      case 'chest':
-        if (mine && p) {
-          fx.floater(p.x, p.y - 0.6, T('chest', { g: e.gold ?? 0 }), '#fde047');
-          this.coinFly(p.x, p.y, 5);
+      case 'mapEvent':
+        if (!p) break;
+        if (!mine) fx.floater(p.x, p.y - 0.6, T('ev_taken'), '#fca5a5');
+        else if (e.gold) {
+          fx.floater(p.x, p.y - 0.6, T('ev_gold', { g: e.gold }), '#fde047');
+          this.coinFly(p.x, p.y, e.gold >= 100 ? 9 : 5);
         }
         break;
       case 'quest':
@@ -219,7 +234,7 @@ export class Renderer {
     this.offers.draw(f);
     this.sprites.draw(f);
     this.effects.draw(f);
-    this.minimap.draw(f, this.ground.ver);
+    this.edges.draw(f, ui.look ?? false);
     this.hud.draw(f);
     this.overlays.draw(f);
   }
@@ -227,7 +242,7 @@ export class Renderer {
   destroy(): void {
     this.overlays.destroy();
     this.hud.destroy();
-    this.minimap.destroy();
+    this.edges.destroy();
     this.effects.destroy();
     this.sprites.destroy();
     this.ground.destroy();

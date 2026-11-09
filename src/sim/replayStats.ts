@@ -1,11 +1,11 @@
 // What the collected replays say once played again (`npm run replays`, scripts/replays.ts): how
 // matches end and how long they run, how the players and the AI spend their flips (what they
-// build, the mystery cards' luck, chests and quests, taps without the gold), and the troops the
+// build, the mystery cards' luck, map events and quests, taps without the gold), and the troops the
 // barracks train. Ported in spirit from Potion Siege's replayStats (D:\fang src/sim/replayStats.ts).
 
 import type { Engine } from './engine';
 import { runReplay, type Replay } from './replay';
-import { ENGINE_VERSION, MATCH_TICKS, TEAMS, type OfferKind, type UnitKey } from './rules';
+import { ENGINE_VERSION, TEAMS, type OfferKind, type UnitKey } from './rules';
 import type { EndReason } from './types';
 import { TICK_RATE } from './fixed';
 
@@ -25,7 +25,8 @@ export interface SideStats {
   /** Barracks (and lucky mystery cards) by rarity 0..3. */
   rarity: number[];
   trained: Map<UnitKey, number>;
-  chests: number;
+  /** Map events claimed. */
+  events: number;
   quests: number;
   /** Sums over the seats, for averages: tiles and unspent gold at the end, the most troops at once. */
   tiles: number;
@@ -63,7 +64,7 @@ export const newStats = (): ReplayStats => ({ played: 0, oldVersion: 0, desynced
 
 const newSide = (): SideStats => ({
   seats: 0, won: 0, lost: 0, flips: 0, needGold: 0, built: new Map(), mysteryWin: 0, mysteryNothing: 0, rarity: [0, 0, 0, 0],
-  trained: new Map(), chests: 0, quests: 0, tiles: 0, goldLeft: 0, peakUnits: 0, firstFlips: 0, firstFlipSecs: 0,
+  trained: new Map(), events: 0, quests: 0, tiles: 0, goldLeft: 0, peakUnits: 0, firstFlips: 0, firstFlipSecs: 0,
 });
 
 const add = <K>(m: Map<K, number>, k: K, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
@@ -87,12 +88,13 @@ interface Seat {
   mysteryNothing: number;
   rarity: number[];
   trained: Map<UnitKey, number>;
-  chests: number;
+  /** Map events claimed. */
+  events: number;
   quests: number;
   peakUnits: number;
   firstFlip: number;
 }
-const newSeat = (): Seat => ({ flips: 0, needGold: 0, mysteryWin: 0, mysteryNothing: 0, rarity: [0, 0, 0, 0], trained: new Map(), chests: 0, quests: 0, peakUnits: 0, firstFlip: -1 });
+const newSeat = (): Seat => ({ flips: 0, needGold: 0, mysteryWin: 0, mysteryNothing: 0, rarity: [0, 0, 0, 0], trained: new Map(), events: 0, quests: 0, peakUnits: 0, firstFlip: -1 });
 
 /** The engine's events of one tick, into the seats. */
 function onTick(e: Engine, seats: Seat[]): void {
@@ -116,8 +118,8 @@ function onTick(e: Engine, seats: Seat[]): void {
       case 'spawn':
         if (ev.unit) add(st.trained, ev.unit);
         break;
-      case 'chest':
-        st.chests++;
+      case 'mapEvent':
+        st.events++;
         break;
       case 'quest':
         st.quests++;
@@ -163,7 +165,7 @@ export function addReplay(s: ReplayStats, r: Replay): 'ok' | 'old' | 'desync' {
     if (res.winner === 1) k.blueWins++;
     else if (res.winner === 2) k.redWins++;
     else k.draws++;
-    add(k.minutes, Math.floor(Math.min(engine.elapsed(), MATCH_TICKS) / (60 * TICK_RATE)));
+    add(k.minutes, Math.floor(engine.elapsed() / (60 * TICK_RATE)));
   }
   for (const t of TEAMS) {
     const ai = t === 1 ? r.config.aiBlue : r.config.aiRed;
@@ -180,7 +182,7 @@ export function addReplay(s: ReplayStats, r: Replay): 'ok' | 'old' | 'desync' {
     side.mysteryNothing += seat.mysteryNothing;
     for (let i = 0; i < 4; i++) side.rarity[i]! += seat.rarity[i]!;
     for (const [u, n] of seat.trained) add(side.trained, u, n);
-    side.chests += seat.chests;
+    side.events += seat.events;
     side.quests += seat.quests;
     side.tiles += team.tiles;
     side.goldLeft += team.gold;

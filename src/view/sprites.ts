@@ -1,15 +1,15 @@
 // Everything that stands on the field, sorted by view y so lower things cover higher ones:
 // obstacles, buildings (with their pop-in, hit flash, flag, coin timers and training bar), rubble,
-// chests, troops and the two castle guards. Still parts are shared contexts; each view keeps its
+// map events, troops and the two castle guards. Still parts are shared contexts; each view keeps its
 // Graphics between frames, is hidden while off screen and is destroyed when its entity is gone.
 
 import { Container, Graphics, type Text } from 'pixi.js';
 import { T } from '../app/i18n';
 import type { Engine } from '../sim/engine';
 import { FP, TICK_RATE } from '../sim/fixed';
-import { BUILD, HIT_FLASH, LUNGE_TICKS, RARITY_COLOR, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
+import { BUILD, EVENT_LIST, HIT_FLASH, LUNGE_TICKS, RARITY_COLOR, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
 import type { Building } from '../sim/types';
-import { buildingCtx, chestCtx, guardBody, hpBar, incomeRing, obstacleCtx, obstacleLook, rubbleCtx, shadowCtx } from './bodies';
+import { buildingCtx, eventCtx, guardBody, hpBar, incomeRing, obstacleCtx, obstacleLook, rubbleCtx, shadowCtx } from './bodies';
 import type { Camera } from './camera';
 import { inView, type Frame } from './frame';
 import { label, liveGraphics, setLabel, type Pen } from './pen';
@@ -78,19 +78,27 @@ class BuildingView {
   }
 }
 
-class ChestView {
+/** A map event waiting on its tile. On free ground it stands full size; once the local team has a
+ *  card on the tile it shrinks to a badge on the card's top right corner (sprites draw above the
+ *  cards, so it never hides the card's price). */
+class EventView {
   readonly root = new Container();
-  private box = new Graphics(chestCtx());
+  private body: Graphics;
+  private shadow = new Graphics(shadowCtx(0.4));
   private spark = new Graphics(dotCtx('rgba(255,255,255,0.9)'));
 
-  constructor() {
-    const sh = new Graphics(shadowCtx(0.4));
-    sh.position.set(0, 0.3 - 0.01);
-    this.root.addChild(sh, this.box, this.spark);
+  constructor(readonly ev: number) {
+    this.body = new Graphics(eventCtx(EVENT_LIST[ev]!.key));
+    this.shadow.position.set(0, 0.3 - 0.01);
+    this.root.addChild(this.shadow, this.body, this.spark);
   }
-  update(i: number, time: number): void {
+  update(i: number, time: number, vx: number, vy: number, badge: boolean): void {
     const bob = Math.sin(time * 3 + i) * 0.05;
-    this.box.position.set(0, bob - 0.01);
+    this.root.position.set(badge ? vx + 0.32 : vx, badge ? vy - 0.55 : vy + 0.01);
+    this.root.scale.set(badge ? 0.5 : 1);
+    this.root.zIndex = vy + 0.01;
+    this.shadow.visible = !badge;
+    this.body.position.set(0, bob - 0.01);
     const sp = (Math.sin(time * 5 + i) + 1) / 2;
     this.spark.position.set(0.3, bob - 0.01 - 0.5);
     this.spark.scale.set(0.05 + sp * 0.04);
@@ -141,7 +149,7 @@ export class SpriteLayer {
   readonly root = new Container({ sortableChildren: true });
   private obst: (Graphics | null)[] = [];
   private rubble: (Graphics | null)[] = [];
-  private chests: (ChestView | null)[] = [];
+  private events: (EventView | null)[] = [];
   private blds = new Map<number, BuildingView>();
   private units = new Map<number, UnitView>();
   private guards: (GuardView | null)[] = [null, null, null];
@@ -160,7 +168,7 @@ export class SpriteLayer {
       return g;
     });
     this.rubble = eng.tiles.map(() => null);
-    this.chests = eng.tiles.map(() => null);
+    this.events = eng.tiles.map(() => null);
   }
 
   private clear(): void {
@@ -170,7 +178,7 @@ export class SpriteLayer {
     this.guards = [null, null, null];
     this.obst = [];
     this.rubble = [];
-    this.chests = [];
+    this.events = [];
   }
 
   draw(f: Frame): void {
@@ -194,21 +202,20 @@ export class SpriteLayer {
         rb = this.rubble[t.i] = null;
       }
       if (rb) rb.visible = on;
-      // a chest waits on free ground
-      const showChest = !!t.chest && !t.bld;
-      let ch = this.chests[t.i];
-      if (showChest && !ch) {
-        ch = this.chests[t.i] = new ChestView();
-        ch.root.position.set(v.x, v.y + 0.01);
-        ch.root.zIndex = v.y + 0.01;
-        this.root.addChild(ch.root);
-      } else if (!showChest && ch) {
-        ch.root.destroy({ children: true });
-        ch = this.chests[t.i] = null;
+      // a map event waits until its tile's card is flipped
+      const ev = t.bld ? 0 : t.event;
+      let evv = this.events[t.i];
+      if (evv && evv.ev !== ev) {
+        evv.root.destroy({ children: true });
+        evv = this.events[t.i] = null;
       }
-      if (ch) {
-        ch.root.visible = on;
-        if (on) ch.update(t.i, f.time);
+      if (ev && !evv) {
+        evv = this.events[t.i] = new EventView(ev);
+        this.root.addChild(evv.root);
+      }
+      if (evv) {
+        evv.root.visible = on;
+        if (on) evv.update(t.i, f.time, v.x, v.y, (eng.team[f.local]?.offers[t.i] ?? -1) >= 0);
       }
     }
     for (const b of eng.blds) {

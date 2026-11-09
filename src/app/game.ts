@@ -6,7 +6,7 @@
 // never touches the sim directly: it goes through an InputCollector into commands.
 //
 // The player has no avatar. Their one move is tapping a card (an offer next to their ground) to
-// flip it; dragging, the mouse wheel, the arrow keys and the minimap only move the camera.
+// flip it; dragging, the mouse wheel, the arrow keys, the edge markers and the overview only move the camera.
 //
 // Replays: every match records checkpoint hashes as it goes (recordChecks); its end leaves
 // lastReplay, a solo match goes to the relay's collector too (replayUpload.ts), and watch() shows
@@ -34,7 +34,7 @@ import { Online } from './online';
 import type { ReplayUpload } from './replayUpload';
 import { persist, type Save } from './save';
 import { StepLoop } from './stepLoop';
-import { updateTutorial, type Tutorial } from './tutorial';
+import { TUTORIAL_SEED, updateTutorial, type Tutorial } from './tutorial';
 
 export type AppState = 'boot' | 'menu' | 'howto' | 'online' | 'match' | 'result';
 /** solo: against the AI; online: 1v1 through the relay; demo: the AI match behind the menu;
@@ -181,8 +181,9 @@ export class Game {
     this.watching = null;
     this.show(null);
     this.state = 'match';
-    const seed = this.dev.seed ?? randomSeed();
     const tutorial = !this.save.tutorialDone && !this.dev.autoplay;
+    // the first match is always the same map (the card layout comes from the seed)
+    const seed = this.dev.seed ?? (tutorial ? TUTORIAL_SEED : randomSeed());
     const input = new LocalInput();
     this.setupEngine({ seed, aiBlue: this.dev.autoplay, aiRed: true }, TEAM_BLUE, input);
     if (!this.dev.autoplay) this.uploads?.start(this.eng, input.log, TEAM_BLUE);
@@ -385,6 +386,7 @@ export class Game {
       if (w && this.mode === 'watch' && this.state === 'match' && !this.eng.result && this.eng.tick >= w.endTick) this.showResult(null);
     }
     this.ui.demo = this.mode === 'demo';
+    this.ui.look = this.canLook();
     if (online && this.state === 'match') this.renderer.status = this.online.statusLine();
     else if (this.mode === 'watch' && this.state === 'match') this.renderer.status = { text: T('watching') };
     this.controls.keyPan(realDt);

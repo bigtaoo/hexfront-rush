@@ -6,6 +6,7 @@
 // current zoom.
 
 import { Container, Graphics, type Text } from 'pixi.js';
+import { cardCost, standingOf } from '../sim/economy';
 import { OFFER_LIST } from '../sim/rules';
 import { coin, offerIcon } from './bodies';
 import { inView, type Frame } from './frame';
@@ -62,6 +63,7 @@ export class OfferLayer {
   draw(f: Frame): void {
     const eng = f.eng, cam = f.cam;
     const Tm = eng.team[f.local]!;
+    const standing = standingOf(eng, f.local);
     for (const [ti, t] of this.flips) {
       const nt = t + f.dt;
       if (nt > 0.7 || eng.tiles[ti]!.bld) {
@@ -90,7 +92,8 @@ export class OfferLayer {
       const v = cam.tv[i]!;
       if (!inView(f.vis, v.x, v.y)) continue;
       const off = OFFER_LIST[oi]!;
-      const afford = Tm.gold >= off.cost;
+      const cost = cardCost(oi, standing);
+      const afford = Tm.gold >= cost;
       const c = this.card(i);
       c.seen = n;
       const ft = this.flips.get(i);
@@ -112,7 +115,7 @@ export class OfferLayer {
       c.root.alpha = alpha;
       const ctx = cardCtx(off.key, afford);
       if (c.body.context !== ctx) c.body.context = ctx;
-      setLabel(c.cost, String(off.cost), { size: 0.3 * zoom, color: afford ? '#78350f' : '#dc2626', weight: 900 });
+      setLabel(c.cost, String(cost), { size: 0.3 * zoom, color: afford ? '#78350f' : '#dc2626', weight: 900 });
       c.cost.scale.set(1 / zoom);
       if (off.key === 'myst') {
         if (!c.mark) {

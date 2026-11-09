@@ -153,15 +153,45 @@ export function rubbleCtx(): GraphicsContext {
   });
 }
 
-/** The chest's box, without its shadow (the shadow stays on the ground while the box bobs). */
-export function chestCtx(): GraphicsContext {
-  return sharedCtx('chest', (p) => {
-    p.rrect(-0.36, -0.2, 0.72, 0.45, 0.06, '#92400e');
-    p.rrect(-0.38, -0.4, 0.76, 0.25, 0.1, '#b45309');
-    p.rect(-0.38, -0.18, 0.76, 0.06, '#fbbf24');
-    p.rect(-0.05, -0.4, 0.1, 0.65, '#fbbf24');
-    p.circle(0, -0.1, 0.07, '#fde047');
+/** A map event (EVENT_LIST key) without its shadow (the shadow stays on the ground while it bobs):
+ *  a chest, a hoard (a bigger chest under a heap of coins), a camp (a tent with a rare pennant)
+ *  or a warband (a big tent with an epic banner and crossed blades). */
+export function eventCtx(key: string): GraphicsContext {
+  return sharedCtx(`ev|${key}`, (p) => {
+    switch (key) {
+      case 'chest':
+        chestBox(p, 1);
+        break;
+      case 'hoard':
+        chestBox(p, 1.2);
+        for (const [x, y] of [[-0.3, -0.52], [0.28, -0.5], [-0.1, -0.6], [0.1, -0.68], [0.0, -0.52]] as const) coin(p, x, y, 0.13);
+        break;
+      case 'camp':
+        tent(p, 0.85, '#d6b98c', '#a8865a');
+        p.line([0, -0.72, 0, -1.05], '#57534e', 0.05);
+        p.poly([0, -1.05, 0.3, -0.97, 0, -0.88], RARITY_COLOR[1]!);
+        break;
+      case 'warband':
+        tent(p, 1.05, '#7f1d1d', '#5b1414');
+        p.line([-0.55, 0.05, 0.05, -0.75], '#e5e7eb', 0.07);
+        p.line([0.55, 0.05, -0.05, -0.75], '#e5e7eb', 0.07);
+        p.line([0, -0.86, 0, -1.25], '#57534e', 0.05);
+        p.rect(0, -1.25, 0.34, 0.22, RARITY_COLOR[2]!);
+        break;
+    }
   });
+}
+function chestBox(p: Pen, s: number): void {
+  p.rrect(-0.36 * s, -0.2 * s, 0.72 * s, 0.45 * s, 0.06, '#92400e');
+  p.rrect(-0.38 * s, -0.4 * s, 0.76 * s, 0.25 * s, 0.1, '#b45309');
+  p.rect(-0.38 * s, -0.18 * s, 0.76 * s, 0.06 * s, '#fbbf24');
+  p.rect(-0.05 * s, -0.4 * s, 0.1 * s, 0.65 * s, '#fbbf24');
+  p.circle(0, -0.1 * s, 0.07 * s, '#fde047');
+}
+function tent(p: Pen, s: number, light: string, dark: string): void {
+  p.poly([-0.55 * s, 0.25, 0, -0.75 * s, 0.55 * s, 0.25], light, '#3f2a14', 0.04);
+  p.poly([0, -0.75 * s, 0.55 * s, 0.25, 0.2 * s, 0.25], dark);
+  p.poly([-0.14 * s, 0.25, 0, -0.1 * s, 0.14 * s, 0.25], '#1f2937');
 }
 export function shadowCtx(rx: number): GraphicsContext {
   return sharedCtx(`shadow|${rx.toFixed(3)}`, (p) => shadow(p, 0, 0, rx));

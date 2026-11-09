@@ -1,4 +1,7 @@
 // The camera: screen layout (HUD bands, play area), the zoom, and the view point it glides to.
+// Two zooms: play (about VIEW_HEXES x VIEW_ROWS on screen, the camera pans) and the overview (the
+// whole map, nothing pans); `zoomK` glides between them. Where the whole map fits at play zoom
+// there is only the one.
 // View units: one hex radius = 1, y flipped for the red side so forward is always up.
 
 import type { Engine } from '../sim/engine';
@@ -29,8 +32,12 @@ export class Camera {
   /** Screen position of the view origin (before shake). */
   ox = 0;
   oy = 0;
-  /** The whole map is on screen: no camera motion, no minimap. */
+  /** The whole map is on screen: no camera motion, no edge markers. */
   fitAll = true;
+  /** The player asked for the whole map (the overview button, Space, a pinch). */
+  overview = false;
+  /** 0 = play zoom .. 1 = overview, gliding towards `overview`. */
+  zoomK = 0;
   /** Camera centre in view units; null = snap on the next frame. */
   cam: Pt | null = null;
   /** Where the player dragged or jumped to; null = follow the own castle. */
@@ -47,6 +54,22 @@ export class Camera {
     this.tv = eng.tiles.map((t) => ({ x: t.x / FP, y: this.vy(t.y / FP) }));
     this.cam = null;
     this.camGoal = null;
+    this.overview = false;
+    this.zoomK = 0;
+  }
+
+  /** The overview is worth having: the play zoom leaves part of the map off screen. */
+  get canZoom(): boolean {
+    return !this.demo && this.playScale > this.fitScale * 1.05;
+  }
+  /** Zoom out to the whole map, or back in (centred on `at`, a view point, when given). */
+  setOverview(on: boolean, at?: Pt): void {
+    if (on && !this.canZoom) return;
+    this.overview = on;
+    if (!on && at) {
+      const c = this.clamp(this.playScale, at.x, at.y);
+      this.camGoal = c;
+    }
   }
 
   vy(y: number): number {
@@ -73,7 +96,12 @@ export class Camera {
     this.playScale = Math.max(fit, zoom);
     this.availH = availH;
     this.viewCY = this.hudTop + 4 + availH / 2;
-    this.setScale(this.demo ? fit : this.playScale);
+    this.setScale(this.zoomScale());
+  }
+  /** The scale for the current zoomK (eased, geometric between the two zooms). */
+  private zoomScale(): number {
+    const k = this.zoomK, e = k * k * (3 - 2 * k);
+    return this.playScale * Math.pow(this.fitScale / this.playScale, e);
   }
   private setScale(sc: number): void {
     this.scale = sc;
@@ -81,17 +109,23 @@ export class Camera {
     if (this.cam) this.placeCamera(this.cam.x, this.cam.y);
   }
 
-  /** Clamp a camera centre to the map and derive the screen offsets from it. */
-  placeCamera(x: number, y: number): void {
-    const hw = this.W / 2 / this.scale, hh = this.availH / 2 / this.scale;
+  /** A camera centre kept on the map at a given scale. */
+  private clamp(scale: number, x: number, y: number): Pt {
+    const hw = this.W / 2 / scale, hh = this.availH / 2 / scale;
     x = MAP_X1 - MAP_X0 <= 2 * hw ? (MAP_X0 + MAP_X1) / 2 : Math.max(MAP_X0 + hw, Math.min(MAP_X1 - hw, x));
     y = MAP_Y1 - MAP_Y0 <= 2 * hh ? (MAP_Y0 + MAP_Y1) / 2 : Math.max(MAP_Y0 + hh, Math.min(MAP_Y1 - hh, y));
+    return { x, y };
+  }
+  /** Clamp a camera centre to the map and derive the screen offsets from it. */
+  placeCamera(x: number, y: number): void {
+    ({ x, y } = this.clamp(this.scale, x, y));
     this.cam = { x, y };
     this.ox = this.W / 2 - x * this.scale;
     this.oy = this.viewCY - y * this.scale;
   }
   /** The enemy castle for the first beat of the intro, then a little ahead of the own castle
-   *  (forward is always up), then wherever the player dragged it or jumped to on the minimap. */
+   *  (forward is always up), then wherever the player dragged it or jumped to (an edge marker, a
+   *  tap in the overview). */
   private goal(eng: Engine): Pt {
     const me = this.local;
     if (eng.phase === PHASE_INTRO && eng.introT > INTRO_TICKS - ticks(1.3)) return this.tv[baseTile(enemyOf(me))]!;
@@ -107,18 +141,26 @@ export class Camera {
     this.placeCamera(this.cam.x - dx / this.scale, this.cam.y - dy / this.scale);
     this.camGoal = { x: this.cam.x, y: this.cam.y };
   }
-  /** Glide to a view point (a minimap tap, a key press). */
+  /** Glide to a view point at play zoom (an edge marker tap). */
   lookAt(vx: number, vy: number): void {
     if (!this.cam) return;
-    const keep = this.cam;
-    this.placeCamera(vx, vy); // clamp the goal the way the camera is clamped
-    this.camGoal = { x: this.cam.x, y: this.cam.y };
-    this.placeCamera(keep.x, keep.y);
+    this.overview = false;
+    this.camGoal = this.clamp(this.playScale, vx, vy);
   }
   update(eng: Engine, dt: number, demo: boolean): void {
     if (demo !== this.demo) {
       this.demo = demo;
-      this.setScale(demo ? this.fitScale : this.playScale);
+      this.overview = false;
+      this.zoomK = demo ? 1 : 0;
+      this.setScale(this.zoomScale());
+    }
+    if (!demo) {
+      const want = this.overview ? 1 : 0;
+      if (this.zoomK !== want) {
+        const k = this.zoomK + (want - this.zoomK) * (1 - Math.exp(-dt * 9));
+        this.zoomK = Math.abs(want - k) < 0.003 ? want : k;
+        this.setScale(this.zoomScale());
+      }
     }
     const g = demo ? { x: (MAP_X0 + MAP_X1) / 2, y: (MAP_Y0 + MAP_Y1) / 2 } : this.goal(eng);
     if (!this.cam) {

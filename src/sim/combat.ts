@@ -4,7 +4,7 @@
 import type { Engine } from './engine';
 import { dist, dist2, muldiv } from './fixed';
 import type { Tile } from './map';
-import { BUILD, enemyOf, GUARD, PROJ, TEAM_BLUE, TEAM_RED, UNIT_CAP, UNITS, type Missile, type UnitKey } from './rules';
+import { BUILD, enemyOf, GUARD, PROJ, siegePct, TEAM_BLUE, TEAM_RED, unitCap, UNITS, type Missile, type UnitKey } from './rules';
 import { isDown, type Building, type Entity, type Guard, type Unit } from './types';
 
 export function spawnUnit(e: Engine, team: number, type: UnitKey, x: number, y: number, barId: number): Unit {
@@ -14,6 +14,7 @@ export function spawnUnit(e: Engine, team: number, type: UnitKey, x: number, y: 
     kind: 'unit', type, team, id: e.nextId++, x, y, px: x, py: y, hp: def.hp, maxhp: def.hp,
     cd: Math.trunc(def.rate / 2), alive: 1, tgt: 0, retT: 0, step: -1, tile: t ? t.i : -1, bar: barId,
     hitT: -1000, lungeT: -1000, face: team === TEAM_BLUE ? 1 : -1, lane: e.rng.unit.int(1000), bornT: e.tick,
+    hold: barId ? 1 : 0, // a barracks troop waits for the wave; a mystery's sets off at once
   };
   e.units.push(u);
   e.ents.set(u.id, u);
@@ -87,7 +88,7 @@ export function fire(e: Engine, src: Entity, target: Entity, dmg: number, kind: 
 }
 
 export function damage(e: Engine, target: Entity, amount: number, srcTeam: number, bldMult: number): void {
-  if (target.kind === 'bld') amount *= bldMult;
+  if (target.kind === 'bld') amount = muldiv(amount * bldMult, siegePct(e.elapsed()), 100);
   if (isDown(target)) return;
   target.hp -= amount;
   target.hitT = e.tick;
@@ -142,6 +143,7 @@ export function claimTile(e: Engine, team: number, t: Tile): void {
 export function updateBuildings(e: Engine): void {
   const alive = [0, 0, 0];
   for (const u of e.units) if (u.alive) alive[u.team]++;
+  const ready: Building[] = [];
   for (const b of e.blds) {
     const def = BUILD[b.type];
     if (def.dmg) {
@@ -155,15 +157,20 @@ export function updateBuildings(e: Engine): void {
       }
     }
     if (b.type === 'barracks' && b.unit) {
-      // trains on its own timer for the whole match; each new troop marches on the enemy castle.
-      // At the team cap the timer stays full and the troop comes out the moment a slot frees.
       if (b.spawnT > 0) b.spawnT--;
-      if (b.spawnT <= 0 && alive[b.team] < UNIT_CAP) {
-        b.spawnT = UNITS[b.unit].spawn;
-        alive[b.team]++;
-        spawnUnit(e, b.team, b.unit, b.x + e.rng.unit.range(-250, 250), b.y + (b.team === TEAM_BLUE ? -300 : 300), b.id);
-      }
+      if (b.spawnT <= 0) ready.push(b);
     }
+  }
+  // A barracks trains on its own timer for the whole match; each new troop marches on the enemy
+  // castle. At the team cap the timer stays full, and a freed slot goes to the rarest troop
+  // waiting (the older barracks among equals): a capped army gets better, not just replaced.
+  if (ready.length > 1) ready.sort((a, b) => b.rarity - a.rarity);
+  const cap = unitCap(e.elapsed());
+  for (const b of ready) {
+    if (alive[b.team] >= cap || !b.unit) continue;
+    b.spawnT = UNITS[b.unit].spawn;
+    alive[b.team]++;
+    spawnUnit(e, b.team, b.unit, b.x + e.rng.unit.range(-250, 250), b.y + (b.team === TEAM_BLUE ? -300 : 300), b.id);
   }
 }
 

@@ -1,11 +1,27 @@
-// Gold, chests, quests and buying: what a flipped card does.
+// Gold, map events, quests and buying: what a flipped card does.
 
+import { fillerRarity } from './cardLayout';
 import type { Engine } from './engine';
-import { COLS, idx, MID_ROW, ROWS } from './hex';
-import { baseTile } from './map';
+import { baseTile, type Tile } from './map';
 import {
-  BUILD, CHEST, MYSTERY_ODDS, OFFER_LIST, QUESTS, TEAM_BLUE, TEAM_RED, TEAMS, type BuildingType, type Quest,
+  BUILD, EVENT_LIST, MYSTERY, MYSTERY_W_TOTAL, OFFER_LIST, QUESTS, TEAM_BLUE, TEAM_RED, TEAMS, type BuildingType, type OfferKind, type Quest,
 } from './rules';
+
+/** How many buildings of each card kind a team has standing (what card prices go up with). */
+export type Standing = Record<OfferKind, number>;
+
+export function standingOf(e: Engine, team: number): Standing {
+  const s: Standing = { mine: 0, tower: 0, barracks: 0, mystery: 0 };
+  for (const b of e.blds) if (b.team === team && b.type !== 'base') s[b.type]++;
+  return s;
+}
+
+/** What card oi costs a team with `s` standing: its base price, plus its step for each building
+ *  of its kind standing, so the tenth mine pays back far slower than the first. */
+export function cardCost(oi: number, s: Standing): number {
+  const off = OFFER_LIST[oi];
+  return off.cost + off.step * s[off.kind];
+}
 
 /** The team's current quest and its progress (capped at the goal), or null when all are done. */
 export function questOf(e: Engine, team: number): { q: Quest; prog: number } | null {
@@ -41,20 +57,18 @@ export function updateEconomy(e: Engine): void {
   }
 }
 
-/** Every CHEST.every ticks a mirrored pair of chests appears just short of the middle row. */
-export function updateChests(e: Engine): void {
-  if (--e.chestT > 0) return;
-  e.chestT = CHEST.every;
-  const rng = e.rng.chest;
-  for (let tries = 0; tries < 40; tries++) {
-    const r = MID_ROW - 3 + rng.int(3); // the three rows before the middle, mirrored past it
-    const c = rng.int(COLS);
-    const a = e.tiles[idx(c, r)], b = e.tiles[idx(c, ROWS - 1 - r)];
-    if (a.obst || b.obst || a.bld || b.bld || a.chest || b.chest) continue;
-    a.chest = b.chest = 1;
-    e.emit('chestSpawn', { a: a.i, b: b.i });
-    break;
-  }
+/** The first team to flip the card on a map event's tile claims the event: its gold, or its
+ *  troops (one kind, setting off at once, on top of the cap). */
+function claimEvent(e: Engine, team: number, tile: Tile): void {
+  const ev = tile.event;
+  if (!ev) return;
+  tile.event = 0;
+  const d = EVENT_LIST[ev];
+  e.team[team].gold += d.gold;
+  const unit = d.troops ? e.pickUnit(d.rarity) : undefined;
+  for (let k = 0; k < d.troops; k++) e.spawnUnit(team, unit!, tile.x + (k - 1) * 400, tile.y + 200, 0);
+  e.emit('mapEvent', { team, kind: d.key, gold: d.gold, unit, n: d.troops, rarity: d.rarity, x: tile.x, y: tile.y });
+  e.emit('burst', { x: tile.x, y: tile.y, color: '#fde047', n: 18 });
 }
 
 /** Flip the card on tile ti: pay for it and build (or roll the mystery). Either way the tile is
@@ -66,37 +80,49 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
   const tile = e.tiles[ti];
   if (tile.bld || tile.obst) return false;
   const off = OFFER_LIST[oi];
-  if (T.gold < off.cost) {
+  const cost = cardCost(oi, standingOf(e, team));
+  if (T.gold < cost) {
     e.emit('needGold', { team, x: tile.x, y: tile.y });
     return false;
   }
-  T.gold -= off.cost;
+  T.gold -= cost;
   T.built[off.kind]++;
+  claimEvent(e, team, tile);
   if (off.kind === 'mystery') {
     // whatever it gives, the tile is flipped: its card is spent and the tiles around it open up
     T.open[ti] = 1;
     T.offers[ti] = -1;
     tile.owner = team;
-    let r = e.rng.loot.int(100), roll = 0;
-    while (roll < 3 && r >= MYSTERY_ODDS[roll]) {
-      r -= MYSTERY_ODDS[roll];
+    let r = e.rng.loot.int(MYSTERY_W_TOTAL), roll = 0;
+    while (roll < MYSTERY.length - 1 && r >= MYSTERY[roll].w) {
+      r -= MYSTERY[roll].w;
       roll++;
     }
-    if (roll === 0) {
-      e.emit('mysteryNothing', { team, x: tile.x, y: tile.y });
-    } else {
-      const rarity = roll === 1 ? 0 : roll === 2 ? 2 : 3;
-      const type = e.pickUnit(rarity);
-      const n = rarity === 0 ? 3 : 1;
-      for (let k = 0; k < n; k++) e.spawnUnit(team, type, tile.x + (k - 1) * 400, tile.y + 200, 0);
-      e.emit('mysteryWin', { team, x: tile.x, y: tile.y, unit: type, rarity });
-    }
+    const m = MYSTERY[roll];
     e.emit('burst', { x: tile.x, y: tile.y, color: '#fde047', n: 14 });
+    if (m.squad) {
+      const type = e.pickUnit(m.squad.rarity);
+      for (let k = 0; k < m.squad.n; k++) e.spawnUnit(team, type, tile.x + (k - 1) * 400, tile.y + 200, 0);
+      e.emit('mysteryWin', { team, x: tile.x, y: tile.y, unit: type, rarity: m.squad.rarity, n: m.squad.n, r: roll });
+    } else if (m.barracks !== undefined) {
+      // a barracks on the tile: it trains for good, claims the ground and counts as a barracks
+      const unit = e.pickUnit(m.barracks);
+      e.addBuilding(team, 'barracks', ti, { unit, rarity: m.barracks });
+      T.built.barracks++;
+      e.emit('mysteryWin', { team, x: tile.x, y: tile.y, unit, rarity: m.barracks, kind: 'barracks', r: roll });
+      e.recomputeOffers(TEAM_BLUE);
+      e.recomputeOffers(TEAM_RED);
+      return true;
+    } else {
+      e.emit('mysteryNothing', { team, x: tile.x, y: tile.y, r: roll });
+    }
     e.recomputeOffers(team);
     return true;
   }
   if (off.kind === 'barracks') {
-    const rarity = e.rollRarity(off.odds!);
+    // the layout's barracks, or a filler one on rubble
+    const lay = e.layout;
+    const rarity = !tile.rubble && lay.card[team]![ti] === oi ? lay.rarity[team]![ti]! : fillerRarity(e.rng.loot, oi);
     const unit = e.pickUnit(rarity);
     e.addBuilding(team, 'barracks', ti, { unit, rarity });
     e.emit('barracks', { team, unit, rarity, x: tile.x, y: tile.y });

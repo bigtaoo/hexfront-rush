@@ -56,6 +56,8 @@ export interface Unit {
   face: number;
   lane: number;
   bornT: number;
+  /** 1 while it waits where it was trained for the next wave (it still fights what comes near). */
+  hold: number;
 }
 
 export interface Building {
@@ -125,7 +127,7 @@ export interface MatchResult {
 }
 
 export type SimEventType =
-  | 'count' | 'fight' | 'oneMinute' | 'tick' | 'end' | 'quest' | 'income' | 'chestSpawn' | 'chest'
+  | 'count' | 'fight' | 'wave' | 'siege' | 'end' | 'quest' | 'income' | 'mapEvent'
   | 'needGold' | 'mysteryNothing' | 'mysteryWin' | 'burst' | 'barracks' | 'built' | 'spawn' | 'dmg'
   | 'guardDown' | 'guardBack' | 'unitDown' | 'bldDown' | 'shoot' | 'melee' | 'ring' | 'hit';
 

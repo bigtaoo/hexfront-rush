@@ -1,10 +1,10 @@
 // Troops on the move: targeting, marching down the flow field, pathing around rocks, keeping
-// apart, capturing tiles and chests; and the missiles in flight.
+// apart, capturing tiles; and the missiles in flight.
 
 import { claimTile, damage, enemiesOf, fire, moveToward, nearestEnemyBuilding, nearestEnemyMobile } from './combat';
 import type { Engine } from './engine';
 import { dist, dist2, isqrt, muldiv } from './fixed';
-import { CHEST, enemyOf, PROJ, UNITS } from './rules';
+import { enemyOf, PROJ, UNITS } from './rules';
 import type { Entity, Unit } from './types';
 
 export function updateUnits(e: Engine): void {
@@ -40,22 +40,16 @@ export function updateUnits(e: Engine): void {
         }
         if (Math.abs(tg.x - u.x) > 50) u.face = tg.x > u.x ? 1 : -1;
       } else unitStepToward(e, u, tg, def.speed);
-    } else unitMarch(e, u, def.speed);
+    } else if (!u.hold) unitMarch(e, u, def.speed);
   }
   separate(e);
-  // tile capture; a troop that walks onto a chest picks it up for its team
+  // tile capture
   for (const u of e.units) {
     if (!u.alive) continue;
     const t = e.tileAt(u.x, u.y);
     if (t && t.i !== u.tile) {
       u.tile = t.i;
       claimTile(e, u.team, t);
-      if (t.chest) {
-        t.chest = 0;
-        e.team[u.team].gold += CHEST.gold;
-        e.emit('chest', { team: u.team, gold: CHEST.gold, x: t.x, y: t.y });
-        e.emit('burst', { x: t.x, y: t.y, color: '#fde047', n: 10 });
-      }
     }
   }
   let dead = 0;

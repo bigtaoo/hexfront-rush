@@ -7,7 +7,7 @@ import { tryBuy } from './economy';
 import { Engine } from './engine';
 import { NTILES } from './hex';
 import { baseTile } from './map';
-import { OF_MINE, OF_MYST, TEAM_BLUE, TEAM_RED } from './rules';
+import { OF_MINE, OF_MYST, TEAM_BLUE, TEAM_RED, UNITS } from './rules';
 
 const fresh = () => new Engine({ seed: 31, aiBlue: false, aiRed: false });
 /** Tiles with a card for `team`. */
@@ -37,7 +37,7 @@ describe('cards', () => {
   });
 
   it('a mystery that gives nothing still opens the tiles around it, and is spent', () => {
-    // flip mysteries until one gives nothing (70 %)
+    // flip mysteries until one gives nothing (60 %)
     for (let seed = 1; seed < 40; seed++) {
       const e = new Engine({ seed, aiBlue: false, aiRed: false });
       const T = e.team[TEAM_BLUE]!;
@@ -46,7 +46,7 @@ describe('cards', () => {
       T.gold = 1000;
       const units = e.units.length;
       expect(tryBuy(e, TEAM_BLUE, ti)).toBe(true);
-      if (e.units.length !== units) continue;
+      if (e.units.length !== units || e.tiles[ti]!.bld) continue;
       expect(T.open[ti]).toBe(1);
       expect(T.offers[ti]).toBe(-1);
       expect(e.tiles[ti]!.owner).toBe(TEAM_BLUE);
@@ -54,6 +54,31 @@ describe('cards', () => {
       return;
     }
     throw new Error('no mystery gave nothing');
+  });
+
+  it('a mystery can give a barracks: it stands on the tile, trains for good and counts as one', () => {
+    for (let seed = 1; seed < 200; seed++) {
+      const e = new Engine({ seed, aiBlue: false, aiRed: false });
+      const T = e.team[TEAM_BLUE]!;
+      const { ti, beyond } = frontier(e, TEAM_BLUE);
+      T.offers[ti] = OF_MYST;
+      T.gold = 1000;
+      const units = e.units.length;
+      expect(tryBuy(e, TEAM_BLUE, ti)).toBe(true);
+      const b = e.blds.find((x) => x.alive && x.tile === ti);
+      if (!b) continue;
+      expect(b.type).toBe('barracks');
+      expect(b.team).toBe(TEAM_BLUE);
+      expect(b.rarity).toBeGreaterThanOrEqual(1);
+      expect(UNITS[b.unit as keyof typeof UNITS].rarity).toBe(b.rarity);
+      expect(e.units.length).toBe(units);
+      expect(T.built.mystery).toBe(1);
+      expect(T.built.barracks).toBe(1);
+      expect(T.offers[ti]).toBe(-1);
+      for (const m of beyond) expect(T.offers[m]).toBeGreaterThanOrEqual(0);
+      return;
+    }
+    throw new Error('no mystery gave a barracks');
   });
 
   it('a building opens the tiles around it; when it falls its tile takes a card again', () => {

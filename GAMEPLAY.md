@@ -4,12 +4,11 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 
 ## Match flow
 1. **Intro:** show a map overview, count down 3-2-1, then "FIGHT!".
-2. **Match length:** 3:00. A "1 minute left" alert fires at 60 s. The last 10 s show a big countdown.
-3. **End of match:**
-   - The match ends early if a castle is destroyed; that player loses immediately.
-   - Otherwise, when time runs out, whoever owns more tiles wins. Equal counts are a draw.
-4. **Results screen:** shows the outcome and both tile counts. "Play again" leads to an interstitial ad. "Watch replay" plays the match back (speed button 1×/2×/4×/8× beside the exit flag; the flag goes back to the menu).
-5. **Replays:** solo matches are sent anonymously to the relay so the game can be tuned from real play. A menu switch turns this off, and online matches are recorded by the relay itself. See ENGINE.md, **Replays**.
+2. **No clock:** a match runs until a castle falls; the player whose castle falls loses. The HUD clock counts up. AI-vs-AI matches last about 3½ minutes (median; 90 % are over by 5:00).
+3. **Siege:** from 8:00 on, every minute both sides' troops hit buildings 25 % harder and the troop cap rises by 10 ("SIEGE!" banner, a "siege +N%" tag by the clock). It is the same for both: the side with more and better barracks fills the new room first and breaks through.
+4. **Stalemate valve:** only past 25:00 does the match end on tiles (more tiles wins, equal is a draw). Balance runs never get there.
+5. **Results screen:** shows the outcome and both tile counts. "Play again" leads to an interstitial ad. "Watch replay" plays the match back (speed button 1×/2×/4×/8× beside the exit flag; the flag goes back to the menu).
+6. **Replays:** solo matches are sent anonymously to the relay so the game can be tuned from real play. A menu switch turns this off, and online matches are recorded by the relay itself. See ENGINE.md, **Replays**.
 
 ## Map
 - Hex grid, pointy-top, 13 columns × 25 rows (325 tiles). Castles sit on row 4 (red) and row 20 (blue), each with 4 rows of back yard behind it, so the front line is about 16 rows deep.
@@ -22,9 +21,10 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 
   The castle and every tile within 3 steps of it stay clear. The map is checked for connectivity and keeps 7–20 % obstacles.
 - **Camera:** the play view shows about 11 hexes across and 17 rows. The intro opens on the enemy castle and pans home; after that the camera stays where the player puts it: drag the map, scroll the mouse wheel or hold WASD / the arrow keys. It never leaves the map. The menu's AI demo shows the whole map.
-- **Minimap:** top right, the whole field: owned tiles, buildings, troops, guards, and the part of the map on screen. Tapping it glides the camera there.
+- **Overview:** the map is only a little bigger than the play view, so there is no minimap. The magnifier button (top right of the play area), Space, a pinch or Ctrl + the wheel (a trackpad pinch) zoom out to the whole map; tapping the map there zooms back in on that spot (a pinch out, Ctrl + wheel up, Space or the button again also come back). Cards cannot be flipped in the overview: a tap only zooms in. Where the whole map fits at play zoom (a large screen) the button does not show.
+- **Edge markers:** at play zoom, markers on the edge of the play area point at what is off screen; tapping one glides the camera there. Every map event still waiting has a quiet marker with its icon (gold rim for gold, rarity colour for troops). Things that just happened off screen ping a bright marker for about 3 s: an event claimed (gold when you took it, red when the rival did), your castle under attack (at most every 5 s), a building lost (red) or destroyed (gold), and an epic or legendary barracks the rival raised.
 - Each match picks one of three themes: Meadow, Desert or Snow.
-- Each player starts with a castle and its 6 neighbouring tiles. Blue's castle is at the bottom, red's at the top. Each player always sees their own castle at the bottom: the red player's view is mirrored top to bottom.
+- Each player starts with a castle and the 6 cards around it. Blue's castle is at the bottom, red's at the top. Each player always sees their own castle at the bottom: the red player's view is mirrored top to bottom.
 
 ## The player's move: flipping cards
 - The player has no avatar. The **only** action is tapping a card.
@@ -35,7 +35,7 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 - A drag of more than 10 px moves the camera instead of tapping.
 
 ## Castle and guard
-- The castle works like a built-in gold mine: +10 gold every 3 s, shown by a coin timer on the castle. It has 2000 HP and no longer shoots.
+- The castle works like a built-in gold mine: +10 gold every 3 s, shown by a coin timer on the castle. It has 3000 HP and does not shoot.
 - Each castle has a **guard**, a knight the player does not control:
   - wanders at random among the tiles up to 2 steps from the castle, pausing a moment at each: it picks a spot ahead of the castle 6 times as often as one behind it, and one level with it 3 times as often, so it spends about 80% of the time in front, 15% at the sides and 5% behind;
   - walks around the castle, not through it;
@@ -47,21 +47,61 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 ## Economy and building
 - **Gold:** start with 60.
   - The castle gives +10 every 3 s.
-  - Each gold mine gives +10 every 4 s.
-  - Chests appear in mirrored pairs every 20 s; the first troop to walk onto one picks up +40 for its team.
-- **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a fixed type and price. Tapping a card you can afford builds it. The price shows red when you can't afford it.
+  - Each gold mine gives +10 every 5 s.
+  - Map events (below) pay gold or troops to whoever flips their card first.
+- **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a type and price. Tapping a card you can afford builds it. The price shows red when you can't afford it.
 - **Network:** every flip, a building or a mystery, extends your network and reveals the offers around it.
+- **Rising prices:** each card costs its base price plus a step for every building of its kind the team has standing (a mystery stays 25). Losing a building makes the next one cheaper again.
 
-| Offer | Cost | Effect |
+| Offer | Base | Step | Effect |
+|---|---|---|---|
+| Gold mine | 50 | +15 | +10 gold every 5 s |
+| Watchtower | 50 | +25 | Shoots enemies within 2.8 tiles (22 dmg every 0.8 s) |
+| Barracks I | 50 | +5 | Common, 20 % rare (or a hidden jackpot, below) |
+| Barracks II | 100 | +5 | Rare 65 %, else common (or a hidden jackpot) |
+| Barracks III | 200 | +5 | Always epic or legendary |
+| Mystery "?" | 25 | — | 60 % nothing. A squad that sets off at once: 10 % three common units, 12 % two epic, 4 % two legendary. A barracks on the tile that trains for good: 9 % rare, 4 % epic, 1 % legendary |
+
+- **Barracks:** a barracks trains one unit type on a fixed timer for the rest of the match (common 7 s, rare 9 s, epic 12 s, legendary 18 s). Its troops gather by it and set off together on the **wave**: every 15 s both teams' troops march at once (the HUD counts down to it), so armies meet armies, not a trickle. A team can have at most 50 troops alive; at the cap a barracks waits with its timer full (grey), and a freed slot goes to the rarest troop waiting. Mystery troops come on top of the cap and set off at once. A barracks from a mystery is a barracks like any other: it claims the ground around it, counts toward the barracks price and the barracks quest, and the rival's epic or legendary one pings an edge marker. A card shows what you rolled (the unit, its rarity, and whether it is a squad marching now or a barracks); a legendary roll gets a full banner.
+
+## Card layout (cardLayout.ts)
+Every card on the map is laid out when the match starts, from the match seed: the same seed is the same map, card for card (the tutorial always plays seed 2). The layout is made for blue and mirrored for red, so both find the same cards at the same distance from their own castle. Cards stay face-down until they are next to a tile you have flipped, so finding the good ones is luck and the way you spread is the plan.
+
+Zones count hex distance from your own castle:
+
+| Zone | Distance | Gold mines | Epic barracks | Legendary barracks |
+|---|---|---|---|---|
+| Home | 1–2 | 2 | 0 | 0 |
+| Near | 3–4 | 3 | 1 | 0 |
+| Middle | 5–7 | 3 | 2 | 1 |
+| Far (enemy half) | 8+ | 3 | 2 | 1 |
+| **Cap per match** | | **11** | **5** | **2** |
+
+- The six cards around the castle always hold a mine, a Barracks I and a mystery (in a seeded order); that mine is one of the home zone's two.
+- Mines never stand next to each other, and the epic and legendary spots keep apart the same way.
+- An epic or legendary spot shows a Barracks I (15 %), II (25 %) or III (60 %) card: a cheap card can hide a jackpot, and a Barracks III card is always one.
+- Every other tile gets a filler card by weight: tower 28, Barracks I 34, Barracks II 22, mystery 16. A filler barracks is common or rare, rolled with the layout.
+- A mystery is still a gamble: what it gives is rolled when it is flipped.
+- A tile that comes free again after its building fell (rubble) gets a fresh filler card, never a mine or a jackpot: a lost mine is gone for good.
+- The map events are laid out with the cards, from the same stream after them (so adding them moved no card): see Map events.
+- Numbers from 300 AI-vs-AI matches (before the map events): per side, 4.2 of the 11 mines are seen and 3.8 flipped; 1.6 of the 7 jackpot barracks are seen and 0.9 built. The side with more mines at 1:30 wins 70 % (81 % before the layout), the side with more epic+legendary barracks 89 %, more mystery jackpots 72 %; 30 % of winners were behind on tiles (under 40 %) after the first minute.
+- Mystery barracks (120 AI-vs-AI matches, with the map events): about 1.7 barracks per side per match come from mysteries (14 % of mystery flips). Matches run as long as before (median 3:36), and they open a way back: the side with more epic+legendary barracks from the cards won 83 % (94 % without them), the side with more mystery barracks 76 %.
+
+## Map events
+Events stand on the map from the start, face up for both players: the one thing a player can plan a route toward. The cards stay hidden; an event says nothing about the card under it. The first team to flip the card on an event's tile (a building or a mystery, at any price) claims it; a troop walking over it does not.
+
+| Event | Look | Reward |
 |---|---|---|
-| Gold mine | 50 | +10 gold every 4 s |
-| Watchtower | 50 | Shoots enemies within 2.6 tiles |
-| Barracks I | 50 | Rarity: common 74 / rare 20 / epic 5 / legendary 1 % |
-| Barracks II | 100 | Rarity: common 30 / rare 60 / epic 8 / legendary 2 % |
-| Barracks III | 250 | Rarity: epic 90 / legendary 10 % |
-| Mystery "?" | 25 | 70 % nothing; 10 % common squad; 15 % epic unit; 5 % legendary unit |
+| Chest | a chest | +60 gold |
+| Hoard | a big chest under a heap of coins | +150 gold |
+| Camp | a tent with a blue (rare) pennant | 3 rare troops of one kind |
+| Warband | a big red tent with a purple (epic) banner | 2 epic troops of one kind |
 
-- **Barracks:** when built, a barracks rolls one unit type and then trains one of it on a fixed timer for the rest of the match (common 7 s, rare 9 s, epic 12 s, legendary 18 s). Each troop marches on the enemy castle by itself. A team can have at most 40 troops alive; at the cap the timer stays full (grey) and the next troop comes out as soon as one falls. A card shows what you rolled; a legendary roll gets a full banner.
+- **Where (EVENT_LAYOUT, rules.ts):** each side has its own, mirrored for red: a chest in the near zone, a chest and a camp in the middle zone. The middle row holds a hoard and a warband, as far from one castle as from the other: a race. Events keep 3 tiles apart (mirrors included) and never stand on rocks; the same seed puts them in the same place.
+- **Troops** from a camp or a warband set off at once and come on top of the troop cap, like a mystery's.
+- **On screen:** on free ground an event stands full size and bobs; once you have a card on its tile it shrinks to a badge on the card's corner. An edge marker points at every waiting event that is off screen (gold for gold, rarity colour for troops), and a claim off screen pings one. Claiming one shows "+60 gold" with flying coins or the troops' card; when the rival gets there first, "Rival got there first".
+- **AI:** a card on an event's tile is worth the event too (gold/2, or per troop 8/15/30/50 by rarity), and a card up to 3 tiles short of one a share of it, so the AI paves toward events without dropping its economy.
+- Numbers from 300 AI-vs-AI matches: per side, 1.3 of 2 chests, 0.6 of 1 camp and 0.3 each of the hoard and warband are claimed; 3.1 of the 8 events are left at the end. The middle row is claimed at 2:47 median (p90 4:12). The side with more event worth won 76 %, which is partly cause and partly effect (the side ahead reaches the middle first). Median length 3:44; 34 % of winners were behind on tiles after the first minute (30 % before the events).
 
 ## Units
 
@@ -83,7 +123,7 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 ## HUD
 - **Top:**
   - Tile tug-of-war bar, blue vs red, with counts.
-  - Timer.
+  - Clock (counting up), the next wave's countdown (yellow in its last 3 s) and, in a siege, the siege tag.
   - Units alive for each side.
 - **Bottom:**
   - Gold.
@@ -92,18 +132,20 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 
 ## Rival AI
 - Plays by the same rule as a person: every 0.5–1 s it may flip one of its cards.
-- Values each card: mines early (fewer once it has 6), barracks (the dearer the better), towers by how many enemy troops are near home, mystery last (but above a surplus mine or tower, since it opens the ground around it).
-- Saves up when a better card is on the board and within 40 gold of its purse, instead of spending on a much weaker one.
-- Prefers cards toward the front, more strongly after the first minute.
+- It sees only its own face-up cards, like a person (never the hidden layout or rarities).
+- Values each card: mines early (fewer once it has 6, fewer still past 9), barracks (the dearer the better; a common one is little use once its army is at the cap), towers by how many enemy troops are near home, a mystery higher when gold piles up or the army is capped.
+- Saves up when a better card is on the board and within 40 gold of its purse (a Barracks III: within 200, unless home is under attack), instead of spending on a much weaker one. When gold piles up past 150 with nothing better, it takes even a weak card.
+- Plans where things go: mines toward the back, barracks and towers toward the front, more strongly after the first minute.
 
 ## Onboarding
-The first match starts with a "How to play" card, followed by contextual hints:
+The first match starts with a "How to play" card, followed by contextual hints. It always plays on the same map (seed 2, a meadow), so the cards it points at are always the same:
 1. Build (tap a card).
 2. Barracks.
-3. Win condition.
+3. Map events: "Chests and camps go to whoever flips their card first" (8 s).
+4. Win condition.
 
 A pointing hand taps where the current step wants the player: the nearest affordable card to the castle (build), then a
-barracks card (barracks).
+barracks card (barracks), then the nearest map event (events).
 
 ## Online 1v1 (lockstep)
 - **Menu → Online 1v1:** "Create room" shows a 4-letter code. The rival types it and presses "Join". The creator plays blue, the joiner plays red.
@@ -145,7 +187,7 @@ Ported from Holy Kicker.
 - Hit flash is a white overlay.
 - Trauma screen shake on building loss.
 - Damage numbers on guards, troops and buildings; hits within 0.4 s merge and re-pop.
-- Coins fly from mines, chests and quests into the gold pill, which pops as they land and shakes red when the player can't afford something.
+- Coins fly from mines, map events and quests into the gold pill, which pops as they land and shakes red when the player can't afford something.
 - Results reveal one item after another, and the score counts up.
 
 ## Dev switches (localhost only)
@@ -160,6 +202,6 @@ Run all of these from this folder.
 - **Play:** `npm run dev`, then http://localhost:5207.
 - **Online locally:** also `npm run relay` (port 8787), then open http://localhost:5207 in two tabs.
 - **All checks:** `npm run check` (typecheck, vitest, file length). Tests cover determinism, golden hashes, replay, loopback netcode and the determinism lint.
-- **Balance:** `npm run balance` plays 8 seeded AI-vs-AI matches.
+- **Balance:** `npm run balance` plays 120 seeded AI-vs-AI matches (`N=300 npm run balance` for more; `npm run balance -- 5 12 99` prints a line per seed) and reports match length, sides, comebacks, flips, rarities, how much of the card layout each side found, and how often each kind of luck won.
 - **Replays:** `npm run replays` plays the relay's kept matches again and reports how they went.
 - **Package:** `npm run build:playgama` writes `../dist/hexfront-playgama.zip`.

@@ -10,12 +10,13 @@
 // teams) and the view decides what to draw or play: no effects, strings or audio live here.
 //
 // The class holds the state and the step; the systems live beside it as functions of the engine:
-// economy.ts (gold, chests, quests, buying), combat.ts (buildings, damage, claiming tiles),
+// economy.ts (gold, map events, quests, buying), combat.ts (buildings, damage, claiming tiles),
 // guard.ts (the castle guards), troops.ts (marching, separation, projectiles) and ai.ts.
 
 import { aiUpdate } from './ai';
+import { cardLayout, fillerCard, type CardLayout } from './cardLayout';
 import { spawnUnit, updateBuildings } from './combat';
-import { tryBuy, updateChests, updateEconomy, updateQuests } from './economy';
+import { tryBuy, updateEconomy, updateQuests } from './economy';
 import { ticks, TICK_RATE } from './fixed';
 import { hashState } from './hash';
 import { idx, inMap, NTILES, worldToHex } from './hex';
@@ -23,7 +24,7 @@ import type { Cmd } from './input';
 import { baseTile, generateMap, type Theme, type ThemeKey, type Tile } from './map';
 import { Prng, streamSeed } from './prng';
 import {
-  BLD_RADIUS, BUILD, CHEST, ENGINE_VERSION, enemyOf, GUARD, INTRO_TICKS, MATCH_TICKS, OF_MINE, OFFER_LIST, OFFER_W_TOTAL,
+  BLD_RADIUS, BUILD, ENGINE_VERSION, enemyOf, GUARD, INTRO_TICKS, MAX_PLAY_TICKS, SIEGE, siegeLevel, WAVE_TICKS,
   PHASE_END, PHASE_INTRO, PHASE_PLAY, TEAM_BLUE, TEAM_NONE, TEAM_RED, TEAMS, UNITS, UNITS_BY_RARITY,
   type BuildingType, type UnitKey,
 } from './rules';
@@ -34,7 +35,7 @@ import {
   type Projectile, type SimEvent, type SimEventType, type TeamState, type Unit,
 } from './types';
 
-const RNG_KEYS = ['offer', 'loot', 'unit', 'chest', 'ai1', 'ai2', 'quest', 'guard1', 'guard2'] as const;
+const RNG_KEYS = ['offer', 'loot', 'unit', 'ai1', 'ai2', 'quest', 'guard1', 'guard2'] as const;
 type RngKey = (typeof RNG_KEYS)[number];
 
 /** Every mutable field of the engine, as plain data (JSON-safe once copied). */
@@ -44,14 +45,11 @@ export interface EngineState {
   tick: number;
   phase: number;
   introT: number;
-  timeT: number;
+  playT: number;
   lastCount: number;
-  lastTick: number;
-  alerted: number;
-  chestT: number;
   nextId: number;
   result: MatchResult | null;
-  tiles: { owner: number[]; bld: number[]; rubble: number[]; chest: number[] };
+  tiles: { owner: number[]; bld: number[]; rubble: number[]; event: number[] };
   guards: Guard[];
   units: Unit[];
   blds: Building[];
@@ -71,15 +69,15 @@ export class Engine {
   readonly flow: (Int16Array | null)[];
   /** Per team, where the guard may wander around its castle, and how much it likes each (static). */
   readonly spots: (GuardSpots | null)[];
+  /** The cards each team finds on each tile (static, from the seed: cardLayout.ts). */
+  readonly layout: CardLayout;
   rng: Record<RngKey, Prng>;
   tick = 0;
   phase = PHASE_INTRO;
   introT = INTRO_TICKS;
-  timeT = MATCH_TICKS;
+  /** Ticks of play so far (no clock runs down: a match ends when a castle falls). */
+  playT = 0;
   lastCount = 4;
-  lastTick = 11;
-  alerted = 0;
-  chestT = CHEST.first;
   nextId = 1;
   result: MatchResult | null = null;
   units: Unit[] = [];
@@ -105,9 +103,11 @@ export class Engine {
     this.themeKey = m.themeKey;
     this.flow = [null, this.distanceField(baseTile(TEAM_BLUE)), this.distanceField(baseTile(TEAM_RED))];
     this.spots = [null, guardSpots(this.tiles, TEAM_BLUE), guardSpots(this.tiles, TEAM_RED)];
+    this.layout = cardLayout(this.tiles, seed);
+    for (const t of this.tiles) t.event = this.layout.event[t.i];
     this.rng = {
       offer: new Prng(streamSeed(seed, 2)), loot: new Prng(streamSeed(seed, 3)),
-      unit: new Prng(streamSeed(seed, 4)), chest: new Prng(streamSeed(seed, 5)),
+      unit: new Prng(streamSeed(seed, 4)),
       ai1: new Prng(streamSeed(seed, 6)), ai2: new Prng(streamSeed(seed, 7)),
       quest: new Prng(streamSeed(seed, 8)),
       guard1: new Prng(streamSeed(seed, 9)), guard2: new Prng(streamSeed(seed, 10)),
@@ -140,24 +140,24 @@ export class Engine {
   /** Every mutable field, as plain data. Static map data is rebuilt from the seed instead. */
   stateOf(): EngineState {
     const owner: number[] = new Array(NTILES), bld: number[] = new Array(NTILES);
-    const rubble: number[] = new Array(NTILES), chest: number[] = new Array(NTILES);
+    const rubble: number[] = new Array(NTILES), event: number[] = new Array(NTILES);
     for (let i = 0; i < NTILES; i++) {
       const t = this.tiles[i];
       owner[i] = t.owner;
       bld[i] = t.bld;
       rubble[i] = t.rubble;
-      chest[i] = t.chest;
+      event[i] = t.event;
     }
     const r = this.rng;
     return {
       v: ENGINE_VERSION, config: this.config, tick: this.tick, phase: this.phase, introT: this.introT,
-      timeT: this.timeT, lastCount: this.lastCount, lastTick: this.lastTick, alerted: this.alerted,
-      chestT: this.chestT, nextId: this.nextId, result: this.result,
-      tiles: { owner, bld, rubble, chest },
+      playT: this.playT, lastCount: this.lastCount,
+      nextId: this.nextId, result: this.result,
+      tiles: { owner, bld, rubble, event },
       guards: [this.guards[1], this.guards[2]], units: this.units, blds: this.blds, projs: this.projs,
       team: [this.team[1], this.team[2]], ai: [this.ai[1], this.ai[2]], quests: this.questList,
       rng: {
-        offer: r.offer.peek(), loot: r.loot.peek(), unit: r.unit.peek(), chest: r.chest.peek(),
+        offer: r.offer.peek(), loot: r.loot.peek(), unit: r.unit.peek(),
         ai1: r.ai1.peek(), ai2: r.ai2.peek(), quest: r.quest.peek(), guard1: r.guard1.peek(), guard2: r.guard2.peek(),
       },
     };
@@ -176,11 +176,11 @@ export class Engine {
     if (snap.v !== ENGINE_VERSION) throw new Error(`snapshot from engine v${snap.v}, this is v${ENGINE_VERSION}`);
     const s = JSON.parse(JSON.stringify(snap)) as EngineState;
     const e = new Engine(s.config);
-    e.tick = s.tick; e.phase = s.phase; e.introT = s.introT; e.timeT = s.timeT; e.lastCount = s.lastCount;
-    e.lastTick = s.lastTick; e.alerted = s.alerted; e.chestT = s.chestT; e.nextId = s.nextId; e.result = s.result;
+    e.tick = s.tick; e.phase = s.phase; e.introT = s.introT; e.playT = s.playT; e.lastCount = s.lastCount;
+    e.nextId = s.nextId; e.result = s.result;
     for (let i = 0; i < NTILES; i++) {
       const t = e.tiles[i];
-      t.owner = s.tiles.owner[i]; t.bld = s.tiles.bld[i]; t.rubble = s.tiles.rubble[i]; t.chest = s.tiles.chest[i];
+      t.owner = s.tiles.owner[i]; t.bld = s.tiles.bld[i]; t.rubble = s.tiles.rubble[i]; t.event = s.tiles.event[i];
     }
     e.guards = [null as unknown as Guard, s.guards[0], s.guards[1]];
     e.units = s.units;
@@ -222,7 +222,7 @@ export class Engine {
     return id ? this.ents.get(id) || null : null;
   }
   elapsed(): number {
-    return MATCH_TICKS - this.timeT;
+    return this.playT;
   }
   radiusOf(e: Entity): number {
     return e.kind === 'guard' ? GUARD.radius : e.kind === 'bld' ? BLD_RADIUS : UNITS[e.type].size;
@@ -297,7 +297,6 @@ export class Engine {
     t.bld = b.id;
     this.team[team].open[ti] = 1;
     t.rubble = 0;
-    t.chest = 0;
     t.owner = team;
     // a new building also claims the neutral ground around it (never an enemy's)
     for (const n of t.nb) {
@@ -309,8 +308,8 @@ export class Engine {
     return b;
   }
 
-  /** A card on every free tile next to a tile the team has flipped (T.open); a tile that keeps
-   *  its card keeps the same one. */
+  /** A card on every free tile next to a tile the team has flipped (T.open): the layout's card
+   *  (a filler card on rubble); a tile that keeps its card keeps the same one. */
   recomputeOffers(team: number): void {
     const T = this.team[team];
     const cand = new Uint8Array(NTILES);
@@ -323,26 +322,13 @@ export class Engine {
     }
     for (let i = 0; i < NTILES; i++) {
       if (!cand[i]) T.offers[i] = -1;
-      else if (T.offers[i] < 0) T.offers[i] = this.rollOffer();
+      else if (T.offers[i] < 0) {
+        const lay = this.layout.card[team]![i];
+        T.offers[i] = this.tiles[i].rubble || lay < 0 ? fillerCard(this.rng.offer) : lay;
+      }
     }
   }
 
-  rollOffer(): number {
-    let r = this.rng.offer.int(OFFER_W_TOTAL);
-    for (let k = 0; k < OFFER_LIST.length; k++) {
-      r -= OFFER_LIST[k].w;
-      if (r < 0) return k;
-    }
-    return OF_MINE;
-  }
-  rollRarity(odds: readonly number[]): number {
-    let r = this.rng.loot.int(100);
-    for (let i = 0; i < 4; i++) {
-      r -= odds[i];
-      if (r < 0) return i;
-    }
-    return 0;
-  }
   pickUnit(rarity: number): UnitKey {
     const list = UNITS_BY_RARITY[rarity];
     return list[this.rng.loot.int(list.length)];
@@ -393,18 +379,13 @@ export class Engine {
         this.emit('fight');
       }
     } else if (this.phase === PHASE_PLAY) {
-      this.timeT--;
-      if (!this.alerted && this.timeT <= ticks(60)) {
-        this.alerted = 1;
-        this.emit('oneMinute');
+      this.playT++;
+      if (this.playT % WAVE_TICKS === 0) {
+        for (const u of this.units) u.hold = 0;
+        this.emit('wave');
       }
-      const secs = Math.ceil(this.timeT / TICK_RATE);
-      if (this.timeT <= ticks(10) && this.timeT > 0 && secs < this.lastTick) {
-        this.lastTick = secs;
-        this.emit('tick', { n: secs });
-      }
+      if (this.playT >= SIEGE.after && (this.playT - SIEGE.after) % SIEGE.every === 0) this.emit('siege', { n: siegeLevel(this.playT) });
       updateEconomy(this);
-      updateChests(this);
       if (this.config.aiRed) aiUpdate(this, TEAM_RED);
       if (this.config.aiBlue) aiUpdate(this, TEAM_BLUE);
       for (const t of TEAMS) updateGuard(this, this.guards[t]);
@@ -413,8 +394,8 @@ export class Engine {
       updateProjectiles(this);
       this.countTiles();
       updateQuests(this);
-      if (this.phase === PHASE_PLAY && this.timeT <= 0) {
-        this.timeT = 0;
+      // a safety valve only, far past any real match: a stalemate goes to the tiles
+      if (this.phase === PHASE_PLAY && this.playT >= MAX_PLAY_TICKS) {
         const a = this.team[TEAM_BLUE].tiles, b = this.team[TEAM_RED].tiles;
         this.endMatch(a > b ? TEAM_BLUE : b > a ? TEAM_RED : TEAM_NONE, 'time');
       }

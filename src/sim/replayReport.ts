@@ -28,7 +28,7 @@ function sideLines(name: string, s: SideStats): string[] {
     `    mystery cards ${mystery}: ${pct(s.mysteryWin, mystery)} lucky`,
     `    barracks by rarity: ${RARITY.map((r, i) => `${r} ${pct(s.rarity[i]!, rarity)}`).join(', ')}`,
     `    trained ${avg(trained, s.seats)}/match: ${sorted(s.trained).map(([u, n]) => `${u} ${pct(n, trained)}`).join(', ') || '-'}`,
-    `    chests ${avg(s.chests, s.seats)}, quests ${avg(s.quests, s.seats)}, tiles at the end ${avg(s.tiles, s.seats, 0)}, gold left ${avg(s.goldLeft, s.seats, 0)}, most troops ${avg(s.peakUnits, s.seats)}`,
+    `    map events ${avg(s.events, s.seats)}, quests ${avg(s.quests, s.seats)}, tiles at the end ${avg(s.tiles, s.seats, 0)}, gold left ${avg(s.goldLeft, s.seats, 0)}, most troops ${avg(s.peakUnits, s.seats)}`,
   ];
 }
 

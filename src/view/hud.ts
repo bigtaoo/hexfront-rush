@@ -6,7 +6,7 @@ import { Container, Graphics, type Text } from 'pixi.js';
 import { T } from '../app/i18n';
 import { questOf } from '../sim/economy';
 import { TICK_RATE } from '../sim/fixed';
-import { enemyOf, PHASE_PLAY } from '../sim/rules';
+import { enemyOf, siegeLevel, siegePct, WAVE_TICKS } from '../sim/rules';
 import { coin } from './bodies';
 import type { Camera } from './camera';
 import type { Frame, Juice } from './frame';
@@ -91,11 +91,15 @@ export class Hud {
     const Tme = eng.team[me]!, Tfoe = eng.team[foe]!;
     this.text('me', String(Tme.units), pad + av, top * 0.42, { size: fs * 0.95, color: '#fff', weight: 900 });
     this.text('foe', String(Tfoe.units), W - pad - av, top * 0.42, { size: fs * 0.95, color: '#fff', weight: 900 });
-    // the clock
-    const tLeft = Math.max(0, Math.ceil(eng.timeT / TICK_RATE));
-    const mm = Math.floor(tLeft / 60), ss = tLeft % 60;
-    const urgent = tLeft <= 10 && eng.phase === PHASE_PLAY;
-    this.text('clock', `${mm}:${String(ss).padStart(2, '0')}`, cx, top * 0.3, { size: fs * 1.15, color: urgent ? '#fca5a5' : '#ffffff', weight: 900 });
+    // the clock: time played (no limit, the match ends when a castle falls)
+    const tPlayed = Math.floor(eng.elapsed() / TICK_RATE);
+    const mm = Math.floor(tPlayed / 60), ss = tPlayed % 60;
+    this.text('clock', `${mm}:${String(ss).padStart(2, '0')}`, cx, top * 0.3, { size: fs * 1.15, color: '#ffffff', weight: 900 });
+    // beside it: the seconds to the next wave, and the siege once it is on
+    const toWave = Math.ceil((WAVE_TICKS - (eng.elapsed() % WAVE_TICKS)) / TICK_RATE);
+    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * 0.62, color: toWave <= 3 ? '#fde047' : '#cbd5e1', weight: 800, align: 'left' });
+    const siege = siegeLevel(eng.elapsed());
+    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed()) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: fs * 0.62, color: '#fca5a5', weight: 800, align: 'right' });
     // the tug bar: tiles held, own side from the left
     const { bx, by, bw, bh } = this.tugRect(cam);
     const a = Tme.tiles, b = Tfoe.tiles;

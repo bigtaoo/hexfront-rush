@@ -1,12 +1,19 @@
 // The first match's tutorial: a hint line and a pointing hand. Step 0 asks for any card, step 1
-// for a barracks (or moves on after a while), step 2 says how to win and then it is done for good.
+// for a barracks (or moves on after a while), step 2 points at the nearest map event (a chest or a
+// camp: first to flip it takes it), step 3 says how to win and then it is done for good.
+// It is always played on TUTORIAL_SEED: the same map and the same cards (cardLayout.ts), with a
+// mine, a barracks and a mystery among the six cards around the castle, as on every map.
 
+import { cardCost, standingOf } from '../sim/economy';
 import type { Engine } from '../sim/engine';
 import { NTILES } from '../sim/hex';
 import { baseTile, type Tile } from '../sim/map';
 import { OFFER_LIST, PHASE_PLAY, type Offer } from '../sim/rules';
 import type { Game } from './game';
 import { T } from './i18n';
+
+/** The tutorial's map: a meadow. */
+export const TUTORIAL_SEED = 2;
 
 export interface Tutorial {
   step: number;
@@ -19,6 +26,7 @@ export interface Tutorial {
 export function guideTarget(eng: Engine, me: number, step: number): Tile | null {
   const home = eng.tiles[baseTile(me)]!;
   const tm = eng.team[me]!;
+  const standing = standingOf(eng, me);
   const near = (pred: (o: Offer) => boolean): Tile | null => {
     let best: Tile | null = null;
     let bd = Infinity;
@@ -29,7 +37,7 @@ export function guideTarget(eng: Engine, me: number, step: number): Tile | null 
       const o = OFFER_LIST[oi]!;
       if (t.bld || !pred(o)) continue;
       // affordable first, then by distance
-      const d = (t.x - home.x) ** 2 + (t.y - home.y) ** 2 + (o.cost > tm.gold ? 1e15 : 0);
+      const d = (t.x - home.x) ** 2 + (t.y - home.y) ** 2 + (cardCost(oi, standing) > tm.gold ? 1e15 : 0);
       if (d < bd) {
         bd = d;
         best = t;
@@ -39,6 +47,19 @@ export function guideTarget(eng: Engine, me: number, step: number): Tile | null 
   };
   if (step === 0) return near(() => true);
   if (step === 1) return near((o) => o.kind === 'barracks');
+  if (step === 2) {
+    let best: Tile | null = null;
+    let bd = Infinity;
+    for (const t of eng.tiles) {
+      if (!t.event) continue;
+      const d = (t.x - home.x) ** 2 + (t.y - home.y) ** 2;
+      if (d < bd) {
+        bd = d;
+        best = t;
+      }
+    }
+    return best;
+  }
   return null;
 }
 
@@ -61,6 +82,10 @@ export function updateTutorial(g: Game, dt: number): void {
       if (b.barracks >= 1 || tut.t > 18) Object.assign(tut, { step: 2, t: 0 });
       break;
     case 2:
+      R.hint = T('tip_event');
+      if (tut.t > 8) Object.assign(tut, { step: 3, t: 0 });
+      break;
+    case 3:
       R.hint = T('tip_win');
       if (tut.t > 6) {
         R.hint = null;

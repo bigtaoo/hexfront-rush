@@ -3,7 +3,7 @@
 
 import type { Engine } from '../sim/engine';
 import { makeReplay } from '../sim/replay';
-import { TEAM_BLUE } from '../sim/rules';
+import { SIEGE, TEAM_BLUE } from '../sim/rules';
 import type { SimEvent } from '../sim/types';
 import type { Game } from './game';
 import { T } from './i18n';
@@ -33,13 +33,12 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
         R.banner(T('fight'), { size: 64, life: 1.1, color: '#ffffff', band: me === TEAM_BLUE ? 'rgba(37,99,235,0.55)' : 'rgba(220,38,38,0.55)' });
         S.play('go');
         break;
-      case 'oneMinute':
-        R.banner(T('oneMinute'), { size: 34, life: 2, color: '#fde047', y: 0.3 });
-        S.play('beep');
+      case 'wave':
+        S.play('go', 0.3);
         break;
-      case 'tick':
-        R.banner(String(e.n), { size: 84, life: 0.9, color: '#f87171', y: 0.4 });
-        S.play('beep', 0.7);
+      case 'siege':
+        R.banner(T(e.n === 1 ? 'siege' : 'siegeMore', { n: (e.n ?? 1) * SIEGE.dmgStep }), { size: 40, life: 2.2, color: '#fca5a5', y: 0.3 });
+        S.play('beep');
         break;
       case 'needGold':
         if (mine && g.needGoldT <= 0 && e.x !== undefined && e.y !== undefined) {
@@ -66,9 +65,12 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
         if (mine) S.play('nothing');
         break;
       case 'mysteryWin':
+        // a squad that sets off now, or a barracks standing on the tile for good
         if (mine && e.unit) {
-          R.banner(T('lucky'), { size: 48, life: 1.4, color: '#fde047', y: 0.32 });
-          R.card = { unit: e.unit, rarity: e.rarity ?? 0, t: 0, life: 2.2 };
+          const bar = e.kind === 'barracks';
+          R.banner(T(e.rarity === 3 ? 'legendary' : 'lucky'), { size: e.rarity === 3 ? 58 : 48, life: 1.6, color: '#fde047', y: 0.32, band: e.rarity === 3 ? 'rgba(120,53,15,0.6)' : undefined });
+          R.card = { unit: e.unit, rarity: e.rarity ?? 0, n: bar ? 0 : e.n, t: 0, life: 2.4 };
+          if (bar) S.play('build');
           S.play(e.rarity === 3 ? 'legend' : 'quest');
         }
         break;
@@ -96,8 +98,13 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
       case 'guardBack':
         if (mine) S.play('spawn');
         break;
-      case 'chest':
-        if (mine) S.play('coin');
+      case 'mapEvent':
+        if (!mine) S.play('destroy');
+        else if (e.unit) {
+          R.banner(T(e.kind === 'warband' ? 'ev_warband' : 'ev_camp'), { size: 44, life: 1.4, color: '#fde047', y: 0.32 });
+          R.card = { unit: e.unit, rarity: e.rarity ?? 0, n: e.n, t: 0, life: 2.2 };
+          S.play('quest');
+        } else S.play('coin');
         break;
       case 'income':
         if (mine) S.play('income');

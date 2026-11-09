@@ -32,6 +32,8 @@ interface Banner extends BannerOpts {
 export interface CardPop {
   unit: UnitKey;
   rarity: number;
+  /** What came: a barracks that keeps training them (0), or n troops at once. */
+  n?: number;
   t: number;
   life: number;
 }
@@ -59,18 +61,19 @@ class CardView {
   private fig = new Container();
   private name = label('', { size: 17, color: '#ffffff', weight: 900, align: 'left' });
   private rar = label('', { size: 14, color: '#ffffff', weight: 900, align: 'left' });
+  private what = label('', { size: 13, color: '#cbd5e1', weight: 800, align: 'left' });
   private key = '';
 
   constructor() {
     this.fig.addChild(this.unit.root);
     this.fig.scale.set(34);
-    this.root.addChild(this.bg.g, this.fig, this.name, this.rar);
+    this.root.addChild(this.bg.g, this.fig, this.name, this.rar, this.what);
   }
   show(cd: CardPop, team: number, x: number, y: number, k: number): void {
     const cw = 200, ch = 92;
     this.root.alpha = Math.max(0, k);
     this.root.position.set(x, y);
-    const key = `${cd.unit}|${cd.rarity}|${team}`;
+    const key = `${cd.unit}|${cd.rarity}|${team}|${cd.n ?? 0}`;
     if (key !== this.key) {
       this.key = key;
       const rc = RARITY_COLOR[cd.rarity] ?? '#ffffff';
@@ -82,9 +85,11 @@ class CardView {
         hp: 1, own: true, id: 1, rarity: def.rarity, time: 0,
       });
       setLabel(this.name, T('u_' + cd.unit), { size: 17, color: '#ffffff', weight: 900, align: 'left' });
-      this.name.position.set(88, 34);
+      this.name.position.set(88, 24);
       setLabel(this.rar, T('r_' + RARITY[cd.rarity]), { size: 14, color: rc, weight: 900, align: 'left' });
-      this.rar.position.set(88, 60);
+      this.rar.position.set(88, 48);
+      setLabel(this.what, cd.n ? T('squad', { n: cd.n }) : T('barracks'), { size: 13, color: '#cbd5e1', weight: 800, align: 'left' });
+      this.what.position.set(88, 70);
     }
   }
 }

@@ -1,9 +1,11 @@
-// Pointer, wheel and keyboard on the canvas. A tap flips one of the player's cards (or moves
-// the camera when it lands on the minimap); a drag, the wheel and WASD / the arrows pan.
+// Pointer, wheel and keyboard on the canvas. A tap flips one of the player's cards; on the overview
+// button it zooms out to the whole map (or back), on an edge marker it glides the camera there, and
+// in the overview it zooms back in where it landed. A drag, the wheel and WASD / the arrows pan; a
+// pinch, Ctrl + the wheel (a trackpad pinch) and Space zoom out and in.
 
 import { idx, inMap, worldToHex } from '../sim/hex';
 import type { Tile } from '../sim/map';
-import { OFFER_LIST } from '../sim/rules';
+import { cardCost, standingOf } from '../sim/economy';
 import { $ } from './dom';
 import type { Game } from './game';
 
@@ -11,6 +13,8 @@ import type { Game } from './game';
 const DRAG_PX = 10;
 /** Keyboard pan speed, CSS px per second. */
 const KEY_PAN = 700;
+/** A pinch that closes (or opens) the fingers' distance by this factor zooms out (or in). */
+const PINCH = 1.25;
 
 const KEYMAP: Record<string, readonly [number, number]> = {
   KeyW: [0, -1],
@@ -34,6 +38,9 @@ export class Controls {
   private ly = 0;
   private drag = false;
   private readonly keys = new Set<string>();
+  /** Every pointer down on the canvas (for pinches), and the pinch in progress. */
+  private readonly pts = new Map<number, { x: number; y: number }>();
+  private pinch: { d: number } | null = null;
 
   constructor(private readonly g: Game) {}
 
@@ -41,6 +48,8 @@ export class Controls {
   clear(): void {
     this.keys.clear();
     this.down = false;
+    this.pts.clear();
+    this.pinch = null;
   }
 
   install(cv: HTMLCanvasElement): void {
@@ -71,8 +80,16 @@ export class Controls {
   private onDown(cv: HTMLCanvasElement, ev: PointerEvent): void {
     ev.preventDefault();
     this.g.sound.unlock();
-    if (!this.g.canLook() || this.down) return;
+    if (!this.g.canLook()) return;
     const p = this.xy(cv, ev);
+    this.pts.set(ev.pointerId, p);
+    if (this.pts.size === 2) {
+      // a second finger: a pinch, not a tap or a drag
+      this.down = false;
+      this.pinch = { d: this.spread() };
+      return;
+    }
+    if (this.down || this.pinch) return;
     Object.assign(this, { down: true, id: ev.pointerId, sx: p.x, sy: p.y, lx: p.x, ly: p.y, drag: false });
     try {
       cv.setPointerCapture(ev.pointerId);
@@ -81,32 +98,60 @@ export class Controls {
     }
   }
 
+  /** The distance between the first two pointers down. */
+  private spread(): number {
+    const [a, b] = [...this.pts.values()];
+    return a && b ? Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) : 1;
+  }
+
   private onMove(cv: HTMLCanvasElement, ev: PointerEvent): void {
+    if (this.pts.has(ev.pointerId)) this.pts.set(ev.pointerId, this.xy(cv, ev));
+    if (this.pinch && this.pts.size >= 2) {
+      ev.preventDefault();
+      const d = this.spread(), R = this.g.renderer;
+      if (d < this.pinch.d / PINCH && !R.overview) {
+        R.setOverview(true);
+        this.pinch.d = d;
+      } else if (d > this.pinch.d * PINCH && R.overview) {
+        const [a, b] = [...this.pts.values()];
+        R.setOverview(false, { x: (a!.x + b!.x) / 2, y: (a!.y + b!.y) / 2 });
+        this.pinch.d = d;
+      }
+      return;
+    }
     if (!this.down || ev.pointerId !== this.id) return;
     ev.preventDefault();
     const p = this.xy(cv, ev);
     const R = this.g.renderer;
-    if (!this.drag && Math.hypot(p.x - this.sx, p.y - this.sy) > DRAG_PX && !R.minimapWorld(this.sx, this.sy)) this.drag = true;
+    if (!this.drag && Math.hypot(p.x - this.sx, p.y - this.sy) > DRAG_PX) this.drag = true;
     if (this.drag) R.panBy(p.x - this.lx, p.y - this.ly);
     this.lx = p.x;
     this.ly = p.y;
   }
 
   private onUp(ev: PointerEvent): void {
+    this.pts.delete(ev.pointerId);
+    if (this.pinch) {
+      if (!this.pts.size) this.pinch = null;
+      return;
+    }
     if (!this.down || ev.pointerId !== this.id) return;
     this.down = false;
     if (this.drag || ev.type === 'pointercancel' || !this.g.canLook()) return;
     this.tapAt(this.sx, this.sy);
   }
 
-  /** A tap: the minimap moves the camera there; one of my cards gets flipped. */
+  /** A tap: the overview button or an edge marker moves the camera; in the overview the camera
+   *  zooms back in there; otherwise one of my cards gets flipped. */
   private tapAt(sx: number, sy: number): void {
     const g = this.g;
     const R = g.renderer;
-    const mw = R.minimapWorld(sx, sy);
-    if (mw) {
-      const v = R.view(mw.x, mw.y);
-      R.lookAt(v.x, v.y);
+    if (R.edgeTap(sx, sy)) {
+      g.sound.play('tap', 0.4);
+      return;
+    }
+    if (R.overview) {
+      R.setOverview(false, { x: sx, y: sy });
       g.sound.play('tap', 0.4);
       return;
     }
@@ -125,9 +170,9 @@ export class Controls {
   private flipCard(ti: number): void {
     const g = this.g;
     const tm = g.eng.team[g.localTeam]!;
-    const off = OFFER_LIST[tm.offers[ti]!]!;
+    const cost = cardCost(tm.offers[ti]!, standingOf(g.eng, g.localTeam));
     g.collector.flipTile(ti);
-    if (tm.gold >= off.cost) g.renderer.flipCard(ti);
+    if (tm.gold >= cost) g.renderer.flipCard(ti);
     g.renderer.markTile(ti);
     g.sound.play('tap', 0.6);
   }
@@ -135,7 +180,17 @@ export class Controls {
   private onWheel(ev: WheelEvent): void {
     if (!this.g.canLook()) return;
     ev.preventDefault();
-    this.g.renderer.panBy(-ev.deltaX, -ev.deltaY);
+    const R = this.g.renderer;
+    if (ev.ctrlKey) {
+      // Ctrl + the wheel, or a trackpad pinch (which browsers send as one)
+      if (ev.deltaY > 0 && !R.overview) R.setOverview(true);
+      else if (ev.deltaY < 0 && R.overview) {
+        const rect = (ev.target as HTMLElement).getBoundingClientRect();
+        R.setOverview(false, { x: ev.clientX - rect.left, y: ev.clientY - rect.top });
+      }
+      return;
+    }
+    R.panBy(-ev.deltaX, -ev.deltaY);
   }
 
   /** Held arrow / WASD keys glide the camera (screen directions; the red side's view is flipped). */
@@ -166,6 +221,9 @@ export class Controls {
       ev.preventDefault();
       g.sound.unlock();
       if (g.canLook()) this.keys.add(ev.code);
+    } else if (ev.code === 'Space' && g.state === 'match') {
+      ev.preventDefault();
+      if (g.canLook() && !ev.repeat) g.renderer.setOverview(!g.renderer.overview);
     } else if ((ev.code === 'Enter' || ev.code === 'Space') && g.state !== 'match') {
       ev.preventDefault();
       if (g.state === 'menu') g.startMatch();

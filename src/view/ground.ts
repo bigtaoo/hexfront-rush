@@ -30,8 +30,6 @@ export class GroundLayer {
   private sig = new Int32Array(0);
   private owner = new Int8Array(0);
   private ringsDirty = true;
-  /** Bumps whenever a tile changes hands or a building comes or goes (the minimap redraws). */
-  ver = 0;
 
   /** New match or new side: one Graphics per tile, in view-y order. */
   build(eng: Engine, cam: Camera): void {
@@ -56,18 +54,15 @@ export class GroundLayer {
   /** Swaps the look of every tile that changed; redraws the rings when buildings changed. */
   update(eng: Engine, cam: Camera): void {
     const th = eng.theme;
-    let changed = false;
     for (const t of eng.tiles) {
       const s = t.owner + 3 * (t.bld || 0);
       if (s === this.sig[t.i]) continue;
       this.sig[t.i] = s;
-      changed = true;
       this.ringsDirty = true;
       if (this.owner[t.i] === t.owner) continue;
       this.owner[t.i] = t.owner;
       this.tiles[t.i]!.context = this.lookOf(t, th.side, th.ground[t.shade] ?? th.ground[0]);
     }
-    if (changed) this.ver++;
     if (this.ringsDirty) {
       this.ringsDirty = false;
       this.drawRings(eng, cam);

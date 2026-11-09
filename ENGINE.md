@@ -28,13 +28,14 @@ Everything is TypeScript under `strict`. The relay (`server/relay.ts`) runs on N
 
 ## Simulation — `src/sim/`
 - **`fixed.ts`:** fixed point with `FP = 1000`. Provides `muldiv`, `isqrt`, `dist`, `clampI`, and load-time helpers `ticks(seconds)` / `perTick(unitsPerSecond)`.
-- **`prng.ts`:** an LCG step whitened by a murmur3 finaliser, with a single uint32 of state. Each concern gets its own stream (`streamSeed(seed, tag)`): map, offers, loot, units, chests, each AI, quests, each castle guard. Adding a random draw in one system therefore never shifts another.
+- **`prng.ts`:** an LCG step whitened by a murmur3 finaliser, with a single uint32 of state. Each concern gets its own stream (`streamSeed(seed, tag)`): map, offers, loot, units, each AI, quests, each castle guard, the card layout. Adding a random draw in one system therefore never shifts another.
 - **`rules.ts`:** all design numbers, converted to integer ticks / FP once at load. The hex grid is pointy-top, odd rows offset, `hexX = 866·(2c+(r&1)+1)`, `hexY = 1500r+1000`. Also holds `ENGINE_VERSION`.
 - **`engine.ts`:** `new Engine({seed, aiBlue, aiRed})`, then `step(cmds)` advances exactly one tick (1/30 s). Within a tick:
   - Commands are applied ordered by owner.
   - Every collection is an array walked in index order.
   - Entities carry integer ids. Kinds: `guard` (falls and comes back: `dead`), `unit` and `bld` (removed: `alive`); `isDown(e)` covers both.
   - Where each castle guard may wander, and how much it likes each spot (`guardSpots`, guard.ts), is static (built once from the map), so it is not part of the state.
+  - The card layout (`cardLayout.ts`: which card each tile shows each team, and the rarity a barracks card builds there) is static too: laid out from its own stream (tag 11) when the engine is made and mirrored for red, so it is not hashed or snapshotted. Only a rubble tile draws a fresh filler card from the offers stream. The map events are laid out with it (drawn after the cards); each tile's waiting event (`Tile.event`) is copied in when the engine is made, and as it is cleared when claimed, it is dynamic state: snapshotted and hashed with the tiles.
   - Positions keep `px/py` (last tick) for render interpolation.
   - `events` holds this tick's notifications (sounds, effects, result) and is cleared at the start of each `step`.
 - **`hash.ts`:** FNV-1a over a canonical walk of the state, returned as a uint32. It throws on any non-integer number, so a float leaking into the state fails loudly in tests.
@@ -123,7 +124,7 @@ Ported from Potion Siege's replay pipeline (`D:\fang`: replayUpload, the collect
   - flips, and flips without the gold;
   - time to the first flip;
   - what gets built, and barracks by rarity;
-  - troops trained, chests, quests, tiles and gold at the end.
+  - troops trained, map events, quests, tiles and gold at the end.
 
   Replays that do not reach their own hashes are listed. For an online desync it plays on to the disputed tick and says whose hash this engine agrees with (`replayDesync.ts`), so the other seat's client is the one that went wrong.
 - **Watching (`Game.watch`, `ReplayInput`):** the results screen's "Watch replay" plays the last match back at 1×/2×/4×/8× (the button by the exit flag). A replay cut short holds its last state, then shows "Replay over". On localhost a replay file (a shelf `.json.gz` or a saved `.json`) dropped on the page plays. The console has `Hexfront.replay()`, `Hexfront.watch(r)` and `Hexfront.check(r)`.
