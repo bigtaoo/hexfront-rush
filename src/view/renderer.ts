@@ -18,7 +18,7 @@ import type { SimEvent } from '../sim/types';
 import { Camera } from './camera';
 import { EffectLayer } from './effects';
 import { Juice, type DrawUi, type Frame, type Vis } from './frame';
-import { GroundLayer } from './ground';
+import { GROUND, GroundLayer } from './ground';
 import { EdgeLayer } from './edges';
 import { Hud, type Status } from './hud';
 import { OfferLayer } from './offers';
@@ -81,7 +81,7 @@ export class Renderer {
     this.eng = eng;
     this.local = local || TEAM_BLUE;
     this.cam.setView(eng, this.local);
-    this.app.renderer.background.color = eng.theme.bg;
+    this.app.renderer.background.color = GROUND[eng.themeKey].bg;
     this.ground.build(eng, this.cam);
     this.sprites.build(eng, this.cam);
     this.offers.reset();
@@ -230,7 +230,7 @@ export class Renderer {
     // what is on screen, in view units, with margins for tall sprites (anchored at their foot)
     const vis: Vis = { x0: -ex / s - 1.3, x1: (cam.W - ex) / s + 1.3, y0: -ey / s - 1.0, y1: (cam.H - ey) / s + 1.9 };
     const f: Frame = { eng, alpha, dt, time: this.time, ui, cam, vis, local: this.local };
-    this.ground.update(eng, cam);
+    this.ground.update(eng);
     this.offers.draw(f);
     this.sprites.draw(f);
     this.effects.draw(f);

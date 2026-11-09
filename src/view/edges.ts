@@ -6,11 +6,11 @@
 // mystery) ping a bright one for a few seconds. A tap on a marker glides the camera there
 // (Renderer.edgeTap). All of it hides in the overview, where the whole map is on screen anyway.
 
-import { Container, Graphics, type GraphicsContext } from 'pixi.js';
+import { Container, Sprite, type Texture } from 'pixi.js';
 import type { Engine } from '../sim/engine';
 import { EVENT_LIST, RARITY_COLOR, type BuildingType } from '../sim/rules';
 import type { SimEvent } from '../sim/types';
-import { buildingCtx, eventCtx } from './bodies';
+import { buildingTex, eventTex } from './art';
 import type { Camera } from './camera';
 import type { Frame } from './frame';
 import { liveGraphics } from './pen';
@@ -19,6 +19,8 @@ import type { Pt } from './viewConst';
 /** Marker radius and the margin it keeps from the play area's edge, screen pixels. */
 const MR = 17;
 const MARGIN = MR + 9;
+/** The icon's longer side inside a marker, screen pixels. */
+const ICON = MR * 1.65;
 /** Overview button radius. */
 const BR = 22;
 /** How long a ping shows, seconds. */
@@ -31,11 +33,7 @@ interface Ping {
   x: number;
   y: number;
   color: string;
-  ctx: GraphicsContext;
-  /** Icon scale: screen pixels per view unit inside the marker. */
-  k: number;
-  /** Icon offset down, view units (buildings stand on their foot). */
-  dy: number;
+  tex: Texture;
   t: number;
   /** Merges repeats (the same building hit again, the same tile). */
   key: string;
@@ -52,7 +50,7 @@ export class EdgeLayer {
   readonly root = new Container();
   private back = liveGraphics();
   private icons = new Container();
-  private pool: Graphics[] = [];
+  private pool: Sprite[] = [];
   private used = 0;
   private pings: Ping[] = [];
   private markers: Marker[] = [];
@@ -78,7 +76,7 @@ export class EdgeLayer {
     switch (e.type) {
       case 'mapEvent': {
         const ev = EVENT_LIST.findIndex((d) => d.key === e.kind);
-        if (ev > 0) this.ping(v, mine ? '#fde047' : '#ef4444', eventCtx(e.kind!), 13, 0.1, `ev${e.x},${e.y}`);
+        if (ev > 0) this.ping(v, mine ? '#fde047' : '#ef4444', eventTex(e.kind!), `ev${e.x},${e.y}`);
         break;
       }
       case 'dmg': {
@@ -86,24 +84,24 @@ export class EdgeLayer {
         const b = eng.blds.find((x) => x.id === e.id);
         if (!b || b.type !== 'base') break;
         this.castleT = this.time;
-        this.ping(v, '#ef4444', buildingCtx('base', local, 0), 9, 0.45, 'castle');
+        this.ping(v, '#ef4444', buildingTex('base', local, 0), 'castle');
         break;
       }
       case 'bldDown':
         if (e.kind === 'base') break;
-        this.ping(v, mine ? '#ef4444' : '#fde047', buildingCtx(e.kind as BuildingType, e.team ?? local, 0), 11, 0.4, `down${e.x},${e.y}`);
+        this.ping(v, mine ? '#ef4444' : '#fde047', buildingTex(e.kind as BuildingType, e.team ?? local, 0), `down${e.x},${e.y}`);
         break;
       case 'mysteryWin':
       case 'barracks':
         // a barracks card, or a barracks a mystery gave
         if (mine || (e.rarity ?? 0) < 2 || (e.type === 'mysteryWin' && e.kind !== 'barracks')) break;
-        this.ping(v, RARITY_COLOR[e.rarity!]!, buildingCtx('barracks', e.team!, e.rarity!), 11, 0.4, `bar${e.x},${e.y}`);
+        this.ping(v, RARITY_COLOR[e.rarity!]!, buildingTex('barracks', e.team!, e.rarity!), `bar${e.x},${e.y}`);
         break;
     }
   }
-  private ping(v: Pt, color: string, ctx: GraphicsContext, k: number, dy: number, key: string): void {
+  private ping(v: Pt, color: string, tex: Texture, key: string): void {
     this.pings = this.pings.filter((p) => p.key !== key);
-    this.pings.push({ x: v.x, y: v.y, color, ctx, k, dy, t: 0, key });
+    this.pings.push({ x: v.x, y: v.y, color, tex, t: 0, key });
     if (this.pings.length > 6) this.pings.shift();
   }
 
@@ -132,19 +130,19 @@ export class EdgeLayer {
         if (!t.event) continue;
         const v = cam.tv[t.i]!, d = EVENT_LIST[t.event]!;
         if (this.pings.some((q) => Math.abs(q.x - v.x) < 0.01 && Math.abs(q.y - v.y) < 0.01)) continue;
-        this.marker(cam, v, d.troops ? RARITY_COLOR[d.rarity]! : '#fde047', eventCtx(d.key), 13, 0.1, 0.8, 1);
+        this.marker(cam, v, d.troops ? RARITY_COLOR[d.rarity]! : '#fde047', eventTex(d.key), 0.8, 1);
       }
       for (const q of this.pings) {
         const pulse = 1 + Math.max(0, 1 - q.t / 0.6) * 0.35 + Math.sin(q.t * 9) * 0.05;
         const fade = Math.min(1, (PING_LIFE - q.t) / 0.5);
-        this.marker(cam, q, q.color, q.ctx, q.k, q.dy, fade, pulse);
+        this.marker(cam, q, q.color, q.tex, fade, pulse);
       }
     }
     for (let i = this.used; i < this.pool.length; i++) this.pool[i]!.visible = false;
   }
 
   /** A marker on the play area's edge pointing at view point `v`, if `v` is off screen. */
-  private marker(cam: Camera, v: Pt, color: string, ctx: GraphicsContext, k: number, dy: number, alpha: number, scale: number): void {
+  private marker(cam: Camera, v: Pt, color: string, tex: Texture, alpha: number, scale: number): void {
     const s = cam.worldToScreen(v.x, v.y);
     const x0 = MARGIN, x1 = cam.W - MARGIN, y0 = cam.hudTop + MARGIN, y1 = cam.H - cam.hudBot - MARGIN;
     if (s.x >= x0 - MR && s.x <= x1 + MR && s.y >= y0 - MR && s.y <= y1 + MR) return;
@@ -160,16 +158,17 @@ export class EdgeLayer {
     p.a = 1;
     let g = this.pool[this.used];
     if (!g) {
-      g = new Graphics(ctx);
+      g = new Sprite({ texture: tex, anchor: 0.5 });
       this.pool.push(g);
       this.icons.addChild(g);
     }
     this.used++;
-    if (g.context !== ctx) g.context = ctx;
+    if (g.texture !== tex) g.texture = tex;
     g.visible = true;
     g.alpha = alpha;
-    g.scale.set(k * scale);
-    g.position.set(mx, my + dy * k * scale);
+    // the picture fits the disc by its longer side
+    g.scale.set((ICON * scale) / Math.max(1, tex.width, tex.height));
+    g.position.set(mx, my);
     this.markers.push({ sx: mx, sy: my, to: { x: v.x, y: v.y } });
   }
 

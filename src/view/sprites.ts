@@ -1,42 +1,48 @@
 // Everything that stands on the field, sorted by view y so lower things cover higher ones:
-// obstacles, buildings (with their pop-in, hit flash, flag, coin timers and training bar), rubble,
-// map events, troops and the two castle guards. Still parts are shared contexts; each view keeps its
-// Graphics between frames, is hidden while off screen and is destroyed when its entity is gone.
+// obstacles, buildings (with their pop-in, hit flash, coin timers and training bar), rubble, map
+// events, troops and the two castle guards. Bodies are the drawn pictures (art.ts) standing on
+// their foot; timers, bars and shadows are Graphics. Each view keeps its objects between frames,
+// is hidden while off screen and is destroyed when its entity is gone.
 
-import { Container, Graphics, type Text } from 'pixi.js';
+import { Container, Graphics, type Sprite, type Text } from 'pixi.js';
 import { T } from '../app/i18n';
 import type { Engine } from '../sim/engine';
 import { FP, TICK_RATE } from '../sim/fixed';
 import { BUILD, EVENT_LIST, HIT_FLASH, LUNGE_TICKS, RARITY_COLOR, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
 import type { Building } from '../sim/types';
-import { buildingCtx, eventCtx, guardBody, hpBar, incomeRing, obstacleCtx, obstacleLook, rubbleCtx, shadowCtx } from './bodies';
+import { artH, artSprite, buildingTex, eventTex, guardTex, obstacleTex, PPU, rubbleTex, TILE_FOOT } from './art';
+import { hpBar, incomeRing, shadowCtx } from './bodies';
 import type { Camera } from './camera';
 import { inView, type Frame } from './frame';
 import { label, liveGraphics, setLabel, type Pen } from './pen';
 import { dotCtx, UnitView } from './unitView';
-import { teamCol } from './viewConst';
 
 type Live = { g: Graphics; p: Pen };
 
 class BuildingView {
   readonly root = new Container();
   private pop = new Container();
-  private body = new Graphics();
-  private flash = new Graphics();
+  private shadow = new Graphics(shadowCtx(0.7));
+  private body: Sprite;
+  private flash: Sprite;
   private dyn: Live = liveGraphics();
   private hp: Live = liveGraphics();
   private hpKey = '';
+  /** Picture top, view units from the tile centre (negative: above). */
+  private top: number;
   seen = 0;
 
   constructor(b: Building) {
-    const ctx = buildingCtx(b.type, b.team, b.rarity || 0);
-    this.body.context = ctx;
-    this.flash.context = ctx;
+    const t = buildingTex(b.type, b.team, b.rarity || 0);
+    this.body = artSprite(t, TILE_FOOT);
+    this.flash = artSprite(t, TILE_FOOT);
     this.flash.blendMode = 'add';
     this.flash.alpha = 0.6;
-    this.pop.pivot.set(0, 0.3);
-    this.pop.position.set(0, 0.3);
-    this.pop.addChild(this.body, this.flash, this.dyn.g);
+    this.top = TILE_FOOT - artH(t);
+    this.shadow.position.set(0, TILE_FOOT - 0.1);
+    this.pop.pivot.set(0, TILE_FOOT);
+    this.pop.position.set(0, TILE_FOOT);
+    this.pop.addChild(this.shadow, this.body, this.flash, this.dyn.g);
     this.root.addChild(this.pop, this.hp.g);
   }
 
@@ -44,26 +50,25 @@ class BuildingView {
     const eng = f.eng;
     const born = (eng.tick - b.bornT + f.alpha) / TICK_RATE;
     const pop = Math.min(1, born * 4);
-    this.pop.scale.set(0.6 + 0.4 * pop + (pop < 1 ? Math.sin(pop * Math.PI) * 0.15 : 0));
+    // grows out of the ground: wider than tall at first, a little overshoot, then still
+    const k0 = 0.6 + 0.4 * pop + (pop < 1 ? Math.sin(pop * Math.PI) * 0.15 : 0);
+    this.pop.scale.set(pop < 1 ? k0 * 1.08 : 1, k0);
     this.flash.visible = eng.tick - b.hitT < HIT_FLASH;
-    // the moving parts: the castle's flag, coin timers, the training bar
+    // the moving parts: coin timers, the training bar
     const p = this.dyn.p.clear();
     switch (b.type) {
-      case 'base': {
-        const wv = Math.sin(f.time * 6) * 0.05;
-        p.poly([0, -1.45, 0.38, -1.36 + wv, 0, -1.25], teamCol(b.team));
-        incomeRing(p, 0.98, -0.55, 0.2, b.timer / BUILD.base.incomeEvery!);
+      case 'base':
+        incomeRing(p, 0.98, -0.3, 0.2, b.timer / BUILD.base.incomeEvery!);
         break;
-      }
       case 'mine':
-        incomeRing(p, 0.55, -0.65, 0.17, b.timer / BUILD.mine.incomeEvery!);
+        incomeRing(p, 0.7, -0.45, 0.17, b.timer / BUILD.mine.incomeEvery!);
         break;
       case 'barracks': {
         // training timer; grey while the team is at the troop cap and the next troop waits
         const full = b.spawnT <= 0;
         const k = full ? 1 : 1 - b.spawnT / UNITS[b.unit as keyof typeof UNITS].spawn;
-        p.rect(-0.45, 0.42, 0.9, 0.1, 'rgba(0,0,0,0.4)');
-        p.rect(-0.45, 0.42, 0.9 * Math.max(0, Math.min(1, k)), 0.1, full ? '#9ca3af' : RARITY_COLOR[b.rarity] ?? '#9aa5b1');
+        p.rrect(-0.47, TILE_FOOT + 0.06, 0.94, 0.15, 0.075, 'rgba(24,16,8,0.72)');
+        p.rrect(-0.44, TILE_FOOT + 0.09, 0.88 * Math.max(0.05, Math.min(1, k)), 0.09, 0.045, full ? '#9ca3af' : RARITY_COLOR[b.rarity] ?? '#9aa5b1');
         break;
       }
     }
@@ -73,7 +78,7 @@ class BuildingView {
     if (hk !== this.hpKey) {
       this.hpKey = hk;
       const q = this.hp.p.clear();
-      if (b.hp < b.maxhp) hpBar(q, 0, b.type === 'base' ? -1.65 : -1.2, b.type === 'base' ? 1.3 : 0.9, Math.max(0, k), own);
+      if (b.hp < b.maxhp) hpBar(q, 0, this.top - 0.1, b.type === 'base' ? 1.3 : 0.9, Math.max(0, k), own);
     }
   }
 }
@@ -83,72 +88,91 @@ class BuildingView {
  *  cards, so it never hides the card's price). */
 class EventView {
   readonly root = new Container();
-  private body: Graphics;
-  private shadow = new Graphics(shadowCtx(0.4));
+  private body: Sprite;
+  private shadow = new Graphics(shadowCtx(0.45));
   private spark = new Graphics(dotCtx('rgba(255,255,255,0.9)'));
+  private top: number;
 
   constructor(readonly ev: number) {
-    this.body = new Graphics(eventCtx(EVENT_LIST[ev]!.key));
-    this.shadow.position.set(0, 0.3 - 0.01);
+    const t = eventTex(EVENT_LIST[ev]!.key);
+    this.body = artSprite(t, TILE_FOOT);
+    this.top = TILE_FOOT - artH(t);
+    this.shadow.position.set(0, TILE_FOOT - 0.06);
     this.root.addChild(this.shadow, this.body, this.spark);
   }
   update(i: number, time: number, vx: number, vy: number, badge: boolean): void {
-    const bob = Math.sin(time * 3 + i) * 0.05;
-    this.root.position.set(badge ? vx + 0.32 : vx, badge ? vy - 0.55 : vy + 0.01);
+    const bob = Math.sin(time * 3 + i) * 0.04 - 0.04;
+    this.root.position.set(badge ? vx + 0.32 : vx, badge ? vy - 0.75 : vy + 0.01);
     this.root.scale.set(badge ? 0.5 : 1);
     this.root.zIndex = vy + 0.01;
     this.shadow.visible = !badge;
-    this.body.position.set(0, bob - 0.01);
+    this.body.position.set(0, TILE_FOOT + bob);
     const sp = (Math.sin(time * 5 + i) + 1) / 2;
-    this.spark.position.set(0.3, bob - 0.01 - 0.5);
+    this.spark.position.set(0.3, this.top + bob + 0.15);
     this.spark.scale.set(0.05 + sp * 0.04);
   }
 }
 
+/** The castle guard's foot, below its position. */
+const GUARD_FOOT = 0.36;
+
 class GuardView {
   readonly root = new Container();
-  private body: Live = liveGraphics();
-  private flash = new Graphics(dotCtx('#ffffff'));
+  private shadow = new Graphics(shadowCtx(0.4));
+  private body: Sprite;
+  private flash: Sprite;
   private hp: Live = liveGraphics();
   private name: Text;
-  private bodyKey = '';
+  private team = -1;
+  private h = 1;
   private hpKey = '';
 
   constructor() {
     this.name = label('', { size: 10, color: '#e5e7eb' });
-    this.root.addChild(this.body.g, this.flash, this.hp.g, this.name);
-    this.flash.scale.set(0.4);
+    this.body = artSprite(guardTex(0), GUARD_FOOT);
+    this.flash = artSprite(guardTex(0), GUARD_FOOT);
+    this.flash.blendMode = 'add';
+    this.shadow.position.set(0, GUARD_FOOT);
+    this.root.addChild(this.shadow, this.body, this.flash, this.hp.g, this.name);
   }
   update(f: Frame, tm: number): void {
     const g = f.eng.guards[tm]!;
+    if (g.team !== this.team) {
+      this.team = g.team;
+      const t = guardTex(g.team);
+      this.body.texture = t;
+      this.flash.texture = t;
+      this.h = artH(t);
+    }
     const bob = g.moving ? Math.abs(Math.sin((f.time + g.id) * 8)) * 0.06 : 0;
     const face = g.face || 1;
-    const bk = `${face}|${bob.toFixed(4)}`;
-    if (bk !== this.bodyKey) {
-      this.bodyKey = bk;
-      guardBody(this.body.p.clear(), g.team, face, bob);
+    const sy = bob > 0 ? 1 + (bob - 0.025) * 1.3 : 1 + Math.sin(f.time * 2.2 + tm) * 0.015;
+    for (const sp of [this.body, this.flash]) {
+      sp.position.set(0, GUARD_FOOT - bob);
+      sp.scale.set((face * (2 - sy)) / PPU, sy / PPU);
     }
     const fl = Math.max(0, HIT_FLASH - (f.eng.tick - g.hitT)) / HIT_FLASH;
     this.flash.visible = fl > 0;
-    this.flash.position.set(0, -bob);
-    this.flash.alpha = 0.8 * fl;
+    this.flash.alpha = 0.85 * fl;
+    const top = GUARD_FOOT - bob - this.h * sy;
     const own = g.team === f.local;
     const hk = `${(g.hp / g.maxhp).toFixed(3)}|${own ? 1 : 0}`;
     if (hk !== this.hpKey) {
       this.hpKey = hk;
-      hpBar(this.hp.p.clear(), 0, -0.8, 0.75, Math.max(0, g.hp / g.maxhp), own);
+      hpBar(this.hp.p.clear(), 0, 0, 0.75, Math.max(0, g.hp / g.maxhp), own);
     }
+    this.hp.g.position.set(0, top - 0.08);
     const zoom = f.cam.scale;
     setLabel(this.name, T('guard'), { size: 0.28 * zoom, color: '#e5e7eb', weight: 800, stroke: 'rgba(0,0,0,0.6)' });
     this.name.scale.set(1 / zoom);
-    this.name.position.set(0, -1.02);
+    this.name.position.set(0, top - 0.3);
   }
 }
 
 export class SpriteLayer {
   readonly root = new Container({ sortableChildren: true });
-  private obst: (Graphics | null)[] = [];
-  private rubble: (Graphics | null)[] = [];
+  private obst: (Container | null)[] = [];
+  private rubble: (Container | null)[] = [];
   private events: (EventView | null)[] = [];
   private blds = new Map<number, BuildingView>();
   private units = new Map<number, UnitView>();
@@ -160,7 +184,11 @@ export class SpriteLayer {
     this.clear();
     this.obst = eng.tiles.map((t) => {
       if (!t.obst) return null;
-      const g = new Graphics(obstacleCtx(t.obst, obstacleLook(t.obst, t.deco)));
+      const { t: tx, flip } = obstacleTex(t.obst, t.deco, eng.themeKey);
+      const g = new Container();
+      const sh = new Graphics(shadowCtx(0.5));
+      sh.position.set(0, TILE_FOOT - 0.08);
+      g.addChild(sh, artSprite(tx, TILE_FOOT, flip ? -1 : 1));
       const v = cam.tv[t.i]!;
       g.position.set(v.x, v.y);
       g.zIndex = v.y;
@@ -193,12 +221,13 @@ export class SpriteLayer {
       const showRubble = !t.obst && !t.bld && !!t.rubble;
       let rb = this.rubble[t.i];
       if (showRubble && !rb) {
-        rb = this.rubble[t.i] = new Graphics(rubbleCtx());
+        rb = this.rubble[t.i] = new Container();
+        rb.addChild(artSprite(rubbleTex(), TILE_FOOT - 0.08, t.i % 2 ? -1 : 1));
         rb.position.set(v.x, v.y);
         rb.zIndex = v.y - 0.1;
         this.root.addChild(rb);
       } else if (!showRubble && rb) {
-        rb.destroy();
+        rb.destroy({ children: true });
         rb = this.rubble[t.i] = null;
       }
       if (rb) rb.visible = on;

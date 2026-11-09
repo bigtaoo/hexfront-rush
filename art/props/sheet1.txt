@@ -1,0 +1,16 @@
+Game prop design sheet for a cute medieval-fantasy strategy game played on a hexagon map, bright cheerful cartoon sticker style: thick dark outlines, flat colours, one hard cel shadow, chunky toy-like proportions, readable at very small size. Each prop seen from a high three-quarter top-down angle, compact footprint that would fit on one hexagon tile. Plain pure white background. Twelve separate props in three rows of four, each standing apart with plenty of white space between them, no ground, no grass, no scenery around them. No text, no letters, no labels, no numbers. Muted natural colours for the scenery, bright saturated colours only for the treasures.
+Row 1:
+1. A round leafy oak tree, chunky trunk.
+2. A tall dark green pine tree.
+3. A cluster of three rounded grey boulders with a little moss.
+4. A green saguaro cactus with two arms and a pink flower.
+Row 2:
+5. A cluster of pale blue ice crystals jutting from the snow.
+6. A snow-covered pine tree.
+7. A sandstone rock arch.
+8. A small wooden treasure chest with gold trim, closed.
+Row 3:
+9. A big open treasure chest overflowing with gold coins and gems.
+10. A small camp: one canvas tent and a campfire.
+11. A war camp: two striped tents, a campfire and a rack of spears.
+12. A purple question-mark mystery stone: a rough rock carved with a glowing purple question mark.

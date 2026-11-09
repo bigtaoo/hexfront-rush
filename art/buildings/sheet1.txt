@@ -1,0 +1,12 @@
+Game building design sheet for a cute medieval-fantasy strategy game played on a hexagon map, bright cheerful cartoon sticker style: thick dark outlines, flat colours, one hard cel shadow, chunky toy-like proportions, readable at very small size. Each building seen from a high three-quarter top-down angle, compact footprint that would fit on one hexagon tile. Plain pure white background. Eight separate buildings in two rows of four, each standing apart with plenty of white space between them, no ground, no grass, no scenery around them. No text, no letters, no labels, no numbers.
+Every building has the same royal blue team colour on its roofs, flags or banners; everything else in warm natural materials (stone, wood, gold, thatch). No other blue anywhere.
+Row 1:
+1. Castle keep: a small chunky stone castle with two round towers, blue cone roofs, a big wooden gate and a blue flag on top.
+2. Gold mine: a wooden mine entrance dug into a little rocky hill, a mine cart full of shiny gold nuggets in front.
+3. Watchtower: a tall slim wooden lookout tower on a stone base with a blue pointed roof and a little bell.
+4. Common barracks: a small wooden hut with a blue thatched roof, a weapon rack with spears beside the door.
+Row 2:
+5. Rare barracks: a sturdier timber-and-stone hall with a blue tiled roof and a crossed-swords sign.
+6. Epic barracks: a stone fort building with crenellations, blue banners and a glowing purple gem above the door.
+7. Legendary barracks: a grand golden-trimmed stone hall with a blue domed roof, gold statues and a glowing orange gem.
+8. Rubble: the ruins of a destroyed small building, broken stones and charred beams, a little smoke, no blue.

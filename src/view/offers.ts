@@ -1,29 +1,35 @@
-// The local team's offers as cards standing on their tiles: icon and price on the face, a gold rim
+// The local team's offers as cards standing on their tiles: picture and price on the face, a gold rim
 // that breathes while it is affordable. A card the player just tapped turns edge-on (it flips)
 // and fades; the building, or the mystery result, comes from the sim. A card that appears (the
 // tiles around a flipped one open up) turns face-up from edge-on and drops into place. The card
-// face is a shared context per offer and affordability; the price is a Text sized for the
-// current zoom.
+// face is a shared context per affordability with the offer's drawn picture (art.ts) over it; the
+// price is a Text sized for the current zoom.
 
-import { Container, Graphics, type Text } from 'pixi.js';
+import { Container, Graphics, Sprite, type Text } from 'pixi.js';
 import { cardCost, standingOf } from '../sim/economy';
 import { OFFER_LIST } from '../sim/rules';
-import { coin, offerIcon } from './bodies';
+import { offerTex } from './art';
+import { coin } from './bodies';
 import { inView, type Frame } from './frame';
 import { label, liveGraphics, setLabel, sharedCtx, type Pen } from './pen';
 
 const W = 0.9, H = 1.12, R = 0.16;
+/** The whole card's scale on its tile: the face is laid out in the units above, then drawn this
+ *  much bigger (neighbouring tiles are √3 apart, so a card may take most of its tile). */
+const CARD_K = 1.25;
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
 
-function cardCtx(key: string, afford: boolean) {
-  return sharedCtx(`card|${key}|${afford ? 1 : 0}`, (p) => {
+/** The picture stands on the inner window's floor and may rise out of the card's top edge (it
+ *  breaks the frame, so a small card still shows a big picture): its foot y, and the room it fits
+ *  in. */
+const ICON_FOOT = 0.13, ICON_W = 0.86, ICON_H = 0.92;
+
+function cardCtx(afford: boolean) {
+  return sharedCtx(`card|${afford ? 1 : 0}`, (p) => {
     p.rrect(-W / 2 + 0.05, -H / 2 + 0.09, W, H, R, 'rgba(0,0,0,0.28)');
     p.rrect(-W / 2, -H / 2, W, H, R, afford ? '#fff7e0' : '#cbd5e1', afford ? null : '#64748b', 0.06);
     p.rrect(-W / 2 + 0.08, -H / 2 + 0.08, W - 0.16, H * 0.56, R * 0.6, afford ? 'rgba(251,191,36,0.22)' : 'rgba(100,116,139,0.18)');
-    p.a = afford ? 1 : 0.7;
-    offerIcon(p, key, 0, -0.15, 0.3);
-    p.a = 1;
     coin(p, -0.2, 0.36, 0.1);
   });
 }
@@ -33,8 +39,8 @@ interface CardView {
   body: Graphics;
   rim: Graphics;
   rimPen: Pen;
+  icon: Sprite;
   cost: Text;
-  mark: Text | null;
   seen: number;
 }
 
@@ -111,23 +117,19 @@ export class OfferLayer {
       }
       c.root.position.set(v.x, v.y - 0.1 - lift);
       c.root.zIndex = v.y;
-      c.root.scale.set(sx, 1);
+      c.root.scale.set(sx * CARD_K, CARD_K);
       c.root.alpha = alpha;
-      const ctx = cardCtx(off.key, afford);
+      const ctx = cardCtx(afford);
       if (c.body.context !== ctx) c.body.context = ctx;
-      setLabel(c.cost, String(cost), { size: 0.3 * zoom, color: afford ? '#78350f' : '#dc2626', weight: 900 });
-      c.cost.scale.set(1 / zoom);
-      if (off.key === 'myst') {
-        if (!c.mark) {
-          c.mark = label('?', { size: 0.39 * zoom, color: '#ffffff', weight: 900 });
-          c.mark.position.set(0, -0.15 + 0.3 * 0.05);
-          c.root.addChild(c.mark);
-        }
-        setLabel(c.mark, '?', { size: 0.39 * zoom, color: '#ffffff', weight: 900 });
-        c.mark.scale.set(1 / zoom);
-        c.mark.alpha = afford ? 1 : 0.7;
-        c.mark.visible = true;
-      } else if (c.mark) c.mark.visible = false;
+      const tex = offerTex(off.key, f.local);
+      if (c.icon.texture !== tex) {
+        c.icon.texture = tex;
+        const k = Math.min(ICON_W / Math.max(1, tex.width), ICON_H / Math.max(1, tex.height));
+        c.icon.scale.set(k);
+      }
+      c.icon.alpha = afford ? 1 : 0.8;
+      setLabel(c.cost, String(cost), { size: 0.3 * zoom * CARD_K, color: afford ? '#78350f' : '#dc2626', weight: 900 });
+      c.cost.scale.set(1 / (zoom * CARD_K));
       // the breathing gold rim
       const p = c.rimPen.clear();
       if (afford) {
@@ -152,9 +154,11 @@ export class OfferLayer {
     const { g: rim, p: rimPen } = liveGraphics();
     const cost = label('', { size: 10, color: '#78350f', weight: 900 });
     cost.position.set(0.06, 0.37);
-    root.addChild(body, rim, cost);
+    const icon = new Sprite({ anchor: { x: 0.5, y: 1 } });
+    icon.position.set(0, ICON_FOOT);
+    root.addChild(body, rim, icon, cost);
     this.root.addChild(root);
-    c = { root, body, rim, rimPen, cost, mark: null, seen: 0 };
+    c = { root, body, rim, rimPen, icon, cost, seen: 0 };
     this.cards.set(i, c);
     return c;
   }

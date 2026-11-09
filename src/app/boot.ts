@@ -5,6 +5,7 @@ import { Application } from 'pixi.js';
 import { relayUrl } from '../net/netClient';
 import type { Platform } from '../platform/types';
 import { checkReplay, runReplay, type Replay } from '../sim/replay';
+import { loadArt } from '../view/art';
 import { patchGraphicsDestroy } from '../view/graphicsDestroy';
 import { densityCap, levelRange, type DeviceInfo } from '../view/quality';
 import { QualityRuntime, gpuName } from '../view/qualityRuntime';
@@ -67,6 +68,7 @@ export async function boot(platform: Platform): Promise<void> {
   await Promise.all([
     app.init({ background: BACKGROUND, resizeTo: window, resolution, autoDensity: true, antialias: resolution < 2, preference: 'webgl' }),
     fontReady(),
+    loadArt(),
   ]);
   app.canvas.id = 'game';
   document.body.prepend(app.canvas);

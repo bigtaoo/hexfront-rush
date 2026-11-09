@@ -78,12 +78,16 @@ class CardView {
       this.key = key;
       const rc = RARITY_COLOR[cd.rarity] ?? '#ffffff';
       this.bg.p.clear().rrect(0, 0, cw, ch, 14, 'rgba(15,23,42,0.92)', rc, 3);
-      this.fig.position.set(46, ch / 2 + 6);
       const def = UNITS[cd.unit];
       this.unit.update({
-        type: cd.unit, team, s: Math.min(0.5, (def.size / FP) * 1.2), face: 1, lunge: false, bob: 0, flash: 0,
+        type: cd.unit, team, s: def.size / FP, face: 1, lunge: false, bob: 0, flash: 0,
         hp: 1, own: true, id: 1, rarity: def.rarity, time: 0,
       });
+      // the picture, shadow and all, fits the card's left square
+      const b = this.unit.root.getLocalBounds();
+      const fk = Math.min(72 / Math.max(0.01, b.width), 76 / Math.max(0.01, b.height));
+      this.fig.scale.set(fk);
+      this.fig.position.set(44 - (b.x + b.width / 2) * fk, ch / 2 - (b.y + b.height / 2) * fk);
       setLabel(this.name, T('u_' + cd.unit), { size: 17, color: '#ffffff', weight: 900, align: 'left' });
       this.name.position.set(88, 24);
       setLabel(this.rar, T('r_' + RARITY[cd.rarity]), { size: 14, color: rc, weight: 900, align: 'left' });
