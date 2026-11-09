@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="playgama-bridge.js"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Hexfront Rush</title>
@@ -21,6 +20,7 @@
   #result.reveal .chip { animation: pop .38s cubic-bezier(.2,.9,.3,1.3) both; }
   #result.reveal .chip.b { animation-delay: .3s; } #result.reveal .chip.r { animation-delay: .42s; }
   #result.reveal > .row { animation-delay: .9s; }
+  #result.reveal > #watchBtn { animation-delay: 1.05s; }
   #game { position: fixed; left: 0; top: 0; display: block; }
   .panel {
     position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -63,6 +63,13 @@
     background: rgba(15,23,42,.75); cursor: pointer; z-index: 20; padding: 8px; box-sizing: border-box;
   }
   #leaveBtn svg { width: 100%; height: 100%; display: block; }
+  #speedBtn {
+    position: fixed; right: 122px; bottom: 12px; min-width: 48px; height: 48px; border-radius: 14px; border: 2px solid rgba(255,255,255,.7);
+    background: rgba(15,23,42,.75); cursor: pointer; z-index: 20; padding: 0 8px; box-sizing: border-box; font: inherit; font-size: 20px; color: #fff;
+  }
+  .share { display: flex; align-items: center; gap: 8px; max-width: 420px; font-size: clamp(12px, 2.6vmin, 15px); opacity: .8; font-weight: 700; cursor: pointer; text-align: left; }
+  .privacy { margin-top: -6px; font-size: clamp(11px, 2.3vmin, 13px); font-weight: 700; color: #93c5fd; opacity: .8; }
+  .share input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: #4ade80; cursor: pointer; }
   #online .card { display: flex; flex-direction: column; align-items: center; gap: 14px; }
   #online .card h2 { margin: 0; }
   #onlineMsg { min-height: 1.3em; white-space: pre-line; }
@@ -79,7 +86,6 @@
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
 
 <div id="menu" class="panel hidden">
   <div class="logo">HEXFRONT <span>RUSH</span></div>
@@ -87,6 +93,8 @@
   <button class="btn" id="playBtn" data-t="play"></button>
   <button class="btn blue" id="onlineBtn" data-t="online"></button>
   <button class="btn blue" id="howBtn" data-t="howto"></button>
+  <label class="share hidden" id="share"><input type="checkbox" id="shareIn"><span data-t="shareReplays"></span></label>
+  <a class="privacy hidden" id="privacyLink" target="_blank" rel="noopener" data-t="privacy"></a>
 </div>
 
 <div id="online" class="panel hidden">
@@ -130,6 +138,7 @@
     <button class="btn" id="againBtn" data-t="playAgain"></button>
     <button class="btn blue" id="menuBtn" data-t="menu"></button>
   </div>
+  <button class="btn blue hidden" id="watchBtn" data-t="watchReplay"></button>
 </div>
 
 <button id="muteBtn" aria-label="Sound">
@@ -146,23 +155,10 @@
   </svg>
 </button>
 
+<button id="speedBtn" class="hidden" aria-label="Replay speed">1×</button>
+
 <div id="loading">Loading…</div>
 
-<script src="js/sim/fixed.js"></script>
-<script src="js/sim/prng.js"></script>
-<script src="js/sim/hash.js"></script>
-<script src="js/sim/rules.js"></script>
-<script src="js/sim/engine.js"></script>
-<script src="js/sim/input.js"></script>
-<script src="js/sim/replay.js"></script>
-<script src="js/net/frameBroadcast.js"></script>
-<script src="js/net/netInput.js"></script>
-<script src="js/net/netClient.js"></script>
-<script src="js/net/predictor.js"></script>
-<script src="js/i18n.js"></script>
-<script src="js/platform.js"></script>
-<script src="js/audio.js"></script>
-<script src="js/render.js"></script>
-<script src="js/main.js"></script>
+<script type="module" src="/src/main.ts"></script>
 </body>
 </html>

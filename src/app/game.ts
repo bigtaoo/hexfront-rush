@@ -1,0 +1,398 @@
+// The game: the screens' flow (menu, how-to, match, results), the fixed-step loop and the pause.
+//
+// The loop: the sim advances in fixed 30 Hz ticks from an accumulator (StepLoop); each tick takes
+// that tick's commands from an input source (LocalInput offline, NetInput online) and stops when
+// the source has none yet. The renderer draws between the last two ticks (alpha). Player input
+// never touches the sim directly: it goes through an InputCollector into commands.
+//
+// The player has no avatar. Their one move is tapping a card (an offer next to their ground) to
+// flip it; dragging, the mouse wheel, the arrow keys and the minimap only move the camera.
+//
+// Replays: every match records checkpoint hashes as it goes (recordChecks); its end leaves
+// lastReplay, a solo match goes to the relay's collector too (replayUpload.ts), and watch() shows
+// any replay again with a ReplayInput in place of the player.
+
+import type { Application, Ticker } from 'pixi.js';
+import { NetInput, catchUpRate } from '../net/netInput';
+import type { Platform } from '../platform/types';
+import { Engine } from '../sim/engine';
+import { TICK_RATE } from '../sim/fixed';
+import { InputCollector, LocalInput, type Cmd, type InputSource, type PackedCmd } from '../sim/input';
+import { ReplayInput, recordChecks, type Replay } from '../sim/replay';
+import { ENGINE_VERSION, PHASE_END, PHASE_INTRO, PHASE_PLAY, TEAM_BLUE, TEAM_RED, enemyOf } from '../sim/rules';
+import type { EngineConfig, MatchResult } from '../sim/types';
+import type { DrawUi } from '../view/frame';
+import { Renderer } from '../view/renderer';
+import { Sound } from './audio';
+import { Controls } from './controls';
+import type { DevSwitches } from './dev';
+import { $, countUp, replay, show, updateRecord, type Panel } from './dom';
+import { handleEvents, type Fx } from './events';
+import { FaultGuard, markRestart, restartedLately } from './faultGuard';
+import { T } from './i18n';
+import { Online } from './online';
+import type { ReplayUpload } from './replayUpload';
+import { persist, type Save } from './save';
+import { StepLoop } from './stepLoop';
+import { updateTutorial, type Tutorial } from './tutorial';
+
+export type AppState = 'boot' | 'menu' | 'howto' | 'online' | 'match' | 'result';
+/** solo: against the AI; online: 1v1 through the relay; demo: the AI match behind the menu;
+ *  watch: a replay played again. */
+export type Mode = 'solo' | 'online' | 'demo' | 'watch';
+/** An input source that logs what it fed the engine, for the replay. */
+export type LoggedSource = InputSource & { readonly log: PackedCmd[] };
+/** The replay speeds the speed button steps through. */
+export const WATCH_SPEEDS = [1, 2, 4, 8] as const;
+
+/** Online state checkpoint interval, ticks. */
+const HASH_EVERY = TICK_RATE;
+/** Online, this far behind (a reload, a long background), the sim jumps without effects. */
+const JUMP_BACKLOG = 150;
+
+const randomSeed = (): number => (Math.random() * 1e9) | 0;
+
+export class Game {
+  readonly renderer: Renderer;
+  readonly sound: Sound;
+  readonly online: Online;
+  readonly controls: Controls;
+  readonly loop = new StepLoop();
+  readonly ui: DrawUi & { goldFlash: number } = { goldFlash: 0, demo: false };
+  /** A frame threw: reported, whatever ran ended, the menu afresh (faultGuard.ts). */
+  readonly fault: (err: unknown) => void;
+
+  eng!: Engine;
+  state: AppState = 'boot';
+  mode: Mode = 'demo';
+  localTeam = TEAM_BLUE;
+  /** The local source offline (it logs the commands for the replay), null online. */
+  input: LocalInput | null = null;
+  source: LoggedSource = new LocalInput();
+  collector = new InputCollector(TEAM_BLUE);
+  tut: Tutorial | null = null;
+  needGoldT = 0;
+  /** Seconds until the results panel comes up after the end. */
+  pendingResult = 0;
+  lastReplay: Replay | null = null;
+  /** Where solo replays go; null when they go nowhere (no relay, dev without ?upload). */
+  uploads: ReplayUpload | null = null;
+  /** The replay being watched, and how fast. */
+  watching: Replay | null = null;
+  watchSpeed: number = WATCH_SPEEDS[0];
+  howtoThen: 'match' | 'menu' = 'menu';
+
+  // the pause: any of these stops a solo match and silences the game
+  paused = false;
+  private hidden = false;
+  private hostPaused = false;
+  private adPause = false;
+  private adBusy = false;
+  hostMuted = false;
+  private readySent = false;
+
+  constructor(
+    readonly app: Application,
+    readonly platform: Platform,
+    readonly save: Save,
+    readonly dev: DevSwitches,
+  ) {
+    this.renderer = new Renderer(app);
+    this.sound = new Sound({ muted: () => this.save.muted || this.hostMuted, paused: () => this.paused });
+    this.online = new Online(this);
+    this.controls = new Controls(this);
+    const guard = new FaultGuard(Date.now, () => !restartedLately());
+    this.fault = (err) => {
+      const { report, act } = guard.fault();
+      if (report) console.error(err);
+      if (act === 'wait') return;
+      if (act === 'restart') {
+        markRestart();
+        location.reload();
+        return;
+      }
+      try {
+        this.toMenu();
+      } catch (again) {
+        console.error(again);
+      }
+    };
+  }
+
+  persist(): void {
+    persist(this.platform.storage, this.save);
+  }
+
+  show(panel: Panel | null): void {
+    show(panel, this.mode === 'online' || this.mode === 'watch', this.mode === 'watch');
+  }
+
+  /** Start a fresh engine and point the view and the input at it. */
+  setupEngine(config: EngineConfig, local: number, source: LoggedSource): void {
+    this.eng = new Engine(config);
+    this.localTeam = local;
+    this.source = source;
+    this.input = source instanceof LocalInput ? source : null;
+    this.collector = new InputCollector(local);
+    this.loop.reset();
+    this.pendingResult = 0;
+    this.controls.clear();
+    this.renderer.reset();
+    this.renderer.setView(this.eng, local);
+  }
+
+  /** Confirmed frames waiting to be stepped (always 0 offline). */
+  backlog(): number {
+    return this.source instanceof NetInput ? this.source.backlog(this.eng.tick) : 0;
+  }
+
+  // ---------------- flow ----------------
+  toMenu(): void {
+    // a solo match left before its end goes as quit
+    this.uploads?.end();
+    this.platform.gameplayStop();
+    this.online.stop();
+    this.watching = null;
+    this.state = 'menu';
+    this.mode = 'demo';
+    this.tut = null;
+    // the menu shows a live AI-vs-AI match behind the panel
+    this.setupEngine({ seed: randomSeed(), aiBlue: true, aiRed: true }, TEAM_BLUE, new LocalInput());
+    this.show('menu');
+    updateRecord(this.save);
+    this.sound.music('lobby');
+  }
+
+  openHowTo(then: 'match' | 'menu'): void {
+    this.state = 'howto';
+    this.howtoThen = then;
+    this.show('howto');
+  }
+
+  startMatch(): void {
+    this.sound.unlock();
+    this.sound.play('tap');
+    if (!this.save.tutorialDone) return this.openHowTo('match');
+    this.beginMatch();
+  }
+
+  beginMatch(): void {
+    this.mode = 'solo';
+    this.watching = null;
+    this.show(null);
+    this.state = 'match';
+    const seed = this.dev.seed ?? randomSeed();
+    const tutorial = !this.save.tutorialDone && !this.dev.autoplay;
+    const input = new LocalInput();
+    this.setupEngine({ seed, aiBlue: this.dev.autoplay, aiRed: true }, TEAM_BLUE, input);
+    if (!this.dev.autoplay) this.uploads?.start(this.eng, input.log, TEAM_BLUE);
+    this.tut = tutorial ? { step: 0, t: 0 } : null;
+    this.sound.music('battle');
+    this.platform.level('level_started');
+    this.platform.gameplayStart();
+  }
+
+  /** Shows a replay from its start (the results' "watch replay", Hexfront.watch on the console);
+   *  false when this engine cannot play it (another ENGINE_VERSION). The player's side is the one
+   *  the AI did not play (blue when both or neither did). */
+  watch(rep: Replay): boolean {
+    if (rep.v !== ENGINE_VERSION) {
+      console.warn(`[hexfront] that replay is from engine v${rep.v}, this is v${ENGINE_VERSION}`);
+      return false;
+    }
+    this.uploads?.end();
+    this.platform.gameplayStop();
+    this.online.stop();
+    this.mode = 'watch';
+    this.watching = rep;
+    this.state = 'match';
+    this.show(null);
+    this.tut = null;
+    const { aiBlue, aiRed } = rep.config;
+    this.setupEngine(rep.config, aiBlue && !aiRed ? TEAM_RED : TEAM_BLUE, new ReplayInput(rep));
+    this.setWatchSpeed(WATCH_SPEEDS[0]);
+    this.sound.music('battle');
+    return true;
+  }
+
+  setWatchSpeed(speed: number): void {
+    this.watchSpeed = speed;
+    $('speedBtn').textContent = `${speed}×`;
+  }
+
+  /** The results panel; `res` null for a replay cut short (the page was hidden or left). A
+   *  replay's result counts for nothing. */
+  showResult(res: MatchResult | null): void {
+    this.state = 'result';
+    const me = this.localTeam;
+    const won = !!res && res.winner === me;
+    const lost = !!res && res.winner === enemyOf(me);
+    const counted = this.mode === 'solo' || this.mode === 'online';
+    if (counted) {
+      if (won) this.save.wins++;
+      else if (lost) this.save.losses++;
+      else this.save.draws++;
+      this.persist();
+    }
+    const title = $('resultTitle');
+    title.textContent = !res ? T('replayOver') : won ? T('victory') : lost ? T('defeat') : T('draw');
+    title.className = won ? 'win' : lost ? 'lose' : 'draw';
+    const reason = !res ? null : res.reason;
+    $('resultReason').textContent =
+      reason === null ? '' : reason === 'base' ? T('baseDestroyed') : reason === 'forfeit' ? (won ? T('rivalLeft') : T('youLeft')) : T('timeUp');
+    $('watchBtn').classList.toggle('hidden', !this.replayToWatch());
+    $('chipMe').style.background = me === TEAM_BLUE ? '#2563eb' : '#dc2626';
+    $('chipFoe').style.background = me === TEAM_BLUE ? '#dc2626' : '#2563eb';
+    updateRecord(this.save);
+    this.show('result');
+    replay($('result'), 'reveal');
+    const still = () => this.state === 'result';
+    const blue = res ? res.blue : this.eng.team[TEAM_BLUE]!.tiles;
+    const red = res ? res.red : this.eng.team[TEAM_RED]!.tiles;
+    countUp($('resMe'), me === TEAM_BLUE ? blue : red, 300, still);
+    countUp($('resFoe'), me === TEAM_BLUE ? red : blue, 420, still);
+    if (counted) this.platform.level(won ? 'level_completed' : 'level_failed');
+  }
+
+  /** What the results' "watch replay" shows: the replay being watched, else the last match. */
+  replayToWatch(): Replay | null {
+    return this.mode === 'watch' ? this.watching : this.lastReplay;
+  }
+
+  /** From the results: the paced interstitial first (the game pauses and mutes while it is on
+   *  screen), then `then`. Taps while one is pending are dropped. */
+  afterAd(then: () => void): void {
+    if (this.adBusy) return;
+    this.adBusy = true;
+    this.platform
+      .midgame(() => {
+        this.adPause = true;
+        this.refreshPause();
+      })
+      .catch(() => {})
+      .then(() => {
+        this.adBusy = false;
+        this.adPause = false;
+        this.refreshPause();
+        then();
+      });
+  }
+
+  /** The results panel's "play again": the same kind of match (a solo one after a replay). */
+  again(): void {
+    if (this.mode === 'online') {
+      this.toMenu();
+      this.online.open();
+    } else this.beginMatch();
+  }
+
+  // ---------------- pause ----------------
+  setHidden(hidden: boolean): void {
+    this.hidden = hidden;
+    this.refreshPause();
+  }
+  setHostPaused(paused: boolean): void {
+    this.hostPaused = paused;
+    this.refreshPause();
+  }
+
+  private refreshPause(): void {
+    const p = this.hidden || this.hostPaused || this.adPause;
+    if (p === this.paused) return;
+    if (this.state === 'match' && this.mode !== 'watch' && this.eng.phase !== PHASE_END) {
+      if (p) this.platform.gameplayStop();
+      else this.platform.gameplayStart();
+    }
+    this.paused = p;
+    this.sound.applyMute();
+    if (p) this.controls.clear();
+  }
+
+  // ---------------- what input may do ----------------
+  /** Flipping a card: only while the match is being played. */
+  canSteer(): boolean {
+    return this.state === 'match' && this.mode !== 'watch' && this.eng.phase === PHASE_PLAY && (!this.paused || this.mode === 'online');
+  }
+  /** Moving the camera: also after the end, to look over the field. */
+  canLook(): boolean {
+    return this.state === 'match' && this.eng.phase !== PHASE_INTRO && (!this.paused || this.mode === 'online');
+  }
+
+  // ---------------- the fixed-step loop ----------------
+  /** One sim tick with its bookkeeping. */
+  private simStep(cmds: Cmd[], fx: Fx): void {
+    const eng = this.eng;
+    eng.step(cmds);
+    recordChecks(eng);
+    handleEvents(this, eng, fx);
+    if (this.mode === 'online' && eng.tick % HASH_EVERY === 0) this.online.sendHash(eng);
+  }
+
+  /** Advance the sim by real time dt (seconds). Returns the interpolation alpha. */
+  private advance(dt: number): number {
+    const fx: Fx = this.mode === 'demo' ? 'visual' : 'full';
+    if (this.mode === 'online') {
+      this.online.sendInput();
+      const back = this.backlog();
+      if (back > JUMP_BACKLOG) {
+        const until = this.eng.tick + back - 6;
+        while (this.eng.tick < until) {
+          const c = this.source.take(this.eng.tick);
+          if (!c) break;
+          this.simStep(c, 'none');
+        }
+        this.loop.reset();
+        this.renderer.reset();
+      }
+    }
+    const watch = this.mode === 'watch' ? this.watchSpeed : 1;
+    const rate = TICK_RATE * this.dev.speed * watch * catchUpRate(this.backlog());
+    return this.loop.run(dt * rate, () => {
+      this.input?.push(this.collector.drain());
+      const cmds = this.source.take(this.eng.tick);
+      // a stall: the relay has not confirmed this frame yet
+      if (!cmds) return false;
+      this.simStep(cmds, fx);
+      return true;
+    });
+  }
+
+  /** One display frame (app.ticker). */
+  frame(ticker: Ticker): void {
+    const ms = Math.max(0, ticker.deltaMS);
+    const dt = Math.min(0.05, ms / 1000);
+    const realDt = Math.min(1, ms / 1000);
+    const online = this.mode === 'online';
+    const active = this.state === 'match' || this.state === 'result' || this.mode === 'demo';
+    // online the sim cannot pause: the rival keeps playing, so it always follows the relay
+    const run = active && (online || !this.paused);
+    let alpha = 1;
+    if (run) {
+      if (this.mode === 'demo' && this.eng.phase === PHASE_END) {
+        this.setupEngine({ seed: randomSeed(), aiBlue: true, aiRed: true }, TEAM_BLUE, new LocalInput());
+      }
+      alpha = this.advance(online ? realDt : dt);
+      if (this.state === 'match' && this.eng.phase === PHASE_PLAY) this.platform.played(dt * 1000);
+      updateTutorial(this, dt);
+      if (this.needGoldT > 0) this.needGoldT -= dt;
+      if (this.ui.goldFlash > 0) this.ui.goldFlash -= dt;
+      if (this.pendingResult > 0) {
+        this.pendingResult -= dt;
+        if (this.pendingResult <= 0 && this.state === 'match' && this.eng.result) this.showResult(this.eng.result);
+      }
+      // a replay cut short holds its last tick: the results say it is over
+      const w = this.watching;
+      if (w && this.mode === 'watch' && this.state === 'match' && !this.eng.result && this.eng.tick >= w.endTick) this.showResult(null);
+    }
+    this.ui.demo = this.mode === 'demo';
+    if (online && this.state === 'match') this.renderer.status = this.online.statusLine();
+    else if (this.mode === 'watch' && this.state === 'match') this.renderer.status = { text: T('watching') };
+    this.controls.keyPan(realDt);
+    this.renderer.draw(this.eng, alpha, this.paused && !online ? 0 : dt, this.ui);
+    this.sound.update(dt);
+    if (!this.readySent && this.state === 'menu') {
+      this.readySent = true;
+      this.platform.loaded();
+    }
+  }
+}

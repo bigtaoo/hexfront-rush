@@ -1,0 +1,327 @@
+// Audio (ported from Holy Kicker's audio/): a closed cue table with per-cue gain, gap and priority;
+// a per-frame gate that merges repeats of one cue into one louder voice; a voice cap where higher
+// priority steals from lower; a compressor on the effects bus; and two-deck music that changes
+// track and loops by equal-power crossfades (MP3 streams are padded, so a native loop clicks).
+// The game tells it whether to be silent (the player's switch, the host's, a pause) through
+// MuteState; while paused the context is suspended and the decks stop.
+
+interface CueDef {
+  pri: number;
+  gain: number;
+  gap: number;
+  /** The sample, when it is not the cue's own name. */
+  file?: string;
+  /** A small random pitch, so repeats do not sound mechanical. */
+  vary?: boolean;
+}
+
+export const CUES = {
+  // ui
+  tap: { pri: 3, gain: 0.55, gap: 0.05 },
+  error: { pri: 4, gain: 0.5, gap: 0.4 },
+  beep: { pri: 5, gain: 0.7, gap: 0.15 },
+  go: { pri: 5, gain: 0.6, gap: 0.5 },
+  // economy
+  coin: { pri: 2, gain: 0.45, gap: 0.12, vary: true },
+  income: { pri: 1, gain: 0.18, gap: 0.5, file: 'coin', vary: true },
+  build: { pri: 3, gain: 0.7, gap: 0.08, vary: true },
+  quest: { pri: 4, gain: 0.6, gap: 0.3 },
+  nothing: { pri: 4, gain: 0.5, gap: 0.3 },
+  legend: { pri: 6, gain: 0.7, gap: 1 },
+  // battle
+  spawn: { pri: 1, gain: 0.3, gap: 0.2, vary: true },
+  shoot: { pri: 0, gain: 0.3, gap: 0.09, vary: true },
+  hit: { pri: 0, gain: 0.3, gap: 0.07, vary: true },
+  melee: { pri: 0, gain: 0.22, gap: 0.1, file: 'hit', vary: true },
+  pop: { pri: 1, gain: 0.4, gap: 0.08, vary: true },
+  destroy: { pri: 5, gain: 0.6, gap: 0.2, vary: true },
+  // results
+  win: { pri: 7, gain: 0.8, gap: 1 },
+  lose: { pri: 7, gain: 0.8, gap: 1 },
+} satisfies Record<string, CueDef>;
+export type Cue = keyof typeof CUES;
+const cueDef = (c: Cue): CueDef => CUES[c];
+
+export const MUSIC = { battle: 'music/battle.mp3', lobby: 'music/lobby.mp3' } as const;
+export type Track = keyof typeof MUSIC;
+const MAX_VOICES = 14;
+const XFADE = 2;
+const MUSIC_LEVEL = 0.32;
+
+/** How loud a cue asked for `n` times in one frame plays: one voice, louder, capped. */
+export const mergedGain = (n: number): number => Math.min(1 + 0.15 * Math.log2(n), 1.5);
+
+export interface MuteState {
+  /** The player's switch or the host's. */
+  muted(): boolean;
+  /** The game is paused (hidden tab, an ad, the host's pause): everything stops. */
+  paused(): boolean;
+}
+
+interface Deck {
+  el: HTMLAudioElement;
+  g: GainNode;
+  level: number;
+  /** The track key this deck holds, so a crossfade into the same track only rewinds. */
+  holds: Track | null;
+}
+interface Voice {
+  src: AudioBufferSourceNode;
+  pri: number;
+  end: number;
+}
+interface Fade {
+  inD: number;
+  outD: number;
+  t: number;
+}
+
+export class Sound {
+  private ctx: AudioContext | null = null;
+  private master!: GainNode;
+  private sfxBus!: GainNode;
+  private musicBus!: GainNode;
+  private buffers = new Map<string, AudioBuffer>();
+  private last = new Map<Cue, number>();
+  private queue = new Map<Cue, { n: number; vol: number }>();
+  private voices: Voice[] = [];
+  private decks: Deck[] = [];
+  private live = -1;
+  private track: Track | null = null;
+  private fade: Fade | null = null;
+  private want: Track | null = null;
+
+  constructor(
+    private readonly st: MuteState,
+    /** Where public/ is served from (Vite's BASE_URL: '/' in dev, './' on the portal). */
+    private readonly base: string = import.meta.env.BASE_URL,
+  ) {}
+
+  private init(): void {
+    if (this.ctx) return;
+    const AC = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    let c: AudioContext;
+    try {
+      c = new AC();
+    } catch {
+      return;
+    }
+    this.ctx = c;
+    this.master = c.createGain();
+    this.master.connect(c.destination);
+    const comp = c.createDynamicsCompressor();
+    comp.threshold.value = -10;
+    comp.knee.value = 6;
+    comp.ratio.value = 12;
+    comp.attack.value = 0.003;
+    comp.release.value = 0.15;
+    comp.connect(this.master);
+    this.sfxBus = c.createGain();
+    this.sfxBus.gain.value = 0.9;
+    this.sfxBus.connect(comp);
+    this.musicBus = c.createGain();
+    this.musicBus.gain.value = MUSIC_LEVEL;
+    this.musicBus.connect(this.master);
+    this.applyMute();
+    const files = new Set((Object.keys(CUES) as Cue[]).map((k) => cueDef(k).file ?? k));
+    for (const f of files) {
+      fetch(`${this.base}sfx/${f}.mp3`)
+        .then((r) => r.arrayBuffer())
+        .then((ab) => c.decodeAudioData(ab))
+        .then((b) => void this.buffers.set(f, b))
+        .catch(() => {});
+    }
+    // music streams through two <audio> decks: a decoded minute of stereo is ~25 MB
+    this.decks = [0, 1].map(() => {
+      const el = new Audio();
+      el.preload = 'auto';
+      const g = c.createGain();
+      g.gain.value = 0;
+      try {
+        c.createMediaElementSource(el).connect(g);
+      } catch {
+        /* the element plays on its own, unmixed */
+      }
+      g.connect(this.musicBus);
+      return { el, g, level: 0, holds: null };
+    });
+  }
+
+  /** The browser keeps audio locked until a gesture: every kind of gesture tries to open it. */
+  installUnlock(): void {
+    const go = () => this.unlock();
+    for (const ev of ['pointerdown', 'pointerup', 'touchend', 'keydown']) window.addEventListener(ev, go, true);
+  }
+
+  unlock(): void {
+    this.init();
+    const paused = this.st.paused();
+    if (this.ctx?.state === 'suspended' && !paused) this.ctx.resume().catch(() => {});
+    if (this.track !== null && this.live >= 0) {
+      const d = this.decks[this.live]!;
+      if (d.el.paused && !paused) d.el.play().catch(() => {});
+    }
+  }
+
+  private silent(): boolean {
+    return this.st.muted() || this.st.paused();
+  }
+
+  /** Call after any change of the mute or pause state. */
+  applyMute(): void {
+    const c = this.ctx;
+    if (!c) return;
+    const paused = this.st.paused();
+    this.master.gain.setTargetAtTime(this.silent() ? 0 : 1, c.currentTime, 0.02);
+    for (const d of this.decks) {
+      if (paused) d.el.pause();
+      else if (d.level > 0 && d.el.paused && d.holds) d.el.play().catch(() => {});
+    }
+    if (paused) {
+      if (c.state === 'running') c.suspend().catch(() => {});
+    } else if (c.state === 'suspended') c.resume().catch(() => {});
+  }
+
+  /** Asks for a cue this frame; repeats in one frame merge (see flush). */
+  play(name: Cue, vol = 1): void {
+    const q = this.queue.get(name);
+    if (q) {
+      q.n++;
+      q.vol = Math.max(q.vol, vol);
+    } else this.queue.set(name, { n: 1, vol });
+  }
+
+  /** Once a frame: the gate. Each cue sounds at most once, louder (capped) when asked for many times. */
+  private flush(): void {
+    if (this.queue.size === 0) return;
+    const q = this.queue;
+    this.queue = new Map();
+    const c = this.ctx;
+    if (!c || this.silent()) return;
+    const now = c.currentTime;
+    for (const [name, { n, vol }] of q) {
+      const cue = cueDef(name);
+      const last = this.last.get(name);
+      if (last !== undefined && now - last < cue.gap) continue;
+      const b = this.buffers.get(cue.file ?? name);
+      if (!b || !this.voice(cue.pri)) continue;
+      this.last.set(name, now);
+      const src = c.createBufferSource();
+      src.buffer = b;
+      if (cue.vary) src.playbackRate.value = 0.94 + Math.random() * 0.12;
+      const g = c.createGain();
+      g.gain.value = cue.gain * vol * mergedGain(n);
+      src.connect(g);
+      g.connect(this.sfxBus);
+      const v: Voice = { src, pri: cue.pri, end: now + b.duration / src.playbackRate.value };
+      this.voices.push(v);
+      src.onended = () => {
+        const i = this.voices.indexOf(v);
+        if (i >= 0) this.voices.splice(i, 1);
+      };
+      src.start();
+    }
+  }
+
+  /** A free voice for priority `pri`: when all are taken, the lowest (oldest first) is stolen if lower. */
+  private voice(pri: number): boolean {
+    const now = this.ctx!.currentTime;
+    this.voices = this.voices.filter((v) => v.end > now);
+    if (this.voices.length < MAX_VOICES) return true;
+    let low: Voice | null = null;
+    for (const v of this.voices) if (!low || v.pri < low.pri) low = v;
+    if (!low || low.pri >= pri) return false;
+    try {
+      low.src.stop();
+    } catch {
+      /* already ended */
+    }
+    this.voices.splice(this.voices.indexOf(low), 1);
+    return true;
+  }
+
+  // ---- music: two decks, equal-power crossfades for track changes and for the loop ----
+  music(track: Track | null): void {
+    this.want = track;
+  }
+
+  /** Once a frame, with real seconds. */
+  update(dt: number): void {
+    this.flush();
+    if (!this.decks.length || this.st.paused()) return;
+    if (this.fade) this.advance(dt);
+    if (this.want !== this.track) this.change(this.want);
+    else if (!this.fade && this.track !== null && this.live >= 0) {
+      const el = this.decks[this.live]!.el;
+      if (el.ended) {
+        // missed the wrap (throttled frames): restart
+        el.play().catch(() => {});
+        return;
+      }
+      if (el.duration > XFADE * 2 && el.currentTime >= el.duration - XFADE) {
+        const out = this.live;
+        this.live = 1 - out;
+        this.begin(this.live, out, this.track);
+      }
+    }
+  }
+
+  private change(next: Track | null): void {
+    const out = this.live;
+    this.track = next;
+    if (next === null) {
+      this.live = -1;
+      this.begin(-1, out, null);
+      return;
+    }
+    this.live = out === 0 ? 1 : 0;
+    this.begin(this.live, out, next);
+  }
+
+  private begin(inD: number, outD: number, track: Track | null): void {
+    if (this.fade) for (const d of [this.fade.inD, this.fade.outD]) if (d >= 0 && d !== outD && d !== inD) this.silence(d);
+    this.fade = { inD, outD, t: 0 };
+    if (inD >= 0 && track) {
+      const deck = this.decks[inD]!;
+      try {
+        if (deck.holds !== track) {
+          deck.el.src = this.base + MUSIC[track];
+          deck.holds = track;
+        }
+        deck.el.currentTime = 0;
+      } catch {
+        /* not loaded yet */
+      }
+      deck.el.play().catch(() => {});
+    }
+    this.applyFade();
+  }
+
+  private advance(dt: number): void {
+    const f = this.fade!;
+    f.t += dt / XFADE;
+    if (f.t < 1) return this.applyFade();
+    this.fade = null;
+    if (f.inD >= 0) this.set(f.inD, 1);
+    if (f.outD >= 0 && f.outD !== f.inD) this.silence(f.outD);
+  }
+
+  private applyFade(): void {
+    const f = this.fade!;
+    const a = (Math.min(1, Math.max(0, f.t)) * Math.PI) / 2;
+    if (f.inD >= 0) this.set(f.inD, Math.sin(a));
+    if (f.outD >= 0 && f.outD !== f.inD) this.set(f.outD, Math.cos(a));
+  }
+
+  private silence(d: number): void {
+    this.set(d, 0);
+    this.decks[d]!.el.pause();
+  }
+
+  private set(d: number, level: number): void {
+    const k = this.decks[d]!;
+    k.level = level;
+    k.g.gain.value = level;
+  }
+}

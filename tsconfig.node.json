@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "erasableSyntaxOnly": true,
+    "noEmit": true
+  },
+  "include": [],
+  "files": [
+    "server/relay.ts",
+    "server/collect.ts",
+    "scripts/replays.ts",
+    "scripts/balance.ts"
+  ]
+}

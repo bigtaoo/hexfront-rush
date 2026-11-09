@@ -1,0 +1,48 @@
+# Hexfront Rush's replay collector on the box `blightbloom`, next to Potion Siege and apart from
+# it: its own compose project in /home/deploy/hexfront, its own network. The box's ports 80/443
+# are someone else's Caddy, so this publishes none; `tunnel` (cloudflared) dials out to
+# Cloudflare, which serves https://hf.gamestao.com and sends its requests down that connection
+# to `collector`. Same shape as Potion Siege's server/docker-compose.yml.
+name: hexfront
+
+services:
+  collector:
+    build: .
+    image: hexfront-collector
+    container_name: hf-collector
+    restart: unless-stopped
+    mem_limit: 128m
+    environment:
+      # the sender is Cloudflare's CF-Connecting-IP (rate limit only, held in memory)
+      TRUST_PROXY: "1"
+      PRIVACY_CONTACT: ${HF_PRIVACY_CONTACT:-}
+      REPLAY_BYTES: ${HF_REPLAY_BYTES:-}
+    volumes:
+      # replays/ (deploy user = uid 1000 = the image's `node`)
+      - ./data:/data
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://127.0.0.1:8787/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # A remotely managed tunnel: its route (hf.gamestao.com -> http://collector:8787) is set on
+  # Cloudflare's side; the token in .env is all it needs here.
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    container_name: hf-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${HF_TUNNEL_TOKEN:?HF_TUNNEL_TOKEN missing from .env}
+    depends_on:
+      collector:
+        condition: service_healthy
+    mem_limit: 128m
+    logging: *logging
