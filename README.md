@@ -37,7 +37,7 @@ The relay runs on Node's built-in TypeScript type stripping (Node 22.6+; 23.6+ n
 
 The relay also keeps replays in `data/replays`: every online match it relays, and the solo matches games send to its `POST /r` (anonymous, the player can switch it off in the menu; the dev server sends only with `?upload`). See ENGINE.md, **Replays**.
 
-The Playgama build sends none for now. Built with `VITE_REPLAY_URL=https://hf.gamestao.com/r`, it sends them to the hosted collector instead: `server/collect.ts` on its own (no relay), in Docker behind a Cloudflare tunnel on the box `blightbloom`, with a privacy page at `/privacy` that the menu links to. Deploying it and fetching its replays: `server/deploy/README.md`.
+The Playgama build sends none for now. Built with `VITE_REPLAY_URL=https://hf.gamestao.com/r`, it sends them to the hosted collector instead: `server/collect.ts` on its own (no relay), in Docker behind a Cloudflare tunnel on the box `blightbloom`, with a privacy page at `/privacy` that the settings panel links to. Deploying it and fetching its replays: `server/deploy/README.md`.
 
 | Relay / collector setting | What |
 |---|---|

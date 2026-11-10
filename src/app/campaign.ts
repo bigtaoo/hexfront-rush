@@ -116,6 +116,25 @@ export function stageAt(id: number): Stage {
   return CHAPTERS[Math.floor(id / STAGES_PER_CHAPTER)]!.stages[id % STAGES_PER_CHAPTER]!;
 }
 
+// ---------------- the hard campaign ----------------
+
+/** The hard campaign: the same 42 stages and maps, the rival one skill up and with HARD_INCOME
+ *  more income; a rival already at the top skill (most of chapters 3-6) gets HARD_INCOME_TOP instead.
+ *  Calibrated (`HARD=1 npm run campaign -- 16`): the bot wins about 15-27 points less often than
+ *  on Normal, chapter by chapter. Its stars and best times are kept apart (Save.hard,
+ *  Save.hardBest); a hard stage opens once it is won on Normal and the hard one before it is won. */
+export const HARD_INCOME = 1.1;
+export const HARD_INCOME_TOP = 1.2;
+export function hardStage(st: Stage): Stage {
+  const r = st.rival;
+  const top = r.skill >= 3;
+  return { ...st, rival: { ...r, skill: Math.min(3, r.skill + 1), income: Math.round((r.income ?? 100) * (top ? HARD_INCOME_TOP : HARD_INCOME)) } };
+}
+
+/** Hard stage id is open: won on Normal, and the first one or the hard one before it is won. */
+export const hardOpen = (normal: readonly number[], hard: readonly number[], id: number): boolean =>
+  ((normal[id] ?? 0) & GOAL_WIN) !== 0 && (id === 0 || ((hard[id - 1] ?? 0) & GOAL_WIN) !== 0);
+
 /** "3-5": chapter and stage, from 1. */
 export const stageLabel = (id: number): string => `${Math.floor(id / STAGES_PER_CHAPTER) + 1}-${(id % STAGES_PER_CHAPTER) + 1}`;
 

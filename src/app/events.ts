@@ -6,6 +6,7 @@ import { makeReplay } from '../sim/replay';
 import { SIEGE, TEAM_BLUE } from '../sim/rules';
 import type { SimEvent } from '../sim/types';
 import { $ } from './dom';
+import { haptics } from './haptics';
 import type { Game } from './game';
 import { T } from './i18n';
 
@@ -16,7 +17,9 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
   const R = g.renderer;
   const S = g.sound;
   const me = g.localTeam;
+  const buzz = fx === 'full' && (g.mode === 'solo' || g.mode === 'online');
   for (const e of eng.events) {
+    if (buzz) haptics.onEvent(e, eng, me);
     if (e.type === 'end') {
       if (g.mode !== 'demo') onMatchEnd(g, eng, e, fx !== 'none');
       continue;

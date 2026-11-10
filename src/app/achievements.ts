@@ -1,4 +1,4 @@
-// The achievements: nine feats, one bit each in the save (Save.ach), earned at the end of a
+// The achievements: ten feats, one bit each in the save (Save.ach), earned at the end of a
 // match played against the AI (a stage, the daily, a quick match) and never lost. Each says how
 // to earn it in plain words (lang tables: ach_<key> and ach_<key>_d); none hints at what the
 // face-down cards hold. A pure checker (achievements.test.ts); result.ts shows what was new, the
@@ -8,7 +8,7 @@ import { STAGES_PER_CHAPTER, STAGE_COUNT, CHAPTERS, GOAL_WIN, SKIRMISH, chapterS
 import type { MatchKind } from './campaignUi';
 
 /** In order: the bit is the index. */
-export const ACHIEVEMENTS = ['firstWin', 'sweep', 'legend', 'blitz', 'chapter', 'streak', 'brutal', 'horde', 'campaign'] as const;
+export const ACHIEVEMENTS = ['firstWin', 'sweep', 'legend', 'blitz', 'chapter', 'streak', 'brutal', 'horde', 'campaign', 'hardChapter'] as const;
 export type AchKey = (typeof ACHIEVEMENTS)[number];
 export const ACH_ALL = (1 << ACHIEVEMENTS.length) - 1;
 
@@ -30,8 +30,9 @@ export interface MatchFacts {
   /** The most troops the player had on the field at once. */
   peak: number;
   legend: boolean;
-  /** The campaign's goals and the daily streak after this match was recorded. */
+  /** The campaign's goals (Normal and Hard) and the daily streak after this match was recorded. */
   stages: readonly number[];
+  hard: readonly number[];
   streak: number;
 }
 
@@ -51,6 +52,12 @@ export function achievementsMet(f: MatchFacts): number {
   let all = true;
   for (let i = 0; i < STAGE_COUNT; i++) if (!((f.stages[i] ?? 0) & GOAL_WIN)) all = false;
   if (all) a |= bit('campaign');
+  const won = (g: readonly number[], i: number) => ((g[i] ?? 0) & GOAL_WIN) !== 0;
+  for (let ch = 0; ch < CHAPTERS.length; ch++) {
+    let full = true;
+    for (let s = 0; s < STAGES_PER_CHAPTER; s++) if (!won(f.hard, ch * STAGES_PER_CHAPTER + s)) full = false;
+    if (full) a |= bit('hardChapter');
+  }
   return a;
 }
 

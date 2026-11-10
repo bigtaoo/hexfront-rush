@@ -8,8 +8,7 @@ import { TICK_RATE } from '../sim/fixed';
 import { TEAM_BLUE, TEAM_RED, enemyOf } from '../sim/rules';
 import type { MatchResult } from '../sim/types';
 import { achievementsMet, newOnes } from './achievements';
-import { totalStars } from './campaign';
-import { fmtTime, recordGoals, showStars } from './campaignUi';
+import { allStars, bestOf, fmtTime, recordGoals, showStars } from './campaignUi';
 import { $, countUp, replay, updateRecord } from './dom';
 import type { Game } from './game';
 import { T } from './i18n';
@@ -33,23 +32,24 @@ export function showResult(g: Game, res: MatchResult | null): void {
     else save.draws++;
     const daily = save.dailyWins;
     if (solo) got = recordGoals(m, save, won, st.taken(me), st.eventsTotal, secs);
-    if (solo && won && m.kind === 'stage') {
-      while (save.best.length <= m.id) save.best.push(0);
-      const had = save.best[m.id]!;
-      if (!had || secs < had) save.best[m.id] = secs;
-      best = { had, now: save.best[m.id]! };
-    } else if (m.kind === 'stage' && solo) best = { had: save.best[m.id] ?? 0, now: save.best[m.id] ?? 0 };
+    if (solo && m.kind === 'stage') {
+      const times = bestOf(save, m.hard);
+      while (times.length <= m.id) times.push(0);
+      const had = times[m.id]!;
+      if (won && (!had || secs < had)) times[m.id] = secs;
+      best = { had, now: times[m.id]! };
+    }
     if (solo) {
       const mine = st.side(g.eng, me);
       const a = achievementsMet({
         match: m, won, skirmish: save.skirmish, taken: mine.events, total: st.eventsTotal, secs, peak: mine.peak, legend: st.legend,
-        stages: save.stages, streak: save.streak,
+        stages: save.stages, hard: save.hard, streak: save.streak,
       });
       fresh = newOnes(a, save.ach);
       save.ach |= a;
     }
     g.persist();
-    if (got && m.kind === 'stage' && got.now & ~got.before) g.platform.submitScore('stars', totalStars(save.stages));
+    if (got && m.kind === 'stage' && got.now & ~got.before) g.platform.submitScore('stars', allStars(save));
     if (save.dailyWins > daily) g.platform.submitScore('daily', save.dailyWins);
   }
   showStars(m, got, won && solo, lost && solo, save);

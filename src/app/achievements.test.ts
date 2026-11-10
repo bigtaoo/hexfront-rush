@@ -3,7 +3,7 @@ import { ACHIEVEMENTS, ACH_ALL, BLITZ_SECS, HORDE, achCount, achievementsMet, ne
 import { GOAL_ALL, GOAL_WIN, SKIRMISH, STAGE_COUNT, STAGES_PER_CHAPTER } from './campaign';
 
 const facts = (f: Partial<MatchFacts> = {}): MatchFacts => ({
-  match: { kind: 'stage', id: 3 }, won: false, skirmish: 1, taken: 0, total: 8, secs: 400, peak: 10, legend: false, stages: [], streak: 0, ...f,
+  match: { kind: 'stage', id: 3 }, won: false, skirmish: 1, taken: 0, total: 8, secs: 400, peak: 10, legend: false, stages: [], hard: [], streak: 0, ...f,
 });
 const has = (bits: number, k: (typeof ACHIEVEMENTS)[number]) => (bits & (1 << ACHIEVEMENTS.indexOf(k))) !== 0;
 
@@ -21,6 +21,14 @@ describe('achievements', () => {
   it('a legend and a horde count even in a loss', () => {
     const a = achievementsMet(facts({ legend: true, peak: HORDE }));
     expect(newOnes(a, 0)).toEqual(['legend', 'horde']);
+  });
+
+  it('a chapter won on Hard', () => {
+    const ch = Array<number>(STAGES_PER_CHAPTER).fill(GOAL_WIN);
+    expect(has(achievementsMet(facts({ hard: [0, ...ch.slice(1)] })), 'hardChapter')).toBe(false);
+    expect(has(achievementsMet(facts({ hard: ch })), 'hardChapter')).toBe(true);
+    expect(has(achievementsMet(facts({ hard: [...Array<number>(STAGES_PER_CHAPTER).fill(0), ...ch] })), 'hardChapter')).toBe(true);
+    expect(has(achievementsMet(facts({ stages: ch })), 'hardChapter')).toBe(false);
   });
 
   it('brutal only for the hardest quick match', () => {

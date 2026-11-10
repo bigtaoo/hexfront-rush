@@ -20,7 +20,7 @@ describe('save', () => {
     const save = {
       tutorialDone: true, wins: 3, losses: 2, draws: 1, muted: true, musicOff: false, shareReplays: false,
       stages: [7, 1, 3], best: [95, 0, 210], skirmish: 2, dailyDay: 20400, dailyGoals: 5, streak: 3, streakDay: 20400,
-      dailyWins: 9, hints: 5, ach: 0x41,
+      dailyWins: 9, hints: 5, ach: 0x41, hard: [1, 7], hardBest: [140, 0], quality: 2, vibrate: false,
     };
     persist(s, save);
     expect(loadSave(s)).toEqual(save);
@@ -38,5 +38,13 @@ describe('save', () => {
     expect(got.musicOff).toBe(true);
     expect(got.dailyWins).toBe(4);
     expect(loadSave(store(JSON.stringify({ muted: true, musicOff: false }))).musicOff).toBe(false);
+  });
+
+  it('reads a save from before Hard and the settings', () => {
+    const got = loadSave(store(JSON.stringify({ stages: [7], quality: 9, vibrate: 'no' })));
+    expect(got.hard).toEqual([]);
+    expect(got.hardBest).toEqual([]);
+    expect(got.quality).toBe(0);
+    expect(got.vibrate).toBe(true);
   });
 });

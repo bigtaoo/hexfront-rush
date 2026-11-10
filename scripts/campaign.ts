@@ -10,8 +10,9 @@
 //   npm run campaign -- maps 2     chapter 2's own maps: is a stage's fixed map fair to blue?
 //   npm run campaign -- pick 2     chapter 2: the fairest of 10 fresh maps of its theme per stage
 //   PROXY='{"skill":2}'            a weaker stand-in
+//   HARD=1 npm run campaign         the hard campaign (campaign.ts hardStage)
 
-import { CHAPTERS, STAGES_PER_CHAPTER, eventsGoal, stageAt, stageLabel, type Stage } from '../src/app/campaign';
+import { CHAPTERS, STAGES_PER_CHAPTER, eventsGoal, hardStage, stageAt, stageLabel, type Stage } from '../src/app/campaign';
 import { generateMap } from '../src/sim/map';
 import { TEAM_BLUE, TEAM_RED } from '../src/sim/rules';
 import { playBalanceMatch } from './balanceMatch';
@@ -97,14 +98,14 @@ if (process.argv[1]?.endsWith('campaign.ts') && process.argv[2] === 'maps') {
     for (let s = 0; s < STAGES_PER_CHAPTER; s++) if (!stArg || s === Number(stArg) - 1) ids.push(c * STAGES_PER_CHAPTER + s);
   }
   for (const id of ids) {
-    const r = calibrate(id, n);
+    const r = calibrate(id, n, process.env.HARD ? hardStage(stageAt(id)).rival : {});
     const st = stageAt(id);
     const pct = Math.round((100 * r.wins) / r.games);
     const ok = r.wins ? Math.round((100 * r.eventsOk) / r.wins) : 0;
     // a par a steady player beats about half the time it wins, rounded up to 15 seconds
     const par = Math.ceil((median(r.winSecs) * 1.1) / 15) * 15;
     console.log(
-      `${stageLabel(id).padEnd(5)} win ${String(pct).padStart(3)}%  map ${r.firstWon ? 'won ' : 'lost'}  win time ${fmt(median(r.winSecs))}  chests>half ${String(ok).padStart(3)}%  par ${st.par} -> ${par}`,
+      `${stageLabel(id).padEnd(5)} win ${String(pct).padStart(3)}% (target ${TARGET(Math.floor(id / STAGES_PER_CHAPTER), id % STAGES_PER_CHAPTER)})  map ${r.firstWon ? 'won ' : 'lost'}  win time ${fmt(median(r.winSecs))}  chests>half ${String(ok).padStart(3)}%  par ${st.par} -> ${par}`,
     );
   }
 }

@@ -6,21 +6,30 @@
 import { STD_SIEGE, sideSetup, type ConfigInput, type SideSetup } from '../sim/setup';
 import {
   CHAPTERS, EVENTS_ON_MAP, GOAL_EVENTS, GOAL_PAR, GOAL_WIN, SKIRMISH, STAGE_COUNT, STAGES_PER_CHAPTER, chapterStars, dailyStage, dayNumber, goalsMet,
-  nextStage, stageAt, stageConfig, stageLabel, stageOpen, type Stage,
+  hardOpen, hardStage, nextStage, stageAt, stageConfig, stageLabel, stageOpen, totalStars, type Stage,
 } from './campaign';
 import { ACHIEVEMENTS, achCount } from './achievements';
 import { $ } from './dom';
+import { fillRivalCard, rivalStyle } from './rival';
 import { T } from './i18n';
 import type { Board, ScoreRow } from '../platform/types';
 import type { Save } from './save';
 
-export type MatchKind = { kind: 'stage'; id: number } | { kind: 'quick' } | { kind: 'daily'; day: number };
+/** A campaign stage (hard: the hard campaign's), a quick match or the day's challenge. */
+export type MatchKind = { kind: 'stage'; id: number; hard?: boolean } | { kind: 'quick' } | { kind: 'daily'; day: number };
+
+/** The campaign's goals (stars) per stage, and the best times: the normal or the hard one's. */
+export const goalsOf = (save: Save, hard: boolean | undefined): number[] => (hard ? save.hard : save.stages);
+export const bestOf = (save: Save, hard: boolean | undefined): number[] => (hard ? save.hardBest : save.best);
+/** Every campaign star, Normal and Hard (the stars leaderboard). */
+export const allStars = (save: Save): number => totalStars(save.stages) + totalStars(save.hard);
 
 export const fmtTime = (s: number): string => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 /** The stage a match is played on: a campaign stage, the day's challenge, or none (quick). */
 export function stageOf(m: MatchKind): Stage | null {
-  return m.kind === 'stage' ? stageAt(m.id) : m.kind === 'daily' ? dailyStage(m.day) : null;
+  if (m.kind === 'stage') return m.hard ? hardStage(stageAt(m.id)) : stageAt(m.id);
+  return m.kind === 'daily' ? dailyStage(m.day) : null;
 }
 
 /** The engine config for a match (the seed is only drawn for a quick match). */
@@ -36,9 +45,10 @@ export function recordGoals(m: MatchKind, save: Save, won: boolean, taken: numbe
   if (!st || m.kind === 'quick') return null;
   const now = goalsMet(won, taken, total, secs, st.par);
   if (m.kind === 'stage') {
-    while (save.stages.length < m.id) save.stages.push(0);
-    const before = save.stages[m.id] ?? 0;
-    save.stages[m.id] = before | now;
+    const goals = goalsOf(save, m.hard);
+    while (goals.length < m.id) goals.push(0);
+    const before = goals[m.id] ?? 0;
+    goals[m.id] = before | now;
     return { now, before };
   }
   if (save.dailyDay !== m.day) {
@@ -59,12 +69,11 @@ export function recordGoals(m: MatchKind, save: Save, won: boolean, taken: numbe
 
 const pct = (v: number) => `${v > 100 ? '+' : ''}${v - 100}%`;
 
-/** One line per way the stage differs from a standard match: the rival's skill and style, each
- *  side's handicaps (said once for both when they are the same), the siege. */
+/** One line per way the stage differs from a standard match: the rival's skill (its style is on
+ *  the rival's card, rival.ts), each side's handicaps (said once for both when they are the same), the siege. */
 export function twists(st: Stage): string[] {
   const you = sideSetup(st.you), rival = sideSetup(st.rival), std = sideSetup();
   const out: string[] = [T(`tw_skill${rival.skill}`)];
-  if (rival.style) out.push(T(`tw_style${rival.style}`));
   const sides = (k: keyof SideSetup, say: (who: string, v: number) => string) => {
     if (you[k] === rival[k]) {
       if (you[k] !== std[k]) out.push(say(T('whoBoth'), you[k]));
@@ -115,22 +124,28 @@ export function updateMenu(save: Save): void {
   $('achN').textContent = `${achCount(save.ach)}/${ACHIEVEMENTS.length}`;
 }
 
-/** The chapter map: chapter ch's seven stages, open or locked, with their stars. */
-export function showChapter(save: Save, ch: number, pick: (id: number) => void): void {
+/** The chapter map: chapter ch's seven stages, open or locked, with their stars, on Normal or
+ *  Hard (its tabs show once the first stage is won). */
+export function showChapter(save: Save, ch: number, hard: boolean, pick: (id: number) => void): void {
   const c = CHAPTERS[ch]!;
+  const goals = goalsOf(save, hard);
+  $('modeTabs').classList.toggle('hidden', !((save.stages[0] ?? 0) & GOAL_WIN));
+  $('modeNormal').classList.toggle('on', !hard);
+  $('modeHard').classList.toggle('on', hard);
   $('chName').textContent = T('chapterN', { n: ch + 1, name: T(`ch_${c.key}`) });
-  $('chStars').textContent = `★ ${chapterStars(save.stages, ch)}/${STAGES_PER_CHAPTER * 3}`;
+  $('chStars').textContent = `★ ${chapterStars(goals, ch)}/${STAGES_PER_CHAPTER * 3}`;
   $<HTMLButtonElement>('chPrev').disabled = ch === 0;
   $<HTMLButtonElement>('chNext').disabled = ch === CHAPTERS.length - 1;
   const grid = $('stageGrid');
   grid.textContent = '';
+  grid.classList.toggle('hard', hard);
   for (let s = 0; s < STAGES_PER_CHAPTER; s++) {
     const id = ch * STAGES_PER_CHAPTER + s;
     const b = document.createElement('button');
     b.className = 'stage' + (s === STAGES_PER_CHAPTER - 1 ? ' boss' : '');
-    const open = stageOpen(save.stages, id);
+    const open = hard ? hardOpen(save.stages, save.hard, id) : stageOpen(save.stages, id);
     b.disabled = !open;
-    b.innerHTML = `<span>${open ? stageLabel(id) : LOCK}</span><span class="st">${starsHtml(save.stages[id] ?? 0)}</span>`;
+    b.innerHTML = `<span>${open ? stageLabel(id) : LOCK}</span><span class="st">${starsHtml(goals[id] ?? 0)}</span>`;
     if (open) b.addEventListener('click', () => pick(id));
     grid.appendChild(b);
   }
@@ -168,22 +183,29 @@ export function showBoard(rows: ScoreRow[] | null, board: Board): void {
 /** The chapter the campaign opens on: the one holding the next stage. */
 export const chapterOfNext = (save: Save): number => Math.floor(nextStage(save.stages) / STAGES_PER_CHAPTER);
 
+/** Whether a stage after `m` can be played next from the results: it exists and is open. */
+export function nextOpen(m: MatchKind, save: Save): boolean {
+  if (m.kind !== 'stage' || m.id + 1 >= STAGE_COUNT) return false;
+  return m.hard ? hardOpen(save.stages, save.hard, m.id + 1) : stageOpen(save.stages, m.id + 1);
+}
+
 /** The brief before a stage or the daily challenge. */
 export function showBrief(save: Save, m: Exclude<MatchKind, { kind: 'quick' }>): void {
   const st = stageOf(m)!;
-  const had = m.kind === 'stage' ? (save.stages[m.id] ?? 0) : save.dailyDay === m.day ? save.dailyGoals : 0;
+  const had = m.kind === 'stage' ? (goalsOf(save, m.hard)[m.id] ?? 0) : save.dailyDay === m.day ? save.dailyGoals : 0;
+  const boss = m.kind === 'stage' && m.id % STAGES_PER_CHAPTER === STAGES_PER_CHAPTER - 1;
   if (m.kind === 'stage') {
-    const boss = m.id % STAGES_PER_CHAPTER === STAGES_PER_CHAPTER - 1;
-    $('briefTitle').textContent = T('stageN', { s: stageLabel(m.id) }) + (boss ? ` · ${T('boss')}` : '');
+    $('briefTitle').textContent = T('stageN', { s: stageLabel(m.id) }) + (m.hard ? ` · ${T('diff2')}` : '') + (boss ? ` · ${T('boss')}` : '');
     $('briefSub').textContent = T(`ch_${CHAPTERS[Math.floor(m.id / STAGES_PER_CHAPTER)]!.key}`);
   } else {
     $('briefTitle').textContent = T('daily');
     $('briefSub').textContent = save.streak && save.streakDay >= m.day - 1 ? T('streak', { n: save.streak }) : T('dailyNew');
   }
+  fillRivalCard($('briefRival'), rivalStyle(st), boss);
   $('briefTwists').innerHTML = twists(st).map((t) => `<li>${t}</li>`).join('');
   $('briefGoals').innerHTML = GOALS.map((b) => `<li class="${had & b ? '' : 'off'}">${goalText(b, st, false)}</li>`).join('');
   $('briefTip').textContent = m.kind === 'stage' ? T(`chtip_${CHAPTERS[Math.floor(m.id / STAGES_PER_CHAPTER)]!.key}`) : '';
-  const best = m.kind === 'stage' ? (save.best[m.id] ?? 0) : 0;
+  const best = m.kind === 'stage' ? (bestOf(save, m.hard)[m.id] ?? 0) : 0;
   $('briefBest').textContent = best ? T('bestTime', { t: fmtTime(best) }) : '';
   $('briefBest').classList.toggle('hidden', !best);
 }
@@ -193,7 +215,7 @@ const LOSS_TIPS = 6;
 /** The line under the results' stars: the campaign's end on winning its last stage, a tip
  *  (a different one each loss) on losing a stage, the daily or a quick match. */
 function resultTip(m: MatchKind, won: boolean, save: Save): string {
-  if (won && m.kind === 'stage' && m.id === STAGE_COUNT - 1) {
+  if (won && m.kind === 'stage' && !m.hard && m.id === STAGE_COUNT - 1) {
     const n = CHAPTERS.reduce((a, _, ch) => a + chapterStars(save.stages, ch), 0);
     return T('campaignDone', { n, t: STAGE_COUNT * GOALS.length });
   }
@@ -209,7 +231,7 @@ export function showStars(m: MatchKind, got: { now: number; before: number } | n
   const box = $('resStars');
   const st = stageOf(m);
   box.classList.toggle('hidden', !got || !st);
-  $('nextBtn').classList.toggle('hidden', !(m.kind === 'stage' && got && got.now & GOAL_WIN && m.id + 1 < STAGE_COUNT));
+  $('nextBtn').classList.toggle('hidden', !(got && got.now & GOAL_WIN && nextOpen(m, save)));
   if (!got || !st) return;
   box.innerHTML = GOALS.map((b) => {
     const cls = got.now & b ? (got.before & b ? 'on' : 'on new') : got.before & b ? 'had' : '';

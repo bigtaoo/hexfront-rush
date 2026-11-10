@@ -98,6 +98,11 @@ export class QualityRuntime {
     requestAnimationFrame(loop);
   }
 
+  /** A new range (the player picked another graphics mode): the governor starts over on it. */
+  setRange(range: LevelRange): void {
+    this.governor = new FrameGovernor(range);
+  }
+
   get settings(): LevelSettings {
     return LEVELS[this.governor.level];
   }

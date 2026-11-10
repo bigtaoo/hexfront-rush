@@ -1,6 +1,7 @@
 """Imports Hexfront Rush's sounds from CC0 sources (see THIRD-PARTY-NOTICES.txt).
 Already-processed mp3s from Holy Kicker are copied; raw Kenney oggs are trimmed, peak-normalised
-to -1 dBFS and encoded mono 96 kbps. Run from the game folder: python scripts/import_audio.py (writes into public/)"""
+to -1 dBFS and encoded mono 96 kbps. The music is re-encoded mono 64 kbps (about a third of the
+download), the boss track brought to the battle track's loudness. Run from the game folder: python scripts/import_audio.py (writes into public/)"""
 import os, re, shutil, subprocess
 
 HK = 'D:/standing/client/public/audio/sfx/'
@@ -10,8 +11,6 @@ COPY = {
     'sfx/shoot.mp3': HK + 'swish.mp3',      # qubodup swosh-05 (OGA, CC0)
     'sfx/quest.mp3': HK + 'gem.mp3',        # Kenney interface select_002
     'sfx/go.mp3': HK + 'wave.mp3',          # Kenney impactBell_heavy_000
-    'music/battle.mp3': CORGI + 'music/battle.mp3',  # HydroGene, OGA, CC0
-    'music/lobby.mp3': CORGI + 'music/lobby.mp3',    # TinyWorlds, OGA, CC0
 }
 IMP = K + 'kenney_impact-sounds/Audio/'
 PIZ = K + 'kenney_music-jingles/Audio/Pizzicato jingles/'
@@ -33,6 +32,14 @@ RAW = {
     'sfx/nothing.mp3': K + 'kenney_interface-sounds/Audio/minimize_001.ogg',
     'sfx/error.mp3': K + 'kenney_interface-sounds/Audio/error_004.ogg',
 }
+# the music: (source, gain in dB); mono 64 kbps
+MUSIC = {
+    'music/battle.mp3': (CORGI + 'music/battle.mp3', 0),   # HydroGene "Space Shooter", OGA, CC0
+    'music/lobby.mp3': (CORGI + 'music/lobby.mp3', 0),     # TinyWorlds "Happy Adventure", OGA, CC0
+    # Juhani Junkala "Boss Fight" (Chiptune Adventures), OGA, CC0: -11.4 LUFS, the battle track -13.3
+    'music/boss.mp3': ('D:/standing/art/audio/source/corgi/music/chiptune-adventures/'
+                       'Juhani Junkala [Chiptune Adventures] 3. Boss Fight.ogg', -1.9),
+}
 os.makedirs('public/sfx', exist_ok=True)
 os.makedirs('public/music', exist_ok=True)
 os.chdir('public')
@@ -45,4 +52,7 @@ for dst, src in RAW.items():
     peak = float(re.search(r'max_volume: (-?[\d.]+) dB', r.stderr).group(1))
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-af', f'{trim},volume={-1 - peak}dB',
                     '-ac', '1', '-codec:a', 'libmp3lame', '-b:a', '96k', dst], check=True)
+for dst, (src, gain) in MUSIC.items():
+    subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', src, '-af', f'volume={gain}dB', '-ac', '1',
+                    '-ar', '44100', '-codec:a', 'libmp3lame', '-b:a', '64k', '-map_metadata', '-1', dst], check=True)
 print('ok')

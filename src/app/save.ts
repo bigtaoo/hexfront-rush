@@ -1,10 +1,12 @@
 import type { KeyValueStore } from '../platform/types';
+import { QUALITY_MODES } from '../view/quality';
 import { GOAL_ALL, SKIRMISH, SKIRMISH_STD, STAGE_COUNT } from './campaign';
 
 // The one save: the record, whether the tutorial was played, the sound and music switches, whether
 // the player shares their solo matches' replays (replayUpload.ts), the campaign's stars and best
-// times, the quick match's difficulty, the daily challenge's day, streak and wins, the first-time
-// hints already shown (hints.ts) and the achievements (achievements.ts). Kept as JSON
+// times (Normal and Hard), the quick match's difficulty, the daily challenge's day, streak and wins, the first-time
+// hints already shown (hints.ts), the achievements (achievements.ts) and the settings (graphics
+// quality, vibration: settings.ts). Kept as JSON
 // under one key in the platform's storage (localStorage on the web, Bridge on Playgama).
 
 export const SAVE_KEY = 'hexfront_save';
@@ -23,6 +25,9 @@ export interface Save {
   stages: number[];
   /** Per campaign stage, the fastest win in seconds of play; 0: not won yet. */
   best: number[];
+  /** The hard campaign's goals and best times, the same way. */
+  hard: number[];
+  hardBest: number[];
   /** The quick match's difficulty (campaign.ts SKIRMISH). */
   skirmish: number;
   /** The day (campaign.ts dayNumber) whose daily challenge dailyGoals counts; -1: none yet. */
@@ -37,12 +42,17 @@ export interface Save {
   hints: number;
   /** achievements.ts bits: the achievements earned. */
   ach: number;
+  /** The graphics: view/quality.ts QUALITY_MODES index (0 auto, 1 high, 2 saver). */
+  quality: number;
+  /** Vibrate on the big moments where the device can (haptics.ts). */
+  vibrate: boolean;
 }
+
 
 export const freshSave = (): Save => ({
   tutorialDone: false, wins: 0, losses: 0, draws: 0, muted: false, musicOff: false, shareReplays: true,
-  stages: [], best: [], skirmish: SKIRMISH_STD, dailyDay: -1, dailyGoals: 0, streak: 0, streakDay: -1,
-  dailyWins: 0, hints: 0, ach: 0,
+  stages: [], best: [], hard: [], hardBest: [], skirmish: SKIRMISH_STD, dailyDay: -1, dailyGoals: 0, streak: 0, streakDay: -1,
+  dailyWins: 0, hints: 0, ach: 0, quality: 0, vibrate: true,
 });
 
 const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
@@ -67,10 +77,11 @@ export function loadSave(store: KeyValueStore): Save {
     tutorialDone: r.tutorialDone === true, wins: count(r.wins), losses: count(r.losses), draws: count(r.draws), muted,
     // a save from before the music switch: its one switch silenced both
     musicOff: typeof r.musicOff === 'boolean' ? r.musicOff : muted,
-    shareReplays: r.shareReplays !== false, stages: goals(r.stages), best: times(r.best), skirmish: intIn(r.skirmish, 0, SKIRMISH.length - 1, SKIRMISH_STD),
+    shareReplays: r.shareReplays !== false, stages: goals(r.stages), best: times(r.best), hard: goals(r.hard), hardBest: times(r.hardBest), skirmish: intIn(r.skirmish, 0, SKIRMISH.length - 1, SKIRMISH_STD),
     dailyDay: intIn(r.dailyDay, -1, 1e7, -1), dailyGoals: intIn(r.dailyGoals, 0, GOAL_ALL, 0), streak, streakDay: intIn(r.streakDay, -1, 1e7, -1),
     // a save from before the count: the streak is a floor for it
     dailyWins: Math.max(count(r.dailyWins), streak), hints: bits(r.hints), ach: bits(r.ach),
+    quality: intIn(r.quality, 0, QUALITY_MODES.length - 1, 0), vibrate: r.vibrate !== false,
   };
 }
 

@@ -1,5 +1,5 @@
 // The HTML panels over the canvas (index.html): menu, how-to, online lobby, campaign, brief, leaderboard, results, the
-// pause menu and the achievements, and the corner buttons (sound, music, pause, leave, replay speed). Every text comes from i18n through data-t attributes.
+// pause menu, the achievements and the settings, and the corner buttons (sound, music, pause, leave, replay speed). Every text comes from i18n through data-t attributes.
 
 import { T } from './i18n';
 import type { Save } from './save';
@@ -10,8 +10,8 @@ export function $<E extends HTMLElement = HTMLElement>(id: string): E {
   return el as E;
 }
 
-export type Panel = 'menu' | 'howto' | 'result' | 'online' | 'campaign' | 'brief' | 'board' | 'pause' | 'ach';
-const PANELS: readonly Panel[] = ['menu', 'howto', 'result', 'online', 'campaign', 'brief', 'board', 'pause', 'ach'];
+export type Panel = 'menu' | 'howto' | 'result' | 'online' | 'campaign' | 'brief' | 'board' | 'pause' | 'ach' | 'settings';
+const PANELS: readonly Panel[] = ['menu', 'howto', 'result', 'online', 'campaign', 'brief', 'board', 'pause', 'ach', 'settings'];
 
 /** Shows one panel (null: none, the match is on); the leave button shows during an online match
  *  and a replay, the speed button during a replay, the pause button during a solo match. The
@@ -43,6 +43,8 @@ export function updateShare(save: Save): void {
 export function updateMuteIcon(save: Save): void {
   $('muteBtn').classList.toggle('muted', save.muted);
   $('musicBtn').classList.toggle('muted', save.musicOff);
+  $<HTMLInputElement>('optSfx').checked = !save.muted;
+  $<HTMLInputElement>('optMusic').checked = !save.musicOff;
 }
 
 /** The score counts up from 0 once its chip has popped in; the last value always lands. */

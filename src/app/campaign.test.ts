@@ -3,7 +3,7 @@ import { generateMap } from '../sim/map';
 import { AI_SKILLS, AI_STYLES } from '../sim/ai';
 import {
   CHAPTERS, GOAL_ALL, GOAL_EVENTS, GOAL_PAR, GOAL_WIN, SKIRMISH, STAGE_COUNT, STAGES_PER_CHAPTER, chapterStars, dailyStage,
-  eventsGoal, goalsMet, nextStage, stageAt, stageLabel, stageOpen, starCount,
+  eventsGoal, goalsMet, HARD_INCOME, HARD_INCOME_TOP, hardOpen, hardStage, nextStage, stageAt, stageLabel, stageOpen, starCount,
 } from './campaign';
 import { TUTORIAL_SEED } from './tutorial';
 
@@ -60,5 +60,19 @@ describe('campaign', () => {
     const seeds = new Set(Array.from({ length: 30 }, (_, i) => dailyStage(20400 + i).seed));
     expect(seeds.size).toBe(30);
     expect(dailyStage(20400).rival.style).toBe(20400 % 5);
+  });
+
+  it('Hard: the same stage with a stronger, richer rival; opens stage by stage once Normal is won', () => {
+    for (let id = 0; id < STAGE_COUNT; id++) {
+      const st = stageAt(id), h = hardStage(st);
+      expect(h.seed).toBe(st.seed);
+      expect(h.rival.skill).toBe(Math.min(3, st.rival.skill + 1));
+      expect(h.rival.income).toBe(Math.round((st.rival.income ?? 100) * (st.rival.skill >= 3 ? HARD_INCOME_TOP : HARD_INCOME)));
+    }
+    expect(hardOpen([], [], 0)).toBe(false);
+    expect(hardOpen([GOAL_WIN], [], 0)).toBe(true);
+    expect(hardOpen([GOAL_WIN, GOAL_WIN], [], 1)).toBe(false);
+    expect(hardOpen([GOAL_WIN, GOAL_WIN], [GOAL_WIN], 1)).toBe(true);
+    expect(hardOpen([GOAL_WIN, 0], [GOAL_WIN], 1)).toBe(false);
   });
 });

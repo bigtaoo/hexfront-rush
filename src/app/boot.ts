@@ -8,10 +8,10 @@ import { checkReplay, runReplay, type Replay } from '../sim/replay';
 import { loadArt } from '../view/art';
 import { loadDigits } from '../view/digits';
 import { patchGraphicsDestroy } from '../view/graphicsDestroy';
-import { canvasDensity, densityCap, levelRange, type DeviceInfo } from '../view/quality';
+import { canvasDensity, densityCap, levelRange, QUALITY_MODES, type DeviceInfo } from '../view/quality';
 import { QualityRuntime, gpuName } from '../view/qualityRuntime';
-import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER, totalStars } from './campaign';
-import { updateMenu } from './campaignUi';
+import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER } from './campaign';
+import { allStars, updateMenu } from './campaignUi';
 import { devSwitches, LOCAL_HOST } from './dev';
 import { $, applyTexts, updateMuteIcon, updateShare } from './dom';
 import { wirePause } from './pauseMenu';
@@ -20,6 +20,7 @@ import { LANG, setLang } from './i18n';
 import { readReplayFile, replayFromJson } from './replayFile';
 import { privacyUrl, ReplayUpload, replayUrl } from './replayUpload';
 import { loadSave } from './save';
+import { wireSettings } from './settings';
 
 const BACKGROUND = 0x0b1220;
 /** The HUD font; the canvas texts wait this long for it at most. */
@@ -82,16 +83,17 @@ export async function boot(platform: Platform): Promise<void> {
   const dev = devSwitches(location.hostname, location.search);
   const game = new Game(app, platform, save, dev);
   // stars won before the leaderboard existed count too (the platform keeps the best score)
-  platform.submitScore('stars', totalStars(save.stages));
+  platform.submitScore('stars', allStars(save));
   if (save.dailyWins) platform.submitScore('daily', save.dailyWins);
   // a build sends to its relay (or VITE_REPLAY_URL); the dev server only with ?upload
   const upTo = replayUrl(relayUrl(), import.meta.env.VITE_REPLAY_URL);
   if (upTo && (!import.meta.env.DEV || dev.upload)) {
     game.uploads = new ReplayUpload(upTo, () => game.save.shareReplays, __HF_BUILD__, platform.name).listen(document, window);
   }
+  const devInfo = device(app);
   const quality = new QualityRuntime(
     app,
-    levelRange('auto', device(app)),
+    levelRange(QUALITY_MODES[save.quality] ?? 'auto', devInfo),
     () => game.state !== 'match' || game.paused,
     () => game.state !== 'match',
     cap,
@@ -99,7 +101,7 @@ export async function boot(platform: Platform): Promise<void> {
   quality.onFault = game.fault;
   app.ticker.add((t) => game.frame(t));
 
-  wire(game, platform);
+  wire(game, platform, (tap) => wireSettings(game, quality, devInfo, tap));
   game.toMenu();
   game.online.resume();
   $('loading').classList.add('hidden');
@@ -118,7 +120,7 @@ export async function boot(platform: Platform): Promise<void> {
 }
 
 /** Page listeners and the HTML buttons. */
-function wire(g: Game, platform: Platform): void {
+function wire(g: Game, platform: Platform, settings: (tap: () => void) => void): void {
   const S = g.sound;
   platform.onHostMute((m) => {
     g.hostMuted = m;
@@ -146,6 +148,7 @@ function wire(g: Game, platform: Platform): void {
     S.play('tap');
   };
   wirePause(g, tap);
+  settings(tap);
   $('playBtn').addEventListener('click', () => g.startMatch());
   // the campaign, the quick match and the daily challenge (campaignUi.ts)
   const toMenuPanel = () => {
@@ -177,6 +180,13 @@ function wire(g: Game, platform: Platform): void {
     g.openCampaign(Math.min(CHAPTERS.length - 1, g.chapter + 1));
   });
   $('campBack').addEventListener('click', toMenuPanel);
+  for (const [id, hard] of [['modeNormal', false], ['modeHard', true]] as const) {
+    $(id).addEventListener('click', () => {
+      tap();
+      g.hardMode = hard;
+      g.openCampaign(g.chapter);
+    });
+  }
   $('boardBtn').addEventListener('click', () => {
     tap();
     g.openBoard();
@@ -204,7 +214,7 @@ function wire(g: Game, platform: Platform): void {
     g.afterAd(() => {
       g.toMenu();
       g.chapter = Math.floor(id / STAGES_PER_CHAPTER);
-      g.openBrief({ kind: 'stage', id });
+      g.openBrief(m.hard ? { kind: 'stage', id, hard: true } : { kind: 'stage', id });
     });
   });
   $('howBtn').addEventListener('click', () => {

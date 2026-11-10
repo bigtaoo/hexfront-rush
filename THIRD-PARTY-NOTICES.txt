@@ -27,8 +27,9 @@ MUSIC  (music/)  - CC0 1.0
 --------------------------
 TinyWorlds, "Happy Adventure" (OpenGameArt.org), CC0 - lobby.mp3
 HydroGene, "Space Shooter" (OpenGameArt.org), CC0  - battle.mp3
+Juhani Junkala (SubspaceAudio), "Boss Fight" from "Chiptune Adventures" (OpenGameArt.org), CC0 - boss.mp3
 
-Files were trimmed, level-normalized and re-encoded to MP3; no other changes.
+Files were trimmed, level-normalized and re-encoded to mono MP3; no other changes.
 
 SDK
 ---

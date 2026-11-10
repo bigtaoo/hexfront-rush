@@ -27,7 +27,7 @@ import type { DrawUi } from '../view/frame';
 import { Renderer } from '../view/renderer';
 import { Sound } from './audio';
 import type { Board } from '../platform/types';
-import { chapterOfNext, goalTrack, matchConfig, showBoard, showBrief, showChapter, updateMenu, type MatchKind } from './campaignUi';
+import { chapterOfNext, goalTrack, matchConfig, showBoard, showBrief, showChapter, stageOf, updateMenu, type MatchKind } from './campaignUi';
 import { Controls } from './controls';
 import type { DevSwitches } from './dev';
 import { $, show, updateRecord, type Panel } from './dom';
@@ -40,6 +40,7 @@ import { MatchStats } from './matchStats';
 import { Online } from './online';
 import type { ReplayUpload } from './replayUpload';
 import { showResult } from './result';
+import { bossIntro, isBoss } from './rival';
 import { persist, type Save } from './save';
 import { StepLoop } from './stepLoop';
 import { updateTutorial, type Tutorial } from './tutorial';
@@ -91,8 +92,9 @@ export class Game {
   howtoThen: 'match' | 'menu' = 'menu';
   /** The match being played (or the last one): a campaign stage, a quick match or the daily one. */
   match: MatchKind = { kind: 'quick' };
-  /** The chapter the campaign panel shows. */
+  /** The chapter the campaign panel shows, and on which campaign (Normal or Hard). */
   chapter = 0;
+  hardMode = false;
   /** Both sides' match stats, for the results (and the chests toward the second star). */
   readonly stats = new MatchStats();
   readonly hints = new Hints();
@@ -216,7 +218,7 @@ export class Game {
   openCampaign(ch: number): void {
     this.state = 'campaign';
     this.chapter = ch;
-    showChapter(this.save, ch, (id) => this.openBrief({ kind: 'stage', id }));
+    showChapter(this.save, ch, this.hardMode, (id) => this.openBrief(this.hardMode ? { kind: 'stage', id, hard: true } : { kind: 'stage', id }));
     $('boardBtn').classList.toggle('hidden', !this.platform.leaderboardReady());
     this.show('campaign');
   }
@@ -257,7 +259,9 @@ export class Game {
     this.show(null);
     if (!this.dev.autoplay) this.uploads?.start(this.eng, input.log, TEAM_BLUE);
     this.tut = tutorial ? { step: 0, t: 0 } : null;
-    this.sound.music('battle');
+    // a boss opens with its banner and its own music (rival.ts)
+    this.sound.music(isBoss(m) ? 'boss' : 'battle');
+    if (isBoss(m)) bossIntro(this.renderer, stageOf(m)!);
     this.platform.level('level_started');
     this.platform.gameplayStart();
   }

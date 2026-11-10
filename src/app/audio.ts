@@ -46,7 +46,7 @@ export const CUES = {
 export type Cue = keyof typeof CUES;
 const cueDef = (c: Cue): CueDef => CUES[c];
 
-export const MUSIC = { battle: 'music/battle.mp3', lobby: 'music/lobby.mp3' } as const;
+export const MUSIC = { battle: 'music/battle.mp3', lobby: 'music/lobby.mp3', boss: 'music/boss.mp3' } as const;
 export type Track = keyof typeof MUSIC;
 const MAX_VOICES = 14;
 const XFADE = 2;

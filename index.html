@@ -25,8 +25,8 @@
   }
   body { font-family: "Lilita One", "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-synthesis: none; letter-spacing: .3px; color: #fff; overscroll-behavior: none; }
   /* the languages Lilita One cannot write (i18n.ts systemFont): the system font at real weights */
-  html:is([lang=zh],[lang=ru],[lang=tr]) body { font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-synthesis: weight; }
-  html:is([lang=zh],[lang=ru],[lang=tr]) :is(.card h2, #resultTitle, #roomCode) { font-weight: 900; }
+  html:is([lang=zh],[lang=ja],[lang=ko],[lang=ru],[lang=tr],[lang=pl]) body { font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-synthesis: weight; }
+  html:is([lang=zh],[lang=ja],[lang=ko],[lang=ru],[lang=tr],[lang=pl]) :is(.card h2, #resultTitle, #roomCode) { font-weight: 900; }
   /* results reveal: the board, then reason, title, chips, time, stars, stats, buttons one after another */
   @keyframes pop { 0% { opacity: 0; transform: scale(.4); } 70% { opacity: 1; transform: scale(1.12); } 100% { transform: scale(1); } }
   #result.reveal .card { animation: pop .36s cubic-bezier(.2,.9,.3,1.2) both; }
@@ -160,6 +160,20 @@
     #ach .achGrid { grid-template-columns: repeat(5, 1fr); margin: 4px 0 8px; }
     #ach h2 { margin-bottom: 2px; }
     #ach .achGrid .a { padding: 4px; }
+    /* the brief in two columns: the rival and the twists on the left, the goals and the tip on the right; the buttons under both */
+    #brief .card { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; align-content: start; max-width: 760px; }
+    #brief .card > * { grid-column: 1 / -1; }
+    #brief .card > .rival { grid-column: 1; grid-row: 4; margin: 6px 0 2px; }
+    #brief .card > .twists { grid-column: 1; grid-row: 5 / span 2; margin: 6px 0; }
+    #brief .card > .goals { grid-column: 2; grid-row: 4; margin: 6px 0; align-self: center; }
+    #brief .card > .tip { grid-column: 2; grid-row: 5; margin: 2px 0 6px; }
+    #brief .card > .boost { grid-column: 2; grid-row: 6; justify-self: center; }
+    #brief .card > .row { grid-row: 7; }
+    /* settings: the graphics label beside its tabs */
+    #settings .card { max-width: 560px; }
+    #settings .opts { gap: 6px; }
+    #settings .opt.q { flex-direction: row; align-items: center; gap: 12px; }
+    #settings .opt.q .tabs { flex: 1; }
   }
   @media (max-height: 560px) {
     #resultTitle { font-size: clamp(30px, 9vmin, 44px); }
@@ -203,6 +217,35 @@
     animation: load 1.2s ease-in-out infinite alternate; }
   @keyframes load { from { margin-left: 0; } to { margin-left: 60%; } }
 
+  /* the settings */
+  .btn.icon { padding: 9px 14px; display: inline-flex; align-items: center; }
+  .btn .gear { width: 1.3em; height: 1.3em; }
+  .opts { display: flex; flex-direction: column; gap: 12px; align-self: stretch; text-align: left; font-size: clamp(15px, 3.4vmin, 19px); }
+  .opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+  .opt.q { flex-direction: column; align-items: stretch; gap: 6px; cursor: default; }
+  .opt.q .tabs { margin: 0; }
+  .opt.q .tab { flex: 1; padding: 6px 8px; }
+  .sw { appearance: none; -webkit-appearance: none; flex: none; width: 52px; height: 30px; margin: 0; border-radius: 15px; position: relative; cursor: pointer;
+    border: 3px solid var(--wood-rim); background: linear-gradient(#cdb68e, #e3d3b5); box-shadow: inset 0 2px 4px rgba(110,67,32,.35); transition: background .15s; }
+  .sw::before { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff, var(--wood-hi)); box-shadow: 0 2px 0 var(--wood-rim); transition: left .15s; }
+  .sw:checked { border-color: var(--leaf-rim); background: linear-gradient(var(--leaf), var(--leaf-hi)); }
+  .sw:checked::before { left: 24px; }
+  .card .share { text-shadow: none; color: var(--ink); max-width: none; }
+  .card .privacy { margin-top: -8px; color: var(--wood-lo); }
+  /* the brief's rival card */
+  .rival { display: flex; align-items: center; gap: 12px; margin: 14px auto 4px; padding: 8px 14px; border-radius: 14px; max-width: 28em; text-align: left; background: rgba(200,64,42,.08); }
+  .rival.boss { background: rgba(242,176,30,.18); box-shadow: inset 0 0 0 2px rgba(200,64,42,.3); }
+  .rival .pic { position: relative; flex: none; width: clamp(48px, 11vmin, 64px); padding-top: 4px; }
+  .rival .face { display: block; width: 100%; height: auto; }
+  .rival .crown { position: absolute; left: 50%; top: -10px; width: 62%; transform: translateX(-50%); }
+  .rival .who { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .rival b { font-weight: inherit; font-size: clamp(17px, 3.8vmin, 22px); color: #a8321e; }
+  .rival span { font-size: clamp(13px, 3vmin, 16px); }
+  .rival i { font-style: normal; font-size: clamp(13px, 3vmin, 16px); opacity: .8; }
+  /* the campaign's Normal / Hard tabs: on Hard the stages are dark wood */
+  .stages.hard .stage:not(.boss):not(:disabled) { color: #fff6e2; text-shadow: 0 2px 0 var(--ink); background: var(--gloss), var(--grain), linear-gradient(#a8743d, #6e4320); border-color: #3b2412; box-shadow: 0 4px 0 #3b2412; }
+  .stages.hard .stage:not(.boss):not(:disabled) .st .off { color: rgba(255,255,255,.35); }
   .share { display: flex; align-items: center; gap: 8px; max-width: 420px; font-size: clamp(12px, 2.6vmin, 15px); opacity: .92; cursor: pointer; text-align: left; text-shadow: 0 1px 0 var(--ink); }
   .privacy { margin-top: -6px; font-size: clamp(11px, 2.3vmin, 13px); color: var(--wood-hi); opacity: .9; }
   .share input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--leaf); cursor: pointer; }
@@ -270,19 +313,19 @@
   <div class="row">
     <button class="btn wood" id="quickBtn" data-t="quick"></button>
     <button class="btn small" id="diffBtn"></button>
+    <button class="btn wood" id="achBtn" aria-label="Achievements"><svg class="medal" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h4l2 6H9zM13 2h4l-2 6h-4z" fill="#c8402a"/><circle cx="12" cy="15" r="7" fill="var(--gold)" stroke="var(--gold-rim)" stroke-width="1.6"/><path d="M12 11l1.2 2.5 2.7.3-2 1.9.6 2.7L12 17l-2.5 1.4.6-2.7-2-1.9 2.7-.3z" fill="#fff6e2"/></svg><span id="achN"></span></button>
+    <button class="btn wood icon" id="setBtn" aria-label="Settings"><svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M10.3 2h3.4l.5 2.6 1.9.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.9 2.6.5v3.4l-2.6.5-.8 1.9 1.5 2.2-2.4 2.4-2.2-1.5-1.9.8-.5 2.6h-3.4l-.5-2.6-1.9-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.9L2 13.7v-3.4l2.6-.5.8-1.9-1.5-2.2 2.4-2.4 2.2 1.5 1.9-.8zM12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 1 0 0-7.2z"/></svg></button>
   </div>
   <div class="row">
     <button class="btn wood" id="dailyBtn"></button>
     <button class="btn wood" id="onlineBtn" data-t="online"></button>
     <button class="btn wood" id="howBtn" data-t="howto"></button>
-    <button class="btn wood" id="achBtn" aria-label="Achievements"><svg class="medal" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h4l2 6H9zM13 2h4l-2 6h-4z" fill="#c8402a"/><circle cx="12" cy="15" r="7" fill="var(--gold)" stroke="var(--gold-rim)" stroke-width="1.6"/><path d="M12 11l1.2 2.5 2.7.3-2 1.9.6 2.7L12 17l-2.5 1.4.6-2.7-2-1.9 2.7-.3z" fill="#fff6e2"/></svg><span id="achN"></span></button>
   </div>
-  <label class="share hidden" id="share"><input type="checkbox" id="shareIn"><span data-t="shareReplays"></span></label>
-  <a class="privacy hidden" id="privacyLink" target="_blank" rel="noopener" data-t="privacy"></a>
 </div>
 
 <div id="campaign" class="panel hidden">
   <div class="card">
+    <div class="tabs hidden" id="modeTabs"><button class="tab on" id="modeNormal" data-t="diff1"></button><button class="tab" id="modeHard" data-t="diff2"></button></div>
     <div class="chapRow">
       <button class="arrow" id="chPrev" aria-label="Previous chapter">◀</button>
       <div><h2 id="chName"></h2><div class="sub st" id="chStars"></div></div>
@@ -311,6 +354,7 @@
     <h2 id="briefTitle"></h2>
     <div class="sub" id="briefSub"></div>
     <div class="sub hidden" id="briefBest"></div>
+    <div class="rival" id="briefRival"></div>
     <ul class="twists" id="briefTwists"></ul>
     <ul class="goals" id="briefGoals"></ul>
     <div class="tip" id="briefTip"></div>
@@ -386,6 +430,23 @@
       <button class="btn wood" id="pRestart" data-t="restart"></button>
       <button class="btn wood" id="pMenu" data-t="menu"></button>
     </div>
+  </div>
+</div>
+
+<div id="settings" class="panel hidden">
+  <div class="card narrow">
+    <h2 data-t="settings"></h2>
+    <div class="opts">
+      <label class="opt"><span data-t="optSound"></span><input type="checkbox" class="sw" id="optSfx"></label>
+      <label class="opt"><span data-t="optMusic"></span><input type="checkbox" class="sw" id="optMusic"></label>
+      <label class="opt hidden" id="optVibRow"><span data-t="optVibrate"></span><input type="checkbox" class="sw" id="optVib"></label>
+      <div class="opt q"><span data-t="optGraphics"></span>
+        <div class="tabs" id="optQuality"><button class="tab" data-q="0" data-t="qAuto"></button><button class="tab" data-q="1" data-t="qHigh"></button><button class="tab" data-q="2" data-t="qSaver"></button></div>
+      </div>
+      <label class="share hidden" id="share"><input type="checkbox" id="shareIn"><span data-t="shareReplays"></span></label>
+      <a class="privacy hidden" id="privacyLink" target="_blank" rel="noopener" data-t="privacy"></a>
+    </div>
+    <button class="btn wood" id="setBack" data-t="back"></button>
   </div>
 </div>
 
