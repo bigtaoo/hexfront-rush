@@ -100,6 +100,12 @@
   .card .sub { color: #6b4a2e; }
   .card ol { text-align: left; margin: 0 0 16px; padding-left: 22px; font-size: clamp(14px, 3.4vmin, 18px); line-height: 1.45; }
   .card li { margin-bottom: 8px; }
+  /* how to play: on a screen too short for all five rules, the list scrolls and "Got it" stays in view */
+  #howto .card { display: flex; flex-direction: column; }
+  #howto .howScroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 10px;
+    -webkit-mask-image: linear-gradient(#000 calc(100% - 16px), transparent); mask-image: linear-gradient(#000 calc(100% - 16px), transparent); }
+  #howto ol { margin-bottom: 0; }
+  #howto .card > .btn { flex: none; align-self: center; margin-top: 6px; }
   .card li::marker { color: var(--leaf); }
   #resultTitle { font-size: clamp(40px, 10vmin, 72px); margin: 0; font-weight: 400; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
     text-shadow: 0 4px 0 var(--ink), 0 8px 14px rgba(0,0,0,.25); line-height: 1.05; }
@@ -149,6 +155,16 @@
     .card.res { gap: 7px; }
     .card.res .stars b { font-size: 38px; }
     .stats th, .stats td { padding: 2px 12px; }
+    /* the brief: its two buttons side by side and the lists tighter, so a boss stage's five twists leave "Fight!" on screen */
+    #brief .card > .row { flex-wrap: nowrap; }
+    #brief .card > .row .btn { min-width: 0; flex: 1 1 0; padding-left: 12px; padding-right: 12px; }
+    #brief .twists, #brief .goals { margin: 8px 0; line-height: 1.25; }
+    #brief .twists li, #brief .goals li { margin-bottom: 5px; }
+    /* the achievements: the medals scroll and "Back" stays in view */
+    #ach .card { display: flex; flex-direction: column; }
+    #ach .achGrid { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 8px;
+      -webkit-mask-image: linear-gradient(#000 calc(100% - 14px), transparent); mask-image: linear-gradient(#000 calc(100% - 14px), transparent); }
+    #ach .card > .btn { flex: none; align-self: center; }
   }
   /* short screens (a phone held sideways): smaller pieces, the boards scroll */
   @media (max-height: 560px) and (min-aspect-ratio: 5/4) {
@@ -158,17 +174,33 @@
     .card.res > div + div { margin-left: 14px; }
     #ach .card { max-width: 760px; }
     #ach .achGrid { grid-template-columns: repeat(5, 1fr); margin: 4px 0 8px; }
-    #ach h2 { margin-bottom: 2px; }
-    #ach .achGrid .a { padding: 4px; }
-    /* the brief in two columns: the rival and the twists on the left, the goals and the tip on the right; the buttons under both */
-    #brief .card { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; align-content: start; max-width: 760px; }
+    /* the achievements: the title and the count on one line, smaller medals, so ten long names fit above "Back" */
+    #ach .card { display: block; }
+    #ach .achGrid { overflow: visible; -webkit-mask-image: none; mask-image: none; }
+    #ach h2, #ach .sub { display: inline-block; vertical-align: baseline; margin: 0; }
+    #ach .sub { margin-left: 12px; }
+    #ach .achGrid .a { padding: 3px 4px; gap: 1px; }
+    #ach .achGrid .medal { width: 24px; height: 24px; }
+    /* the brief in two columns: the rival and the twists on the left; the goals, the tip and the buttons on the right
+       (a late stage has five twists: the buttons under both columns would fall below a phone's edge) */
+    #brief .card { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto auto auto auto 1fr; column-gap: 18px; align-content: start; max-width: 760px; }
     #brief .card > * { grid-column: 1 / -1; }
     #brief .card > .rival { grid-column: 1; grid-row: 4; margin: 6px 0 2px; }
-    #brief .card > .twists { grid-column: 1; grid-row: 5 / span 2; margin: 6px 0; }
+    #brief .card > .twists { grid-column: 1; grid-row: 5 / span 3; margin: 4px 0; font-size: 13px; line-height: 1.22; }
     #brief .card > .goals { grid-column: 2; grid-row: 4; margin: 6px 0; align-self: center; }
     #brief .card > .tip { grid-column: 2; grid-row: 5; margin: 2px 0 6px; }
     #brief .card > .boost { grid-column: 2; grid-row: 6; justify-self: center; }
-    #brief .card > .row { grid-row: 7; }
+    #brief .card > .row { grid-column: 2; grid-row: 7; align-self: end; margin-top: 4px; flex-wrap: nowrap; gap: 10px; }
+    #brief .card > .row .btn { min-width: 0; flex: 1 1 0; padding: 8px 12px; }
+    /* how to play: the five rules in two columns, so "Got it" stays on screen */
+    #howto .card { max-width: 780px; }
+    #howto h2 { margin-bottom: 4px; }
+    #howto ol { columns: 2; column-gap: 30px; font-size: 13.5px; line-height: 1.26; }
+    #howto li { break-inside: avoid; margin-bottom: 5px; }
+    /* the campaign: a chapter's seven stages in one row, so the Normal/Hard tabs and "Menu" still fit */
+    #campaign .card { max-width: 760px; }
+    #campaign .stages { grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 10px 0 12px; }
+    #campaign .tabs { margin-bottom: 4px; }
     /* settings: the graphics label beside its tabs */
     #settings .card { max-width: 560px; }
     #settings .opts { gap: 6px; }
@@ -396,13 +428,13 @@
 <div id="howto" class="panel hidden">
   <div class="card">
     <h2 data-t="howto"></h2>
-    <ol>
+    <div class="howScroll"><ol>
       <li data-t="how1"></li>
       <li data-t="how2"></li>
       <li data-t="how3"></li>
       <li data-t="how4"></li>
       <li data-t="how5"></li>
-    </ol>
+    </ol></div>
     <button class="btn" id="howtoOk" data-t="gotit"></button>
   </div>
 </div>

@@ -198,11 +198,21 @@ export class Overlays {
     if (showHint) {
       const fs = Math.min(18, W / 26);
       setLabel(this.hintText, this.hint!, { size: fs, color: '#1f2937', weight: 900 });
-      const tw = this.hintText.width + 30;
-      const y = H - cam.hudBot - 34;
+      // a long hint (German, Russian) wraps onto a second line instead of running off a phone's edges;
+      // breakWords lets Chinese and Japanese, which have no spaces, break between characters
+      const maxW = Math.min(W - 24, 760);
+      const st = this.hintText.style;
+      if (!st.wordWrap || st.wordWrapWidth !== maxW - 30) {
+        st.wordWrap = true;
+        st.breakWords = true;
+        st.wordWrapWidth = maxW - 30;
+      }
+      const tw = Math.min(maxW, this.hintText.width + 30);
+      const th = Math.max(fs * 2, this.hintText.height + fs * 0.5);
+      const yb = H - cam.hudBot - 34 + fs;
       const a = 0.85 + 0.15 * Math.sin(f.time * 5);
-      this.pill.p.rrect(W / 2 - tw / 2, y - fs, tw, fs * 2, fs, `rgba(250,204,21,${a.toFixed(3)})`);
-      this.hintText.position.set(W / 2, y + 1);
+      this.pill.p.rrect(W / 2 - tw / 2, yb - th, tw, th, Math.min(fs, th / 2), `rgba(250,204,21,${a.toFixed(3)})`);
+      this.hintText.position.set(W / 2, yb - th / 2 + 1);
     }
     // the card for a barracks / mystery roll
     const cd = this.card;
@@ -284,16 +294,19 @@ export class Overlays {
       const pop = b.t < 0.18 ? 0.6 + (b.t / 0.18) * 0.55 : b.t < 0.3 ? 1.15 - ((b.t - 0.18) / 0.12) * 0.15 : 1;
       const alpha = k > 0.8 ? (1 - k) / 0.2 : 1;
       const base = (b.size || 48) * Math.min(1, W / 420);
-      const fs = base * pop;
+      setLabel(b.view, b.text, { size: base, color: b.color || '#ffffff', weight: 900, stroke: b.stroke || 'rgba(0,0,0,0.65)' });
+      // a long banner (a boss's name in Russian on a phone held upright) shrinks to fit the screen's width
+      b.view.scale.set(1);
+      const sc = Math.min(pop, (W - 24) / Math.max(1, b.view.width));
+      const fs = base * sc;
       const cy = H * (b.y || 0.42);
       if (b.band) {
         band.a = alpha;
         band.rect(0, cy - fs * 0.85, W, fs * 1.7, b.band);
         band.a = 1;
       }
-      setLabel(b.view, b.text, { size: base, color: b.color || '#ffffff', weight: 900, stroke: b.stroke || 'rgba(0,0,0,0.65)' });
       b.view.position.set(W / 2, cy);
-      b.view.scale.set(pop);
+      b.view.scale.set(sc);
       b.view.alpha = alpha;
     }
   }
