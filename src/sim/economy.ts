@@ -51,8 +51,13 @@ export function updateEconomy(e: Engine): void {
     if (!def.income) continue;
     if (++b.timer >= def.incomeEvery!) {
       b.timer = 0;
-      e.team[b.team].gold += def.income;
-      e.emit('income', { team: b.team, kind: b.type, amount: def.income, x: b.x, y: b.y });
+      // an income handicap in hundredths: 95 % of 10 is 9 now and the half carried to the next
+      const T = e.team[b.team];
+      const due = def.income * e.setupOf(b.team).income + T.incomeCarry;
+      const amount = Math.trunc(due / 100);
+      T.incomeCarry = due - amount * 100;
+      T.gold += amount;
+      e.emit('income', { team: b.team, kind: b.type, amount, x: b.x, y: b.y });
     }
   }
 }

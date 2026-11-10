@@ -5,7 +5,7 @@ import { NTILES } from '../sim/hex';
 import { Prng } from '../sim/prng';
 import { recordChecks } from '../sim/replay';
 import { PHASE_END, TEAM_BLUE, TEAM_RED } from '../sim/rules';
-import type { EngineConfig } from '../sim/types';
+import { makeConfig, type EngineConfig } from '../sim/setup';
 
 export const hex = (h: number): string => (h >>> 0).toString(16).padStart(8, '0');
 
@@ -37,7 +37,7 @@ export interface MatchOpts {
 
 /** Play a whole match: AI red, scripted blue (or AI both). */
 export function playMatch(seed: number, o: MatchOpts = {}): { engine: Engine; log: PackedCmd[]; hashes: number[]; config: EngineConfig } {
-  const config = { seed, aiBlue: !!o.aiBlue, aiRed: true };
+  const config = makeConfig({ seed, aiBlue: !!o.aiBlue, aiRed: true });
   let e = new Engine(config);
   const input = new LocalInput();
   const bot = o.aiBlue ? null : scriptedPlayer(TEAM_BLUE, seed ^ 0x5a5a);

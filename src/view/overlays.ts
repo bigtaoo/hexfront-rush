@@ -10,6 +10,7 @@ import { FP } from '../sim/fixed';
 import { PHASE_PLAY, RARITY, RARITY_COLOR, UNITS, type UnitKey } from '../sim/rules';
 import { coin } from './bodies';
 import type { Frame, Juice } from './frame';
+import { Num } from './digits';
 import { label, liveGraphics, setLabel } from './pen';
 import { UnitView } from './unitView';
 
@@ -44,7 +45,7 @@ interface DmgNum {
   t: number;
   pop: number;
   color: string;
-  view: Text;
+  view: Num;
 }
 interface FlyCoin {
   x0: number;
@@ -161,7 +162,7 @@ export class Overlays {
       return;
     }
     if (d) d.view.destroy();
-    const view = label('', { size: 14, color, weight: 900, stroke: 'rgba(0,0,0,0.7)' });
+    const view = new Num();
     this.dmgBox.addChild(view);
     this.dmg.set(id, { v: amount, x, y, t: 0, pop: 1, color, view });
   }
@@ -183,7 +184,7 @@ export class Overlays {
         continue;
       }
       const p = cam.worldToScreen(d.x, d.y - 0.9 - d.t * 0.7);
-      setLabel(d.view, String(Math.round(d.v)), { size: dsize, color: d.color, weight: 900, stroke: 'rgba(0,0,0,0.7)' });
+      d.view.set(String(Math.round(d.v)), { h: dsize * 1.1, tint: d.color });
       d.view.position.set(p.x, p.y);
       d.view.scale.set(1 + 0.4 * d.pop);
       d.view.alpha = d.t > 0.6 ? (0.9 - d.t) / 0.3 : 1;

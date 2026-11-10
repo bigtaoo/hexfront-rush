@@ -20,11 +20,16 @@ export class WebPlatform implements Platform {
 
   constructor(search = typeof location === 'undefined' ? '' : location.search, host = typeof location === 'undefined' ? '' : location.hostname) {
     this.fakeAds = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(host) && new URLSearchParams(search).get('ads') === 'fake';
+    this.lang = new URLSearchParams(search).get('lang');
   }
 
+  /** `?lang=zh` picks the language over the browser's (to check a translation). */
+  private readonly lang: string | null;
+
   languages(): string[] {
-    if (typeof navigator === 'undefined') return [];
-    return [...(navigator.languages ?? []), navigator.language];
+    const own = this.lang ? [this.lang] : [];
+    if (typeof navigator === 'undefined') return own;
+    return [...own, ...(navigator.languages ?? []), navigator.language];
   }
 
   loaded(): void {}

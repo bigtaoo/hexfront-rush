@@ -5,6 +5,7 @@ import { TICK_RATE } from '../sim/fixed';
 import { Prng } from '../sim/prng';
 import { runReplay } from '../sim/replay';
 import { ENGINE_VERSION } from '../sim/rules';
+import { makeConfig } from '../sim/setup';
 import { FrameBroadcast, type FrameBatch } from './frameBroadcast';
 import { catchUpRate, NetInput } from './netInput';
 
@@ -109,7 +110,7 @@ function loopback(seed: number, o: { ms: number; jitter?: number; offline?: [num
     if (b.checks.get(t) !== h && mismatch < 0) mismatch = t;
   }
   const minTick = Math.min(a.engine.tick, b.engine.tick);
-  const rep = { v: ENGINE_VERSION, config: { seed, aiBlue: false, aiRed: false }, log: fb.log, endTick: minTick, hash: 0, checks: [], result: null };
+  const rep = { v: ENGINE_VERSION, config: makeConfig({ seed }), log: fb.log, endTick: minTick, hash: 0, checks: [], result: null };
   const offline = runReplay(rep, minTick).engine;
   const ref = a.engine.tick === minTick ? a.engine : b.engine;
   return { compared, mismatch, ticks: [a.engine.tick, b.engine.tick], cmds: fb.log.length, maxBacklog, stalls, replayOk: offline.hash() === ref.hash() };

@@ -1,46 +1,116 @@
-// The local team's offers as cards standing on their tiles: picture and price on the face, a gold rim
-// that breathes while it is affordable. A card the player just tapped turns edge-on (it flips)
-// and fades; the building, or the mystery result, comes from the sim. A card that appears (the
-// tiles around a flipped one open up) turns face-up from edge-on and drops into place. The card
-// face is a shared context per affordability with the offer's drawn picture (art.ts) over it; the
-// price is a Text sized for the current zoom.
+// The local team's offers, stamped on their tiles: a flat white symbol with a thick dark rim per kind
+// (a helmet for a barracks, a turret for a tower, a pickaxe for a mine, a question mark for a
+// mystery) and the price under it. Only what stands is drawn in full colour (sprites.ts), so an offer never reads
+// as a building (art/STYLE.md). A card the player just tapped turns edge-on (it flips) and fades;
+// the building, or the mystery result, comes from the sim. A card that appears (the tiles around a
+// flipped one open up) turns face-up from edge-on and drops into place. The symbol is a shared
+// context per offer; the price is a picture number (digits.ts).
 
-import { Container, Graphics, Sprite, type Text } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { cardCost, standingOf } from '../sim/economy';
 import { OFFER_LIST } from '../sim/rules';
-import { offerTex } from './art';
 import { coin } from './bodies';
+import { Num } from './digits';
 import { inView, type Frame } from './frame';
-import { label, liveGraphics, setLabel, sharedCtx, type Pen } from './pen';
+import { sharedCtx, type Pen } from './pen';
 
-const W = 0.9, H = 1.12, R = 0.16;
-/** The whole card's scale on its tile: the face is laid out in the units above, then drawn this
- *  much bigger (neighbouring tiles are √3 apart, so a card may take most of its tile). */
-const CARD_K = 1.25;
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
+/** The symbol's scale on its tile, and where its centre and the price row sit (view units). */
+const GLYPH_K = 1.3, GLYPH_Y = -0.22, PRICE_Y = 0.46;
+/** The price's height (view units), a picture number (digits.ts). */
+const PRICE_H = 0.46;
 
-/** The picture stands on the inner window's floor and may rise out of the card's top edge (it
- *  breaks the frame, so a small card still shows a big picture): its foot y, and the room it fits
- *  in. */
-const ICON_FOOT = 0.13, ICON_W = 0.86, ICON_H = 0.92;
+/** The stamp's two colours: a light cream face and a dark brown ink rim. */
+const FACE = '#fffaf0', INK = '#2b2118';
+/** Ink rim width around a filled shape, and the extra width under a stroked one. */
+const RIM = 0.07, RIM2 = 0.12;
 
-function cardCtx(afford: boolean) {
-  return sharedCtx(`card|${afford ? 1 : 0}`, (p) => {
-    p.rrect(-W / 2 + 0.05, -H / 2 + 0.09, W, H, R, 'rgba(0,0,0,0.28)');
-    p.rrect(-W / 2, -H / 2, W, H, R, afford ? '#fff7e0' : '#cbd5e1', afford ? null : '#64748b', 0.06);
-    p.rrect(-W / 2 + 0.08, -H / 2 + 0.08, W - 0.16, H * 0.56, R * 0.6, afford ? 'rgba(251,191,36,0.22)' : 'rgba(100,116,139,0.18)');
-    coin(p, -0.2, 0.36, 0.1);
+/** A stroked path with an ink rim: drawn twice, wide in ink, then narrower in cream. */
+function inked(p: Pen, w: number, path: () => void): void {
+  path();
+  p.stroke(INK, w + RIM2, 'round');
+  path();
+  p.stroke(FACE, w, 'round');
+}
+
+function barracksGlyph(p: Pen, tier: number): void {
+  // a soldier's helmet: a crest, a round dome with cheek guards, a T-shaped visor
+  p.rrect(-0.055, -0.42, 0.11, 0.2, 0.05, FACE, INK, RIM);
+  p.g.beginPath();
+  p.g.moveTo(-0.25, 0.14);
+  p.g.lineTo(-0.25, -0.06);
+  p.g.arc(0, -0.06, 0.25, Math.PI, Math.PI * 2);
+  p.g.lineTo(0.25, 0.14);
+  p.g.lineTo(0.08, 0.14);
+  p.g.lineTo(0.08, 0.02);
+  p.g.lineTo(-0.08, 0.02);
+  p.g.lineTo(-0.08, 0.14);
+  p.g.closePath();
+  p.fill(FACE).stroke(INK, RIM);
+  p.rect(-0.18, -0.07, 0.36, 0.07, INK);
+  p.rect(-0.04, -0.07, 0.08, 0.12, INK);
+  // the price tier as pips: a dearer barracks card trains rarer troops more often
+  for (let k = 0; k < tier; k++) p.circle((k - (tier - 1) / 2) * 0.16, 0.27, 0.05, FACE, INK, RIM);
+}
+
+function towerGlyph(p: Pen): void {
+  p.poly([-0.17, 0.26, 0.17, 0.26, 0.13, -0.1, -0.13, -0.1], FACE, INK, RIM);
+  p.poly([
+    -0.23, -0.08, 0.23, -0.08, 0.23, -0.32, 0.13, -0.32, 0.13, -0.22, 0.05, -0.22, 0.05, -0.32,
+    -0.05, -0.32, -0.05, -0.22, -0.13, -0.22, -0.13, -0.32, -0.23, -0.32,
+  ], FACE, INK, RIM);
+  p.rrect(-0.055, 0.1, 0.11, 0.16, 0.05, INK);
+  p.rect(-0.02, -0.02, 0.04, 0.09, INK);
+}
+
+function mineGlyph(p: Pen): void {
+  // a pickaxe: the handle up to the right, the curved head across its top
+  inked(p, 0.1, () => {
+    p.g.beginPath();
+    p.g.moveTo(-0.22, 0.24);
+    p.g.lineTo(0.12, -0.14);
+  });
+  inked(p, 0.12, () => {
+    p.g.beginPath();
+    p.g.moveTo(-0.14, -0.33);
+    p.g.quadraticCurveTo(0.27, -0.29, 0.31, 0.1);
   });
 }
 
+function mysteryGlyph(p: Pen): void {
+  inked(p, 0.1, () => {
+    p.g.beginPath();
+    p.g.moveTo(-0.13, -0.15);
+    p.g.arc(0, -0.15, 0.13, Math.PI, Math.PI * 2.45);
+    p.g.lineTo(0.005, 0.07);
+  });
+  p.circle(0, 0.2, 0.06, FACE, INK, RIM);
+}
+
+function glyphCtx(key: string) {
+  return sharedCtx(`glyph|${key}`, (p) => {
+    switch (key) {
+      case 'mine':
+        return mineGlyph(p);
+      case 'tower':
+        return towerGlyph(p);
+      case 'myst':
+        return mysteryGlyph(p);
+      default:
+        return barracksGlyph(p, Number(key.slice(3)) || 1);
+    }
+  });
+}
+
+const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
+
 interface CardView {
   root: Container;
-  body: Graphics;
-  rim: Graphics;
-  rimPen: Pen;
-  icon: Sprite;
-  cost: Text;
+  glyph: Graphics;
+  coin: Graphics;
+  cost: Num;
+  key: string;
   seen: number;
 }
 
@@ -115,29 +185,16 @@ export class OfferLayer {
         lift = (1 - k) * 0.3;
         alpha = Math.min(1, 0.3 + k);
       }
-      c.root.position.set(v.x, v.y - 0.1 - lift);
+      c.root.position.set(v.x, v.y - lift);
       c.root.zIndex = v.y;
-      c.root.scale.set(sx * CARD_K, CARD_K);
+      c.root.scale.set(sx, 1);
       c.root.alpha = alpha;
-      const ctx = cardCtx(afford);
-      if (c.body.context !== ctx) c.body.context = ctx;
-      const tex = offerTex(off.key, f.local);
-      if (c.icon.texture !== tex) {
-        c.icon.texture = tex;
-        const k = Math.min(ICON_W / Math.max(1, tex.width), ICON_H / Math.max(1, tex.height));
-        c.icon.scale.set(k);
+      if (c.key !== off.key) {
+        c.key = off.key;
+        c.glyph.context = glyphCtx(off.key);
       }
-      c.icon.alpha = afford ? 1 : 0.8;
-      setLabel(c.cost, String(cost), { size: 0.3 * zoom * CARD_K, color: afford ? '#78350f' : '#dc2626', weight: 900 });
-      c.cost.scale.set(1 / (zoom * CARD_K));
-      // the breathing gold rim
-      const p = c.rimPen.clear();
-      if (afford) {
-        const pulse = 0.5 + 0.5 * Math.sin(f.time * 4 + i * 0.7);
-        p.g.beginPath();
-        p.g.roundRect(-W / 2, -H / 2, W, H, R);
-        p.stroke(`rgba(245,158,11,${(0.7 + 0.3 * pulse).toFixed(3)})`, 0.08 + 0.03 * pulse);
-      }
+      // what the player cannot pay for keeps its symbol (a faded one was unreadable); the price turns red
+      c.cost.set(String(cost), { h: PRICE_H, tint: afford ? '#ffffff' : '#ff4a3d', align: 'left', screen: zoom });
     }
     for (const [i, c] of this.cards) {
       if (c.seen === n) continue;
@@ -150,15 +207,16 @@ export class OfferLayer {
     let c = this.cards.get(i);
     if (c) return c;
     const root = new Container();
-    const body = new Graphics();
-    const { g: rim, p: rimPen } = liveGraphics();
-    const cost = label('', { size: 10, color: '#78350f', weight: 900 });
-    cost.position.set(0.06, 0.37);
-    const icon = new Sprite({ anchor: { x: 0.5, y: 1 } });
-    icon.position.set(0, ICON_FOOT);
-    root.addChild(body, rim, icon, cost);
+    const glyph = new Graphics();
+    glyph.position.set(0, GLYPH_Y);
+    glyph.scale.set(GLYPH_K);
+    const cg = new Graphics(coinCtx());
+    cg.position.set(-0.24, PRICE_Y);
+    const cost = new Num();
+    cost.position.set(-0.08, PRICE_Y);
+    root.addChild(glyph, cg, cost);
     this.root.addChild(root);
-    c = { root, body, rim, rimPen, icon, cost, seen: 0 };
+    c = { root, glyph, coin: cg, cost, key: '', seen: 0 };
     this.cards.set(i, c);
     return c;
   }

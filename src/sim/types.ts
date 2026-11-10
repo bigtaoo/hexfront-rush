@@ -4,11 +4,7 @@
 
 import type { BuildingType, Missile, OfferKind, UnitKey } from './rules';
 
-export interface EngineConfig {
-  seed: number;
-  aiBlue: boolean;
-  aiRed: boolean;
-}
+export type { EngineConfig, SideSetup } from './setup';
 
 export interface Guard {
   kind: 'guard';
@@ -111,6 +107,8 @@ export interface TeamState {
   open: number[];
   questIdx: number;
   questT: number;
+  /** Hundredths of a gold piece an income handicap left over, paid with the next income. */
+  incomeCarry: number;
 }
 
 export interface AiState {

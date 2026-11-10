@@ -7,7 +7,9 @@
 //
 // Levels only change looks, never the battle: it runs at its own fixed rate (StepLoop, app/stepLoop.ts).
 // Screens with no battle on them (home, results) draw at the display's full density instead
-// (frameResolution); a battle at its level's, never over 2. A 30 Hz display (an iPhone in Low
+// (frameResolution); a battle at its level's. A screen under 2x (a desktop monitor) is drawn at 2
+// and shrunk by the browser (canvasDensity): drawn at 1, the board's sprites and small numbers
+// came from their textures' smaller mip levels and looked soft. A 30 Hz display (an iPhone in Low
 // Power Mode) is held on its level, not stepped down for frames it could never show (refreshCap).
 
 export type QualityMode = 'auto' | 'high' | 'saver';
@@ -23,10 +25,12 @@ export interface LevelSettings {
 // Each step down gives up resolution first and the frame rate last.
 export const LEVELS: readonly LevelSettings[] = [
   { name: 'saver', resolution: 1.5, fps: 30 },
-  { name: 'low', resolution: 1.5, fps: 60 },
-  // the battle's top: standing's first bundle at 3x (with MSAA) never booted on an iPhone 15, and
-  // a battle at 3 draws 2.25 times the pixels for a board that moves
-  { name: 'high', resolution: 2, fps: 60 },
+  { name: 'low', resolution: 2, fps: 60 },
+  // the battle's top: a 3x phone's full density. The board's art is drawn for about 3 device
+  // pixels a texture pixel's worth (art.ts PPU), and at 2 a 3x screen showed it upscaled and soft.
+  // No MSAA (boot.ts: antialias only under 2x), which is what kept standing's 3x bundle from booting
+  // on an iPhone 15; the iOS app stays at 2 (IOS_RESOLUTION), and the governor steps a slow phone down.
+  { name: 'high', resolution: 3, fps: 60 },
 ];
 const HIGH = LEVELS.length - 1;
 
@@ -34,6 +38,15 @@ const HIGH = LEVELS.length - 1;
 export const MAX_RESOLUTION = 3;
 /** The iOS app's canvas cap: 2x, as standing's after its 3x bundle never booted on an iPhone 15. */
 export const IOS_RESOLUTION = 2;
+
+/** The least pixels per logical pixel the canvas gets: a 1x screen is supersampled to 2. */
+export const MIN_DENSITY = 2;
+
+/** The canvas's full density on a screen of device pixel ratio `dpr`: its own, at least
+ *  MIN_DENSITY, at most the host's cap. */
+export function canvasDensity(dpr: number, cap: number): number {
+  return Math.min(cap, Math.max(dpr || 1, MIN_DENSITY));
+}
 
 /** The most pixels per logical pixel the canvas gets on host `host`. */
 export function densityCap(host: string): number {

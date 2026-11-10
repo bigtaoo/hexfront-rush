@@ -50,7 +50,8 @@ describe('the guard on its own', () => {
   const e = new Engine({ seed: 2024, aiBlue: false, aiRed: false });
   const seen = [0, 0, 0, 0, 0, 0];
   const walked = [new Set<number>(), new Set<number>(), new Set<number>()];
-  const until = INTRO_TICKS + 90 * 30;
+  // the guard stands several seconds at each spot, so it takes minutes to see where it likes to go
+  const until = INTRO_TICKS + 240 * 30;
   while (e.tick < until) {
     e.step(null);
     if (e.tick <= INTRO_TICKS) continue;

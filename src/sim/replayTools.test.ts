@@ -10,6 +10,7 @@ import { desyncVerdict, formatVerdict } from './replayDesync';
 import { formatReport } from './replayReport';
 import { MAX_REPLAY_CMDS, parseReplay } from './replayShape';
 import { addReplay, newStats } from './replayStats';
+import { makeConfig } from './setup';
 import { ENGINE_VERSION, TEAM_BLUE } from './rules';
 
 const solo = playMatch(4242);
@@ -29,7 +30,7 @@ describe('replay shape', () => {
       (r) => (r.v = -1),
       (r) => (r.endTick = 1e9),
       (r) => (r.hash = -1),
-      (r) => (r.config = { seed: 1.5, aiBlue: false, aiRed: true }),
+      (r) => (r.config = { ...r.config, seed: 1.5 }),
       (r) => ((r.config as unknown as Record<string, unknown>).aiRed = 'yes'),
       (r) => r.log.push([r.endTick + 1, 1, 0, 0, 0, 0]),
       (r) => r.log.push([0, 3, 0, 0, 0, 0]),
@@ -133,7 +134,7 @@ describe('desync verdict', () => {
   const agreedEnd = 900;
   const rep: Replay = {
     v: ENGINE_VERSION,
-    config: { seed: 99, aiBlue: false, aiRed: false },
+    config: makeConfig({ seed: 99 }),
     log: m.log.filter((c) => c[0] < agreedEnd),
     endTick: agreedEnd,
     hash: m.checks.find((c) => c[0] === agreedEnd)![1],

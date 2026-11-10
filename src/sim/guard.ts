@@ -82,7 +82,7 @@ function act(e: Engine, g: Guard, home: Tile, spots: GuardSpots): void {
       if (Math.abs(target.x - g.x) > 50) g.face = target.x > g.x ? 1 : -1;
       return;
     }
-    guardStep(e, g, home, target.x, target.y);
+    guardStep(e, g, home, target.x, target.y, GUARD.chaseSpeed);
     return;
   }
   if (!spots.tiles.length) return;
@@ -91,7 +91,7 @@ function act(e: Engine, g: Guard, home: Tile, spots: GuardSpots): void {
     return;
   }
   const w = e.tiles[g.wp];
-  const step = guardStep(e, g, home, w.x, w.y);
+  const step = guardStep(e, g, home, w.x, w.y, GUARD.speed);
   if (step !== MOVING) {
     // there (or it cannot get there): pick the next spot, and stand a moment first if it arrived
     g.wp = pickSpot(e, g, home, spots);
@@ -102,9 +102,9 @@ function act(e: Engine, g: Guard, home: Tile, spots: GuardSpots): void {
 const MOVING = 0, ARRIVED = 1, BLOCKED = 2;
 
 /** One guard step toward (tx, ty), held inside the leash and off the rocks. */
-function guardStep(e: Engine, g: Guard, home: Tile, tx: number, ty: number): number {
+function guardStep(e: Engine, g: Guard, home: Tile, tx: number, ty: number, speed: number): number {
   const ox = g.x, oy = g.y;
-  const arrived = moveToward(g, tx, ty, GUARD.speed);
+  const arrived = moveToward(g, tx, ty, speed);
   const t = e.tileAt(g.x, g.y);
   if (!t || t.obst || dist2(g.x - home.x, g.y - home.y) > GUARD.leash * GUARD.leash) {
     g.x = ox;

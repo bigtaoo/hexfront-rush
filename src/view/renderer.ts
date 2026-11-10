@@ -23,6 +23,7 @@ import { EdgeLayer } from './edges';
 import { Hud, type Status } from './hud';
 import { OfferLayer } from './offers';
 import { Overlays, type BannerOpts, type CardPop } from './overlays';
+import { setDigitDensity } from './digits';
 import { SpriteLayer } from './sprites';
 import type { Pt } from './viewConst';
 
@@ -229,6 +230,7 @@ export class Renderer {
     this.world.position.set(ex, ey);
     // what is on screen, in view units, with margins for tall sprites (anchored at their foot)
     const vis: Vis = { x0: -ex / s - 1.3, x1: (cam.W - ex) / s + 1.3, y0: -ey / s - 1.0, y1: (cam.H - ey) / s + 1.9 };
+    setDigitDensity(this.app.renderer.resolution);
     const f: Frame = { eng, alpha, dt, time: this.time, ui, cam, vis, local: this.local };
     this.ground.update(eng);
     this.offers.draw(f);

@@ -6,7 +6,7 @@ import { perTick, TICK_RATE, ticks, toFp } from './fixed';
 import { TILE } from './hex';
 
 /** Bump when a rules change alters the outcome of a replay. */
-export const ENGINE_VERSION = 9;
+export const ENGINE_VERSION = 12;
 
 /** No clock: a match ends when a castle falls (or a player leaves). This is only a safety valve
  *  for a stalemate, far past any real match; then the tiles decide. */
@@ -17,10 +17,10 @@ export const MAX_PLAY_TICKS = ticks(25 * 60);
  *  is over long before. */
 export const SIEGE = { after: ticks(8 * 60), every: ticks(60), dmgStep: 25, capStep: 10 };
 /** How many siege steps have come after `playT` ticks of play (0 before the siege). */
-export const siegeLevel = (playT: number): number =>
-  playT < SIEGE.after ? 0 : 1 + Math.trunc((playT - SIEGE.after) / SIEGE.every);
+export const siegeLevel = (playT: number, after: number = SIEGE.after): number =>
+  playT < after ? 0 : 1 + Math.trunc((playT - after) / SIEGE.every);
 /** The siege bonus on damage to buildings, in percent (100 = none). */
-export const siegePct = (playT: number): number => 100 + SIEGE.dmgStep * siegeLevel(playT);
+export const siegePct = (playT: number, after: number = SIEGE.after): number => 100 + SIEGE.dmgStep * siegeLevel(playT, after);
 export const INTRO_TICKS = ticks(3.6);
 
 export const TEAM_NONE = 0, TEAM_BLUE = 1, TEAM_RED = 2;
@@ -133,6 +133,11 @@ export const RARITY_COLOR = ['#9aa5b1', '#38bdf8', '#c084fc', '#fbbf24'] as cons
 // Design table: hp, damage, attack every (s), range (tiles), speed (tiles/s), train every (s),
 // body size (world units), splash radius (tiles). A barracks trains on its timer for the whole
 // match; only the team cap (unitCap) holds it back.
+//
+// The militia is the standard soldier: every other troop is read against it. Speed sets each
+// kind's feel on the field: light troops keep the standard pace, armoured ones lag, giants plod
+// and only the drake (it flies) is quicker. A march from castle to castle takes the standard
+// soldier about 18 s (it took 11 s before engine 10).
 export const UNIT_KEYS = ['militia', 'slinger', 'shield', 'bowman', 'ogre', 'adept', 'colossus', 'drake'] as const;
 export type UnitKey = (typeof UNIT_KEYS)[number];
 export type Missile = '' | 'stone' | 'arrow' | 'orb' | 'fire' | 'bolt' | 'tower';
@@ -151,14 +156,14 @@ interface UnitDesign {
   bldMult?: number;
 }
 const UNIT_DESIGN: Record<UnitKey, UnitDesign> = {
-  militia: { rarity: 0, hp: 70, dmg: 9, rate: 0.9, range: 0.9, speed: 1.3, spawn: 7, size: 0.3 },
-  slinger: { rarity: 0, hp: 45, dmg: 7, rate: 1.0, range: 1.8, speed: 1.3, spawn: 7, size: 0.28, ranged: 'stone' },
-  shield: { rarity: 1, hp: 170, dmg: 11, rate: 1.0, range: 0.9, speed: 1.1, spawn: 9, size: 0.34 },
-  bowman: { rarity: 1, hp: 70, dmg: 12, rate: 1.1, range: 2.5, speed: 1.2, spawn: 9, size: 0.3, ranged: 'arrow' },
-  ogre: { rarity: 2, hp: 360, dmg: 26, rate: 1.3, range: 1.0, speed: 1.0, spawn: 12, size: 0.44 },
-  adept: { rarity: 2, hp: 110, dmg: 20, rate: 1.4, range: 3.0, speed: 1.1, spawn: 12, size: 0.32, ranged: 'orb', splash: 0.8 },
-  colossus: { rarity: 3, hp: 900, dmg: 45, rate: 1.6, range: 1.1, speed: 0.8, spawn: 18, size: 0.56, bldMult: 2 },
-  drake: { rarity: 3, hp: 380, dmg: 22, rate: 0.9, range: 2.2, speed: 1.7, spawn: 18, size: 0.46, ranged: 'fire', splash: 1.0 },
+  militia: { rarity: 0, hp: 70, dmg: 9, rate: 0.9, range: 0.9, speed: 0.75, spawn: 7, size: 0.3 },
+  slinger: { rarity: 0, hp: 45, dmg: 7, rate: 1.0, range: 1.8, speed: 0.75, spawn: 7, size: 0.28, ranged: 'stone' },
+  shield: { rarity: 1, hp: 170, dmg: 11, rate: 1.0, range: 0.9, speed: 0.6, spawn: 9, size: 0.34 },
+  bowman: { rarity: 1, hp: 70, dmg: 12, rate: 1.1, range: 2.5, speed: 0.7, spawn: 9, size: 0.3, ranged: 'arrow' },
+  ogre: { rarity: 2, hp: 360, dmg: 26, rate: 1.3, range: 1.0, speed: 0.55, spawn: 12, size: 0.44 },
+  adept: { rarity: 2, hp: 110, dmg: 20, rate: 1.4, range: 3.0, speed: 0.65, spawn: 12, size: 0.32, ranged: 'orb', splash: 0.8 },
+  colossus: { rarity: 3, hp: 900, dmg: 45, rate: 1.6, range: 1.1, speed: 0.45, spawn: 18, size: 0.56, bldMult: 2 },
+  drake: { rarity: 3, hp: 380, dmg: 22, rate: 0.9, range: 2.2, speed: 1.0, spawn: 18, size: 0.46, ranged: 'fire', splash: 1.0 },
 };
 
 export interface UnitDef {
@@ -184,7 +189,7 @@ export const WAVE_TICKS = ticks(15);
 /** Troops alive per team; barracks wait (timer full) while the team is at the cap. */
 export const UNIT_CAP = 50;
 /** The troop cap after `playT` ticks of play (it rises in a siege). */
-export const unitCap = (playT: number): number => UNIT_CAP + SIEGE.capStep * siegeLevel(playT);
+export const unitCap = (playT: number, after: number = SIEGE.after): number => UNIT_CAP + SIEGE.capStep * siegeLevel(playT, after);
 export const UNITS = {} as Record<UnitKey, UnitDef>;
 export const UNITS_BY_RARITY: UnitKey[][] = [[], [], [], []];
 for (const k of UNIT_KEYS) {
@@ -217,7 +222,9 @@ export const GUARD = {
   dmg: 14,
   rate: ticks(0.7),
   range: Math.round(2.4 * TILE),
-  speed: Math.round((1.7 * TILE) / TICK_RATE),
+  /** An unhurried walk between spots; it hurries only toward an intruder. */
+  speed: Math.round((0.6 * TILE) / TICK_RATE),
+  chaseSpeed: Math.round((1.2 * TILE) / TICK_RATE),
   respawn: ticks(12),
   radius: 420,
   leash: Math.round(2.8 * TILE),
@@ -228,8 +235,8 @@ export const GUARD = {
   wantSide: 3,
   wantBack: 1,
   /** It stands pauseMin plus up to pauseSpan ticks at each spot. */
-  pauseMin: ticks(0.5),
-  pauseSpan: ticks(1.3),
+  pauseMin: ticks(4),
+  pauseSpan: ticks(4),
   /** Its path keeps this far from the castle's centre. */
   castleClear: Math.round(0.6 * TILE),
   regen: 12,

@@ -45,7 +45,6 @@ export function buildingTex(type: BuildingType, team: number, rarity = 0): Textu
 export const rubbleTex = (): Texture => tex('rubble');
 /** chest, hoard, camp, warband */
 export const eventTex = (key: string): Texture => tex(key);
-export const mysteryTex = (): Texture => tex('mystery');
 
 /** The prop on an obstacle tile: the deco roll picks a variant (an oak or a pine in the meadow, an
  *  arch among the desert's rocks) and whether it is mirrored. */
@@ -62,24 +61,14 @@ export function obstacleTex(kind: Obstacle, deco: number, theme: string): { t: T
     case 'rock':
       name = theme === 'desert' && v > 0.6 ? 'arch' : 'rocks';
       break;
+    case 'ice':
+      // the ice crystals are bright blue, and blue on the map means the blue team (STYLE.md)
+      name = 'rocks';
+      break;
     default:
       name = kind || 'rocks';
   }
   return { t: tex(name), flip: deco % 2 === 1 };
-}
-
-/** The card face's picture for an offer key (mine, tower, bar1..3, myst), in the local team's colour. */
-export function offerTex(key: string, team: number): Texture {
-  switch (key) {
-    case 'mine':
-      return buildingTex('mine', team);
-    case 'tower':
-      return buildingTex('tower', team);
-    case 'myst':
-      return mysteryTex();
-    default:
-      return buildingTex('barracks', team, Number(key.slice(3)) - 1);
-  }
 }
 
 /** Height and width of a texture in view units. */

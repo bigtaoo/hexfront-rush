@@ -20,10 +20,12 @@ import { TICK_RATE } from '../sim/fixed';
 import { InputCollector, LocalInput, type Cmd, type InputSource, type PackedCmd } from '../sim/input';
 import { ReplayInput, recordChecks, type Replay } from '../sim/replay';
 import { ENGINE_VERSION, PHASE_END, PHASE_INTRO, PHASE_PLAY, TEAM_BLUE, TEAM_RED, enemyOf } from '../sim/rules';
-import type { EngineConfig, MatchResult } from '../sim/types';
+import type { ConfigInput } from '../sim/setup';
+import type { MatchResult } from '../sim/types';
 import type { DrawUi } from '../view/frame';
 import { Renderer } from '../view/renderer';
 import { Sound } from './audio';
+import { chapterOfNext, goalTrack, matchConfig, recordGoals, showBrief, showChapter, showStars, updateMenu, type MatchKind } from './campaignUi';
 import { Controls } from './controls';
 import type { DevSwitches } from './dev';
 import { $, countUp, replay, show, updateRecord, type Panel } from './dom';
@@ -34,9 +36,9 @@ import { Online } from './online';
 import type { ReplayUpload } from './replayUpload';
 import { persist, type Save } from './save';
 import { StepLoop } from './stepLoop';
-import { TUTORIAL_SEED, updateTutorial, type Tutorial } from './tutorial';
+import { updateTutorial, type Tutorial } from './tutorial';
 
-export type AppState = 'boot' | 'menu' | 'howto' | 'online' | 'match' | 'result';
+export type AppState = 'boot' | 'menu' | 'howto' | 'online' | 'campaign' | 'brief' | 'match' | 'result';
 /** solo: against the AI; online: 1v1 through the relay; demo: the AI match behind the menu;
  *  watch: a replay played again. */
 export type Mode = 'solo' | 'online' | 'demo' | 'watch';
@@ -81,6 +83,13 @@ export class Game {
   watching: Replay | null = null;
   watchSpeed: number = WATCH_SPEEDS[0];
   howtoThen: 'match' | 'menu' = 'menu';
+  /** The match being played (or the last one): a campaign stage, a quick match or the daily one. */
+  match: MatchKind = { kind: 'quick' };
+  /** The chapter the campaign panel shows. */
+  chapter = 0;
+  /** The map events (chests, camps) on the map at the start, and those the player took. */
+  eventsTotal = 0;
+  eventsTaken = 0;
 
   // the pause: any of these stops a solo match and silences the game
   paused = false;
@@ -128,7 +137,7 @@ export class Game {
   }
 
   /** Start a fresh engine and point the view and the input at it. */
-  setupEngine(config: EngineConfig, local: number, source: LoggedSource): void {
+  setupEngine(config: ConfigInput, local: number, source: LoggedSource): void {
     this.eng = new Engine(config);
     this.localTeam = local;
     this.source = source;
@@ -136,6 +145,8 @@ export class Game {
     this.collector = new InputCollector(local);
     this.loop.reset();
     this.pendingResult = 0;
+    this.eventsTotal = this.eng.tiles.filter((t) => t.event).length;
+    this.eventsTaken = 0;
     this.controls.clear();
     this.renderer.reset();
     this.renderer.setView(this.eng, local);
@@ -160,6 +171,7 @@ export class Game {
     this.setupEngine({ seed: randomSeed(), aiBlue: true, aiRed: true }, TEAM_BLUE, new LocalInput());
     this.show('menu');
     updateRecord(this.save);
+    updateMenu(this.save);
     this.sound.music('lobby');
   }
 
@@ -169,23 +181,46 @@ export class Game {
     this.show('howto');
   }
 
+  /** The menu's main button: the first time the how-to and then the first stage (the tutorial),
+   *  after that the campaign's chapter map. */
   startMatch(): void {
     this.sound.unlock();
     this.sound.play('tap');
-    if (!this.save.tutorialDone) return this.openHowTo('match');
-    this.beginMatch();
+    if (!this.save.tutorialDone) {
+      this.match = { kind: 'stage', id: 0 };
+      return this.openHowTo('match');
+    }
+    this.openCampaign(chapterOfNext(this.save));
   }
 
-  beginMatch(): void {
+  openCampaign(ch: number): void {
+    this.state = 'campaign';
+    this.chapter = ch;
+    showChapter(this.save, ch, (id) => this.openBrief({ kind: 'stage', id }));
+    this.show('campaign');
+  }
+
+  /** The brief before a stage or the daily challenge; its button starts the match. */
+  openBrief(m: Exclude<MatchKind, { kind: 'quick' }>): void {
+    this.sound.play('tap');
+    this.state = 'brief';
+    this.match = m;
+    showBrief(this.save, m);
+    this.show('brief');
+  }
+
+  beginMatch(m: MatchKind = this.match): void {
     this.mode = 'solo';
+    this.match = m;
     this.watching = null;
     this.show(null);
     this.state = 'match';
-    const tutorial = !this.save.tutorialDone && !this.dev.autoplay;
-    // the first match is always the same map (the card layout comes from the seed)
-    const seed = this.dev.seed ?? (tutorial ? TUTORIAL_SEED : randomSeed());
+    // the tutorial is the first stage, on its own map (TUTORIAL_SEED: the card layout comes from the seed)
+    const tutorial = !this.save.tutorialDone && !this.dev.autoplay && m.kind === 'stage' && m.id === 0;
+    const config = matchConfig(m, this.save, randomSeed());
+    if (this.dev.seed !== null) config.seed = this.dev.seed;
     const input = new LocalInput();
-    this.setupEngine({ seed, aiBlue: this.dev.autoplay, aiRed: true }, TEAM_BLUE, input);
+    this.setupEngine({ ...config, aiBlue: this.dev.autoplay }, TEAM_BLUE, input);
     if (!this.dev.autoplay) this.uploads?.start(this.eng, input.log, TEAM_BLUE);
     this.tut = tutorial ? { step: 0, t: 0 } : null;
     this.sound.music('battle');
@@ -229,12 +264,16 @@ export class Game {
     const won = !!res && res.winner === me;
     const lost = !!res && res.winner === enemyOf(me);
     const counted = this.mode === 'solo' || this.mode === 'online';
+    let got: ReturnType<typeof recordGoals> = null;
     if (counted) {
       if (won) this.save.wins++;
       else if (lost) this.save.losses++;
       else this.save.draws++;
+      if (this.mode === 'solo' && res) got = recordGoals(this.match, this.save, won, this.eventsTaken, this.eventsTotal, Math.round(this.eng.elapsed() / TICK_RATE));
       this.persist();
     }
+    showStars(this.match, got, won && this.mode === 'solo', lost && this.mode === 'solo', this.save);
+    $('againBtn').textContent = T(got && !won ? 'retry' : 'playAgain');
     const title = $('resultTitle');
     title.textContent = !res ? T('replayOver') : won ? T('victory') : lost ? T('defeat') : T('draw');
     title.className = won ? 'win' : lost ? 'lose' : 'draw';
@@ -279,7 +318,7 @@ export class Game {
       });
   }
 
-  /** The results panel's "play again": the same kind of match (a solo one after a replay). */
+  /** The results panel's "play again": the same match again (a solo one after a replay). */
   again(): void {
     if (this.mode === 'online') {
       this.toMenu();
@@ -389,6 +428,7 @@ export class Game {
     this.ui.look = this.canLook();
     if (online && this.state === 'match') this.renderer.status = this.online.statusLine();
     else if (this.mode === 'watch' && this.state === 'match') this.renderer.status = { text: T('watching') };
+    else if (this.mode === 'solo' && this.state === 'match') this.renderer.status = this.tut ? null : goalTrack(this.match, this.eventsTaken);
     this.controls.keyPan(realDt);
     this.renderer.draw(this.eng, alpha, this.paused && !online ? 0 : dt, this.ui);
     this.sound.update(dt);

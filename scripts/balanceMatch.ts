@@ -5,6 +5,7 @@
 
 import { eventWorth } from '../src/sim/ai';
 import { Engine } from '../src/sim/engine';
+import type { ConfigInput } from '../src/sim/setup';
 import { MID_ROW, NTILES } from '../src/sim/hex';
 import { TICK_RATE } from '../src/sim/fixed';
 import { EVENT_LIST, MAX_PLAY_TICKS, MYSTERY, OF_MINE, OFFER_LIST, PHASE_END, PHASE_PLAY, TEAM_BLUE, TEAM_RED, unitCap, UNITS, type UnitKey } from '../src/sim/rules';
@@ -66,9 +67,9 @@ function cardAt(e: Engine, offers: Record<number, number[]>, team: number, x: nu
   return oi >= 0 ? OFFER_LIST[oi]!.key : '?';
 }
 
-export function playBalanceMatch(seed: number): MatchStats {
+export function playBalanceMatch(seed: number, setup: Omit<ConfigInput, 'seed'> = {}): MatchStats {
   const t0 = performance.now();
-  const e = new Engine({ seed, aiBlue: true, aiRed: true });
+  const e = new Engine({ ...setup, seed, aiBlue: true, aiRed: true });
   const side: Record<number, SideStats> = { [TEAM_BLUE]: newSide(), [TEAM_RED]: newSide() };
   const share: number[] = [];
   let maxUnits = 0;
@@ -124,7 +125,7 @@ export function playBalanceMatch(seed: number): MatchStats {
       const base = e.blds.find((b) => b.team === team && b.type === 'base');
       const low = base ? base.hp / base.maxhp : 0;
       if (low < S.castleLow) S.castleLow = low;
-      if (e.tick % TICK_RATE === 0 && e.team[team]!.units >= unitCap(e.elapsed())) S.capSecs++;
+      if (e.tick % TICK_RATE === 0 && e.team[team]!.units >= unitCap(e.elapsed(), e.siegeAt)) S.capSecs++;
       if (e.elapsed() === 90 * TICK_RATE) S.minesAt90 = e.blds.filter((b) => b.team === team && b.type === 'mine').length;
     }
     if (e.tick % TICK_RATE === 0) {

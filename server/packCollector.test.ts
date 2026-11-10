@@ -19,13 +19,14 @@ describe('packCollector', () => {
     expect(valueImports(src)).toEqual(['node:http', './d.ts', './f.ts', './h.ts', './side.ts']);
   });
 
-  it('packs collect.ts with the four modules it runs on, none of the engine', () => {
+  it('packs collect.ts with the five modules it runs on, none of the engine', () => {
     expect(closure('server/collect.ts')).toEqual([
       'server/collect.ts',
       'server/collector.ts',
       'server/privacy.ts',
       'server/replayShelf.ts',
       'src/sim/replayShape.ts',
+      'src/sim/setup.ts',
     ]);
   });
 

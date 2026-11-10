@@ -10,6 +10,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { checkReplay, makeReplay } from '../src/sim/replay.ts';
 import { desyncVerdict } from '../src/sim/replayDesync.ts';
 import { ENGINE_VERSION } from '../src/sim/rules.ts';
+import { makeConfig } from '../src/sim/setup.ts';
 import { playMatch, playOnline } from '../src/test/scriptedPlayer.ts';
 import { Collector, MAX_BODY, onlineDoc, PER_ADDRESS, type RoomRecord } from './collector.ts';
 import { readShelf, ReplayShelf } from './replayShelf.ts';
@@ -95,7 +96,7 @@ describe('onlineDoc', () => {
     expect(d).toMatchObject({ id: 'o-QX7P-4040', kind: 'online', end: 'over', at: 1 });
     expect(d.replay.endTick).toBe(end);
     expect(d.replay.hash).toBe(final);
-    expect(d.replay.config).toEqual({ seed: 4040, aiBlue: false, aiRed: false });
+    expect(d.replay.config).toEqual(makeConfig({ seed: 4040 }));
     expect(checkReplay(d.replay)).toBe(true);
     expect(d.desync).toBeUndefined();
     // one seat's report is enough

@@ -6,9 +6,12 @@ import { relayUrl } from '../net/netClient';
 import type { Platform } from '../platform/types';
 import { checkReplay, runReplay, type Replay } from '../sim/replay';
 import { loadArt } from '../view/art';
+import { loadDigits } from '../view/digits';
 import { patchGraphicsDestroy } from '../view/graphicsDestroy';
-import { densityCap, levelRange, type DeviceInfo } from '../view/quality';
+import { canvasDensity, densityCap, levelRange, type DeviceInfo } from '../view/quality';
 import { QualityRuntime, gpuName } from '../view/qualityRuntime';
+import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER } from './campaign';
+import { updateMenu } from './campaignUi';
 import { devSwitches, LOCAL_HOST } from './dev';
 import { $, applyTexts, updateMuteIcon, updateShare } from './dom';
 import { Game, WATCH_SPEEDS } from './game';
@@ -64,11 +67,12 @@ export async function boot(platform: Platform): Promise<void> {
   patchGraphicsDestroy();
   const app = new Application();
   const cap = densityCap(platform.name);
-  const resolution = Math.min(window.devicePixelRatio || 1, cap);
+  const resolution = canvasDensity(window.devicePixelRatio, cap);
   await Promise.all([
     app.init({ background: BACKGROUND, resizeTo: window, resolution, autoDensity: true, antialias: resolution < 2, preference: 'webgl' }),
     fontReady(),
     loadArt(),
+    loadDigits(),
   ]);
   app.canvas.id = 'game';
   document.body.prepend(app.canvas);
@@ -138,6 +142,56 @@ function wire(g: Game, platform: Platform): void {
     S.play('tap');
   };
   $('playBtn').addEventListener('click', () => g.startMatch());
+  // the campaign, the quick match and the daily challenge (campaignUi.ts)
+  const toMenuPanel = () => {
+    tap();
+    g.state = 'menu';
+    g.show('menu');
+    updateMenu(g.save);
+  };
+  $('quickBtn').addEventListener('click', () => {
+    tap();
+    g.beginMatch({ kind: 'quick' });
+  });
+  $('diffBtn').addEventListener('click', () => {
+    tap();
+    g.save.skirmish = (g.save.skirmish + 1) % SKIRMISH.length;
+    g.persist();
+    updateMenu(g.save);
+  });
+  $('dailyBtn').addEventListener('click', () => {
+    S.unlock();
+    g.openBrief({ kind: 'daily', day: dayNumber(Date.now()) });
+  });
+  $('chPrev').addEventListener('click', () => {
+    tap();
+    g.openCampaign(Math.max(0, g.chapter - 1));
+  });
+  $('chNext').addEventListener('click', () => {
+    tap();
+    g.openCampaign(Math.min(CHAPTERS.length - 1, g.chapter + 1));
+  });
+  $('campBack').addEventListener('click', toMenuPanel);
+  $('briefGo').addEventListener('click', () => {
+    tap();
+    g.beginMatch();
+  });
+  $('briefBack').addEventListener('click', () => {
+    if (g.match.kind !== 'stage') return toMenuPanel();
+    tap();
+    g.openCampaign(g.chapter);
+  });
+  $('nextBtn').addEventListener('click', () => {
+    tap();
+    const m = g.match;
+    if (m.kind !== 'stage') return;
+    const id = m.id + 1;
+    g.afterAd(() => {
+      g.toMenu();
+      g.chapter = Math.floor(id / STAGES_PER_CHAPTER);
+      g.openBrief({ kind: 'stage', id });
+    });
+  });
   $('howBtn').addEventListener('click', () => {
     tap();
     g.openHowTo('menu');

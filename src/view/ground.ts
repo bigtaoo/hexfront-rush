@@ -25,28 +25,35 @@ interface GroundLook {
 }
 
 export const GROUND: Record<ThemeKey, GroundLook> = {
-  meadow: { top: ['#97c76b', '#8dbf62'], side: '#5d8a3e', bg: '#2f4a2b' },
-  desert: { top: ['#e6cb92', '#dec287'], side: '#a9844d', bg: '#5e4630' },
-  snow: { top: ['#e6edf4', '#dce5ee'], side: '#8fa3b9', bg: '#36485f' },
+  meadow: { top: ['#a3cc78', '#9bc570'], side: '#5d8a3e', bg: '#2f4a2b' },
+  desert: { top: ['#e8d1a0', '#e1c995'], side: '#a9844d', bg: '#5e4630' },
+  // warm grey snow: a blue-white would read as the blue team's
+  snow: { top: ['#eceee9', '#e4e7e2'], side: '#99a2a3', bg: '#3c4448' },
 };
 
-/** A team's ground: tile tops (two shades), side, and the border line. */
-const TEAM_GROUND = {
-  [TEAM_BLUE]: { top: ['#80a9d9', '#79a2d3'], side: '#45679a', line: '#2c55a0' },
-  [TEAM_RED]: { top: ['#e3927f', '#dc8a77'], side: '#a2523f', line: '#b13a2a' },
-} as Record<number, { top: [string, string]; side: string; line: string }>;
+/** A team's ground: mid-tone tops (two shades) and the border line in the full hue. A full team
+ *  fill turned the map into a sheet of blue that swallowed the blue roofs, and a pale pastel left
+ *  the white offer symbols with nothing to stand out against; mixing the hue into the theme's
+ *  ground turned blue on sand grey, so the tone is the same on every theme. */
+const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = {
+  [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], line: '#2c55a0' },
+  [TEAM_RED]: { top: ['#eaa292', '#e69a89'], line: '#b13a2a' },
+};
 
+/** Tiles touch (no gaps: a gap per tile drew a heavy honeycomb over the whole map); a faint line
+ *  just inside each top keeps the grid readable, and the side shows only along the map's rim. */
 function tileCtx(side: string, top: string, obst: boolean) {
   return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}`, (p) => {
-    p.hex(0, 0.16, 0.97, side);
-    p.hex(0, 0, 0.95, top);
-    if (obst) p.hex(0, 0, 0.95, 'rgba(60,40,20,0.06)');
+    p.hex(0, 0.16, 1.01, side);
+    p.hex(0, 0, 1.01, top);
+    p.hex(0, 0, 0.955, null, 'rgba(60,45,25,0.09)', 0.035);
+    if (obst) p.hex(0, 0, 0.95, 'rgba(60,40,20,0.05)');
   });
 }
 
 /** Border width and how far inside its tile a team's border line runs, view units. */
-const LINE_W = 0.11;
-const LINE_IN = 0.9;
+const LINE_W = 0.1;
+const LINE_IN = 0.91;
 
 export class GroundLayer {
   readonly root = new Container({ isRenderGroup: true });
@@ -117,9 +124,9 @@ export class GroundLayer {
   }
 
   private lookOf(t: Tile, look: GroundLook) {
-    const tg = TEAM_GROUND[t.owner];
-    const shade = t.shade ? 1 : 0;
-    return tg ? tileCtx(tg.side, tg.top[shade]!, !!t.obst) : tileCtx(look.side, look.top[shade]!, !!t.obst);
+    const th = TEAM_HUE[t.owner];
+    const top = look.top[t.shade ? 1 : 0]!;
+    return tileCtx(look.side, th ? th.top[t.shade ? 1 : 0]! : top, !!t.obst);
   }
 
   /** Along every edge where an owned tile meets a tile its team does not own, a line in the
@@ -127,11 +134,11 @@ export class GroundLayer {
   private drawBorders(eng: Engine): void {
     const p = this.borderPen.clear();
     for (const t of eng.tiles) {
-      const tg = TEAM_GROUND[t.owner];
-      if (!tg) continue;
+      const th = TEAM_HUE[t.owner];
+      if (!th) continue;
       for (const e of this.edges[t.i]!) {
         if (e.j >= 0 && eng.tiles[e.j]!.owner === t.owner) continue;
-        p.line([e.a.x, e.a.y, e.b.x, e.b.y], tg.line, LINE_W, 'round');
+        p.line([e.a.x, e.a.y, e.b.x, e.b.y], th.line, LINE_W, 'round');
       }
     }
   }

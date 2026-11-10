@@ -1,8 +1,10 @@
 // A stored replay's shape, checked without the engine. Replays come from outside (the relay's
 // POST /r, files on disk for `npm run replays`), so nothing in them is trusted: parseReplay keeps
-// a clean copy or says no. No value imports, so Node runs this file as is from server/.
+// a clean copy or says no. Its one value import (setup.ts) has none of its own, so Node runs
+// this file as is from server/.
 
 import type { Replay } from './replay';
+import { parseConfig } from './setup.ts';
 
 /** Ticks in one replay, at most: half an hour at 30 Hz (a match is 3 minutes plus the intro). */
 export const MAX_REPLAY_TICKS = 30 * 60 * 30;
@@ -20,8 +22,8 @@ const U32 = 0xffffffff;
 /** A clean copy of `x` when it is a replay, else null. Unknown keys are dropped. */
 export function parseReplay(x: unknown): Replay | null {
   if (!obj(x) || !int(x.v, 0, 1000) || !int(x.endTick, 0, MAX_REPLAY_TICKS) || !int(x.hash, 0, U32)) return null;
-  const c = x.config;
-  if (!obj(c) || !int(c.seed, 0, U32) || typeof c.aiBlue !== 'boolean' || typeof c.aiRed !== 'boolean') return null;
+  const config = parseConfig(x.config);
+  if (!config) return null;
   const endTick = x.endTick;
   if (!Array.isArray(x.log) || x.log.length > MAX_REPLAY_CMDS) return null;
   const log: number[][] = [];
@@ -45,5 +47,5 @@ export function parseReplay(x: unknown): Replay | null {
     if (!int(r.blue, 0, 1e6) || !int(r.red, 0, 1e6) || !int(r.tick, 0, MAX_REPLAY_TICKS)) return null;
     result = { winner: r.winner, reason: r.reason as 'base' | 'time' | 'forfeit', blue: r.blue, red: r.red, tick: r.tick };
   }
-  return { v: x.v, config: { seed: c.seed, aiBlue: c.aiBlue, aiRed: c.aiRed }, log, endTick, hash: x.hash, checks, result };
+  return { v: x.v, config, log, endTick, hash: x.hash, checks, result };
 }

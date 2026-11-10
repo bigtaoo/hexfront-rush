@@ -20,6 +20,7 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
       if (g.mode !== 'demo') onMatchEnd(g, eng, e, fx !== 'none');
       continue;
     }
+    if (e.type === 'mapEvent' && e.team === me) g.eventsTaken++;
     if (fx === 'none') continue;
     R.onEvent(e);
     if (fx !== 'full') continue;

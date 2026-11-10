@@ -88,7 +88,7 @@ export function fire(e: Engine, src: Entity, target: Entity, dmg: number, kind: 
 }
 
 export function damage(e: Engine, target: Entity, amount: number, srcTeam: number, bldMult: number): void {
-  if (target.kind === 'bld') amount = muldiv(amount * bldMult, siegePct(e.elapsed()), 100);
+  if (target.kind === 'bld') amount = muldiv(amount * bldMult, siegePct(e.elapsed(), e.siegeAt), 100);
   if (isDown(target)) return;
   target.hp -= amount;
   target.hitT = e.tick;
@@ -165,7 +165,7 @@ export function updateBuildings(e: Engine): void {
   // castle. At the team cap the timer stays full, and a freed slot goes to the rarest troop
   // waiting (the older barracks among equals): a capped army gets better, not just replaced.
   if (ready.length > 1) ready.sort((a, b) => b.rarity - a.rarity);
-  const cap = unitCap(e.elapsed());
+  const cap = unitCap(e.elapsed(), e.siegeAt);
   for (const b of ready) {
     if (alive[b.team] >= cap || !b.unit) continue;
     b.spawnT = UNITS[b.unit].spawn;

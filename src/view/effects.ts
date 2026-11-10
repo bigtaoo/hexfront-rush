@@ -2,11 +2,12 @@
 // and shock rings (fed by sim events), the white hex that marks a tapped tile, and rising labels.
 // Effects use Math.random freely: they live in the view and never reach the sim.
 
-import { Container, type Text } from 'pixi.js';
+import { Container, Text } from 'pixi.js';
 import type { Engine } from '../sim/engine';
 import { TEAM_BLUE } from '../sim/rules';
 import type { Camera } from './camera';
 import { inView, type Frame } from './frame';
+import { Num, NUM_TEXT } from './digits';
 import { label, liveGraphics, setLabel } from './pen';
 
 interface Particle {
@@ -34,7 +35,7 @@ interface Floater {
   color: string;
   t: number;
   life: number;
-  view: Text | null;
+  view: Text | Num | null;
 }
 
 export class EffectLayer {
@@ -130,13 +131,15 @@ export class EffectLayer {
       return false;
     });
     for (const fl of this.floaters) {
-      const o = { size: 0.42 * zoom, color: fl.color, weight: 900, stroke: 'rgba(0,0,0,0.6)' };
+      // a number (gold taken) is a picture number on the board; words stay a Text at screen size
       if (!fl.view) {
-        fl.view = label(fl.text, o);
+        fl.view = NUM_TEXT.test(fl.text) ? new Num() : label(fl.text, { size: 10, color: fl.color });
         this.labels.addChild(fl.view);
       }
-      setLabel(fl.view, fl.text, o);
-      fl.view.scale.set(1 / zoom);
+      if (fl.view instanceof Text) {
+        setLabel(fl.view, fl.text, { size: 0.42 * zoom, color: fl.color, weight: 900, stroke: 'rgba(0,0,0,0.6)' });
+        fl.view.scale.set(1 / zoom);
+      } else fl.view.set(fl.text, { h: 0.5, tint: fl.color, screen: zoom });
       fl.view.position.set(fl.x, fl.y);
       fl.view.alpha = Math.min(1, (1 - fl.t / fl.life) * 2);
     }

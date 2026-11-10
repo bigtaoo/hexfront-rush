@@ -136,6 +136,18 @@ Events stand on the map from the start, face up for both players: the one thing 
 - Values each card: mines early (fewer once it has 6, fewer still past 9), barracks (the dearer the better; a common one is little use once its army is at the cap), towers by how many enemy troops are near home, a mystery higher when gold piles up or the army is capped.
 - Saves up when a better card is on the board and within 40 gold of its purse (a Barracks III: within 200, unless home is under attack), instead of spending on a much weaker one. When gold piles up past 150 with nothing better, it takes even a weak card.
 - Plans where things go: mines toward the back, barracks and towers toward the front, more strongly after the first minute.
+- **Skill** (a side's setup, `sim/setup.ts`): 0 beginner (slow, half at random, ignores chests), 1 novice, 2 skilled, 3 standard (all of the above; the best, nothing tried beats it). **Style** leans its taste: 0 balanced, 1 builder (mines), 2 warlord (barracks), 3 turtle (towers), 4 gambler (mysteries); each wins about half against the balanced one.
+- **Handicaps** (per side): starting gold, income %, castle hp %, a starting barracks (rarity), starting towers; and the siege time for both. Income is the smooth difficulty lever; a starting barracks is a strong one; castle hp barely matters.
+
+## Campaign, quick match, daily — src/app/campaign.ts
+- **Menu:** Campaign (the next stage) · Quick match + its difficulty (Easy / Normal / Hard / Brutal) · Daily · Online · How to play.
+- **Campaign:** 6 chapters × 7 stages (the 7th a boss), each chapter one theme and one idea: first steps, gold rush (both start rich), blitz (early siege), fortresses (towers, strong castle), warlords (rival starts with barracks), the last front (all at once). Each stage is a fixed map (the seed), its rival's setup and maybe the player's. Stage 1-1 is the tutorial.
+- **Brief** before a stage: what is different there (one line each), the three goals and the chapter's tip (how to play its idea).
+- **In the match:** the HUD's bottom-right line counts the chests and camps taken toward the second star (green once there) and gives the par.
+- **Results:** the stars (new ones flash), Next stage after a win, a tip after a loss (a different one each loss), and "Campaign complete! ★ n/126" after winning 6-7.
+- **Stars:** win; win having taken at least half the map's chests and camps; win within the par time. A stage keeps every star ever earned. The next stage opens when this one is won.
+- **Daily challenge:** the same for everyone that day (seed from the date), a twist by day of the week, the rival's style by date; its own three stars and a win streak.
+- **Calibration:** `npm run campaign` plays each stage with the standard AI standing in for the player; `npm run campaigntune -- <chapter>` sets the rivals' incomes for a falling win-rate curve (DECISIONS.md).
 
 ## Onboarding
 The first match starts with a "How to play" card, followed by contextual hints. It always plays on the same map (seed 2, a meadow), so the cards it points at are always the same:
@@ -194,6 +206,7 @@ Ported from Holy Kicker.
 - `?autoplay`: blue plays itself, no tutorial.
 - `?speed=N`: simulation runs N× (max 16).
 - `?seed=N`: fixed match seed.
+- `?lang=zh`: play in that language (any host; checks a translation).
 - `?upload`: send solo replays to the dev relay (the dev server sends none otherwise).
 - A replay file (`.json` from `Hexfront.replay()`, or a relay `.json.gz`) dropped on the page plays it.
 
@@ -204,4 +217,5 @@ Run all of these from this folder.
 - **All checks:** `npm run check` (typecheck, vitest, file length). Tests cover determinism, golden hashes, replay, loopback netcode and the determinism lint.
 - **Balance:** `npm run balance` plays 120 seeded AI-vs-AI matches (`N=300 npm run balance` for more; `npm run balance -- 5 12 99` prints a line per seed) and reports match length, sides, comebacks, flips, rarities, how much of the card layout each side found, and how often each kind of luck won.
 - **Replays:** `npm run replays` plays the relay's kept matches again and reports how they went.
+- **Campaign:** `npm run campaign -- [maps] [chapter] [stage]`, `npm run campaigntune -- <chapter> [maps]` (above).
 - **Package:** `npm run build:playgama` writes `../dist/hexfront-playgama.zip`.

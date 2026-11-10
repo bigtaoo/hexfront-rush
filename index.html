@@ -19,6 +19,8 @@
   #result.reveal > :nth-child(2) { animation-delay: .12s; }
   #result.reveal .chip { animation: pop .38s cubic-bezier(.2,.9,.3,1.3) both; }
   #result.reveal .chip.b { animation-delay: .3s; } #result.reveal .chip.r { animation-delay: .42s; }
+  #result.reveal > .stars { animation-delay: .6s; }
+  #result.reveal .stars .new b { animation: pop .5s cubic-bezier(.2,.9,.3,1.3) 1s both; }
   #result.reveal > .row { animation-delay: .9s; }
   #result.reveal > #watchBtn { animation-delay: 1.05s; }
   #game { position: fixed; left: 0; top: 0; display: block; }
@@ -83,6 +85,31 @@
   #codeIn::placeholder { color: rgba(255,255,255,.35); letter-spacing: 2px; }
   .row.join { align-items: center; }
   .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn.small { min-width: 0; padding: 10px 18px; background: linear-gradient(#a78bfa, #7c3aed); box-shadow: 0 6px 0 #4c1d95, 0 10px 20px rgba(0,0,0,.35); }
+  #menu .row .btn.blue { min-width: 0; }
+  .st { color: #fde047; letter-spacing: 1px; }
+  .st .off { color: rgba(255,255,255,.25); }
+  .chapRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .chapRow h2 { margin: 0 0 2px; }
+  .arrow { font: inherit; font-size: 22px; width: 48px; height: 48px; flex: none; border-radius: 14px; border: 2px solid #93c5fd; background: #1e293b; color: #fff; cursor: pointer; }
+  .arrow:disabled { opacity: .25; cursor: default; }
+  .stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+  .stage { font: inherit; font-size: clamp(18px, 4vmin, 24px); color: #fff; border: none; border-radius: 14px; padding: 8px 4px 6px; cursor: pointer;
+    background: linear-gradient(#60a5fa, #2563eb); box-shadow: 0 4px 0 #1e3a8a; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .stage.boss { background: linear-gradient(#f87171, #b91c1c); box-shadow: 0 4px 0 #7f1d1d; }
+  .stage:disabled { background: #334155; box-shadow: 0 4px 0 #1e293b; cursor: default; }
+  .stage .st { font-size: 14px; }
+  .stage:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
+  .twists, .goals { list-style: none; padding: 0; margin: 12px 0; text-align: left; font-size: clamp(14px, 3.4vmin, 18px); line-height: 1.4; }
+  .twists li::before { content: '⚑ '; color: #fca5a5; }
+  .goals li::before { content: '★ '; color: #fde047; }
+  .goals li.off::before { color: rgba(255,255,255,.3); }
+  .tip { font-size: clamp(13px, 3vmin, 16px); opacity: .85; font-style: italic; margin: 4px auto 10px; max-width: 30em; line-height: 1.35; }
+  .stars { display: flex; gap: 18px; justify-content: center; }
+  .stars div { display: flex; flex-direction: column; align-items: center; font-size: clamp(12px, 2.6vmin, 15px); opacity: .9; min-width: 80px; }
+  .stars b { font-size: clamp(40px, 9vmin, 60px); font-weight: 400; line-height: 1; color: rgba(255,255,255,.18); }
+  .stars .had b { color: rgba(253,224,71,.45); }
+  .stars .on b { color: #fde047; text-shadow: 0 3px 0 #a16207; }
 </style>
 </head>
 <body>
@@ -90,11 +117,44 @@
 <div id="menu" class="panel hidden">
   <div class="logo">HEXFRONT <span>RUSH</span></div>
   <div class="sub" id="record"></div>
-  <button class="btn" id="playBtn" data-t="play"></button>
-  <button class="btn blue" id="onlineBtn" data-t="online"></button>
-  <button class="btn blue" id="howBtn" data-t="howto"></button>
+  <button class="btn" id="playBtn"></button>
+  <div class="row">
+    <button class="btn blue" id="quickBtn" data-t="quick"></button>
+    <button class="btn blue small" id="diffBtn"></button>
+  </div>
+  <div class="row">
+    <button class="btn blue" id="dailyBtn"></button>
+    <button class="btn blue" id="onlineBtn" data-t="online"></button>
+    <button class="btn blue" id="howBtn" data-t="howto"></button>
+  </div>
   <label class="share hidden" id="share"><input type="checkbox" id="shareIn"><span data-t="shareReplays"></span></label>
   <a class="privacy hidden" id="privacyLink" target="_blank" rel="noopener" data-t="privacy"></a>
+</div>
+
+<div id="campaign" class="panel hidden">
+  <div class="card">
+    <div class="chapRow">
+      <button class="arrow" id="chPrev" aria-label="Previous chapter">◀</button>
+      <div><h2 id="chName"></h2><div class="sub st" id="chStars"></div></div>
+      <button class="arrow" id="chNext" aria-label="Next chapter">▶</button>
+    </div>
+    <div class="stages" id="stageGrid"></div>
+    <button class="btn blue" id="campBack" data-t="menu"></button>
+  </div>
+</div>
+
+<div id="brief" class="panel hidden">
+  <div class="card">
+    <h2 id="briefTitle"></h2>
+    <div class="sub" id="briefSub"></div>
+    <ul class="twists" id="briefTwists"></ul>
+    <ul class="goals" id="briefGoals"></ul>
+    <div class="tip" id="briefTip"></div>
+    <div class="row">
+      <button class="btn" id="briefGo" data-t="go"></button>
+      <button class="btn blue" id="briefBack" data-t="back"></button>
+    </div>
+  </div>
 </div>
 
 <div id="online" class="panel hidden">
@@ -134,7 +194,10 @@
     <div class="chip b" id="chipMe"><span id="resMe">0</span><small data-t="you"></small></div>
     <div class="chip r" id="chipFoe"><span id="resFoe">0</span><small data-t="rival"></small></div>
   </div>
+  <div class="stars hidden" id="resStars"></div>
+  <div class="tip hidden" id="resTip"></div>
   <div class="row">
+    <button class="btn hidden" id="nextBtn" data-t="nextStage"></button>
     <button class="btn" id="againBtn" data-t="playAgain"></button>
     <button class="btn blue" id="menuBtn" data-t="menu"></button>
   </div>

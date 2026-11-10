@@ -1,7 +1,7 @@
 """Packs every processed sprite (art/<group>/out/*.png) into one atlas the game loads:
 src/assets/atlas.webp and src/assets/atlas.json (Pixi spritesheet format; frame names are the
 file stems: militia_blue, base_red, oak, ...).
-usage: python tools/art/pack.py [--quality 90]
+usage: python tools/art/pack.py [--quality 96]
 Shelf packing, tallest first, PAD transparent pixels around each frame so linear filtering and
 mipmaps at the overview zoom do not bleed a neighbour in. A texture pixel is 1 / PPU view units
 (sprites.py TEX_K x the 38 px hex radius its TARGET heights are drawn against); the view reads
@@ -62,5 +62,5 @@ def pack(quality: int) -> None:
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--quality", type=int, default=90)
+    ap.add_argument("--quality", type=int, default=96)
     pack(ap.parse_args().quality)

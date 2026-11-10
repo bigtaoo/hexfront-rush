@@ -14,6 +14,7 @@
 import type http from 'node:http';
 import type { Replay } from '../src/sim/replay.ts';
 import { parseReplay } from '../src/sim/replayShape.ts';
+import { makeConfig } from '../src/sim/setup.ts';
 import { privacyPage } from './privacy.ts';
 import { cleanUpload, type ReplayShelf, type ShelfDoc } from './replayShelf.ts';
 
@@ -221,7 +222,7 @@ export function onlineDoc(r: RoomRecord, at: number): ShelfDoc | null {
   const endTick = end.tick;
   const raw: Replay = {
     v: r.ev,
-    config: { seed: r.seed >>> 0, aiBlue: false, aiRed: false },
+    config: makeConfig({ seed: r.seed }),
     log: r.log.filter((c) => c[0]! < endTick).map((c) => c.slice()),
     endTick,
     hash: end.h >>> 0,

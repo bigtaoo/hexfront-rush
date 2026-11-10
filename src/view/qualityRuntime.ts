@@ -1,6 +1,6 @@
 import type { Application, Renderer } from 'pixi.js';
 import { FrameClock } from './frameClock';
-import { FrameGate, FrameGovernor, frameResolution, LEVELS, refreshCap, targetFps, type LevelRange, type LevelSettings } from './quality';
+import { canvasDensity, FrameGate, FrameGovernor, frameResolution, LEVELS, refreshCap, targetFps, type LevelRange, type LevelSettings } from './quality';
 
 // Drives the frame loop and applies quality levels (ported from standing's
 // client/src/game/qualityRuntime.ts). Pixi's own ticker.maxFPS cannot be used: it still
@@ -70,7 +70,7 @@ export class QualityRuntime {
   ) {
     this.governor = new FrameGovernor(range);
     this.maxResolution = app.renderer.resolution;
-    watchDensity((dpr) => (this.maxResolution = Math.min(dpr, cap)));
+    watchDensity((dpr) => (this.maxResolution = canvasDensity(dpr, cap)));
     this.gate = new FrameGate(LEVELS[range.start].fps);
     // a later ticker.add() would otherwise start the ticker's own loop again
     app.ticker.autoStart = false;

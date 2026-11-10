@@ -34,8 +34,8 @@ export const MAP_X1 = SQRT3 * (COLS + 0.5) + 0.15;
 export const MAP_Y0 = -0.35;
 export const MAP_Y1 = 1.5 * (ROWS - 1) + 2.4;
 /** How much of the map a play view shows at most: about this many hexes across, rows down. */
-export const VIEW_HEXES = 11;
-export const VIEW_ROWS = 17;
+export const VIEW_HEXES = 8.5;
+export const VIEW_ROWS = 13;
 
 export interface Pt {
   x: number;

@@ -15,11 +15,16 @@
     "typecheck": "tsc --noEmit && tsc -p tsconfig.node.json",
     "test": "vitest run",
     "balance": "node --import ./scripts/tsResolve.mjs scripts/balance.ts",
+    "ailab": "node --import ./scripts/tsResolve.mjs scripts/aiLab.ts",
+    "hclab": "node --import ./scripts/tsResolve.mjs scripts/hcLab.ts",
+    "ladder": "node --import ./scripts/tsResolve.mjs scripts/ladder.ts",
     "replays": "node --import ./scripts/tsResolve.mjs scripts/replays.ts",
     "collect": "node server/collect.ts",
     "pack:collector": "node scripts/packCollector.mjs",
     "check:filelength": "node scripts/checkFileLength.mjs",
-    "check": "npm run typecheck && npm test && npm run check:filelength"
+    "check": "npm run typecheck && npm test && npm run check:filelength",
+    "campaign": "node --import ./scripts/tsResolve.mjs scripts/campaign.ts",
+    "campaigntune": "node --import ./scripts/tsResolve.mjs scripts/campaignTune.ts"
   },
   "dependencies": {
     "pixi.js": "^8.6.6",

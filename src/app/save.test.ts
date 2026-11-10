@@ -17,13 +17,18 @@ describe('save', () => {
 
   it('round-trips', () => {
     const s = store();
-    const save = { tutorialDone: true, wins: 3, losses: 2, draws: 1, muted: true, shareReplays: false };
+    const save = {
+      tutorialDone: true, wins: 3, losses: 2, draws: 1, muted: true, shareReplays: false,
+      stages: [7, 1, 3], skirmish: 2, dailyDay: 20400, dailyGoals: 5, streak: 3, streakDay: 20400,
+    };
     persist(s, save);
     expect(loadSave(s)).toEqual(save);
   });
 
   it('falls back field by field on foreign values', () => {
-    const got = loadSave(store(JSON.stringify({ tutorialDone: 'yes', wins: -4, losses: 2.7, draws: 'x', muted: 1, shareReplays: 'no' })));
-    expect(got).toEqual({ tutorialDone: false, wins: 0, losses: 2, draws: 0, muted: false, shareReplays: true });
+    const got = loadSave(
+      store(JSON.stringify({ tutorialDone: 'yes', wins: -4, losses: 2.7, draws: 'x', muted: 1, shareReplays: 'no', stages: [9, 'a', 3], skirmish: 9, dailyDay: 'x', streak: -1 })),
+    );
+    expect(got).toEqual({ ...freshSave(), losses: 2, stages: [0, 0, 3] });
   });
 });

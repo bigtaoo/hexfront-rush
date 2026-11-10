@@ -23,6 +23,7 @@ import { idx, inMap, NTILES, worldToHex } from './hex';
 import type { Cmd } from './input';
 import { baseTile, generateMap, type Theme, type ThemeKey, type Tile } from './map';
 import { Prng, streamSeed } from './prng';
+import { makeConfig, type ConfigInput, type SideSetup } from './setup';
 import {
   BLD_RADIUS, BUILD, ENGINE_VERSION, enemyOf, GUARD, INTRO_TICKS, MAX_PLAY_TICKS, SIEGE, siegeLevel, WAVE_TICKS,
   PHASE_END, PHASE_INTRO, PHASE_PLAY, TEAM_BLUE, TEAM_NONE, TEAM_RED, TEAMS, UNITS, UNITS_BY_RARITY,
@@ -93,9 +94,13 @@ export class Engine {
   /** Checkpoint hashes a replay stores (replay.ts recordChecks); not part of the state. */
   checks: [number, number][] = [];
 
-  /** config: which teams the built-in AI drives. */
-  constructor(config: { seed: number; aiBlue?: boolean; aiRed?: boolean }) {
-    this.config = { seed: config.seed >>> 0, aiBlue: !!config.aiBlue, aiRed: !!config.aiRed };
+  /** Ticks of play before the siege (config.siege). */
+  readonly siegeAt: number;
+
+  /** config: the seed, which teams the built-in AI drives, and each side's setup (setup.ts). */
+  constructor(config: ConfigInput) {
+    this.config = makeConfig(config);
+    this.siegeAt = ticks(this.config.siege);
     const seed = this.config.seed;
     const m = generateMap(seed);
     this.tiles = m.tiles;
@@ -115,12 +120,16 @@ export class Engine {
     this.team = [null as unknown as TeamState];
     for (let k = 0; k < TEAMS.length; k++) {
       this.team.push({
-        gold: 60, tiles: 0, units: 0, built: { mine: 0, tower: 0, barracks: 0, mystery: 0 },
-        offers: new Array<number>(NTILES).fill(-1), open: new Array<number>(NTILES).fill(0), questIdx: 0, questT: -1000,
+        gold: this.setupOf(TEAMS[k]!).gold, tiles: 0, units: 0, built: { mine: 0, tower: 0, barracks: 0, mystery: 0 },
+        offers: new Array<number>(NTILES).fill(-1), open: new Array<number>(NTILES).fill(0), questIdx: 0, questT: -1000, incomeCarry: 0,
       });
     }
-    for (const t of TEAMS) this.addBuilding(t, 'base', baseTile(t), null);
+    for (const t of TEAMS) {
+      const b = this.addBuilding(t, 'base', baseTile(t), null);
+      b.hp = b.maxhp = Math.max(1, Math.trunc((b.maxhp * this.setupOf(t).castle) / 100));
+    }
     this.guards = [null as unknown as Guard, this.makeGuard(TEAM_BLUE), this.makeGuard(TEAM_RED)];
+    for (const t of TEAMS) this.startBuildings(t);
     for (const t of TEAMS) this.recomputeOffers(t);
 
     // quests: one shuffled list for both teams, so neither side gets an easier run
@@ -227,6 +236,13 @@ export class Engine {
   radiusOf(e: Entity): number {
     return e.kind === 'guard' ? GUARD.radius : e.kind === 'bld' ? BLD_RADIUS : UNITS[e.type].size;
   }
+  setupOf(team: number): SideSetup {
+    return team === TEAM_BLUE ? this.config.blue : this.config.red;
+  }
+  /** The siege steps so far (0 before it). */
+  siegeLevel(): number {
+    return siegeLevel(this.playT, this.siegeAt);
+  }
   rngAi(team: number): Prng {
     return team === TEAM_BLUE ? this.rng.ai1 : this.rng.ai2;
   }
@@ -329,6 +345,31 @@ export class Engine {
     }
   }
 
+  /** What the side's setup puts next to its castle from the start: a barracks, then towers, each
+   *  on the free neighbour nearest the enemy castle. */
+  private startBuildings(team: number): void {
+    const S = this.setupOf(team);
+    const home = this.tiles[baseTile(team)];
+    const foe = this.flow[enemyOf(team)]!;
+    const spot = (): number => {
+      let best = -1;
+      for (const n of home.nb) {
+        const t = this.tiles[n];
+        if (t.obst || t.bld) continue;
+        if (best < 0 || foe[n] < foe[best]) best = n;
+      }
+      return best;
+    };
+    if (S.barracks >= 0) {
+      const ti = spot();
+      if (ti >= 0) this.addBuilding(team, 'barracks', ti, { unit: this.pickUnit(S.barracks), rarity: S.barracks });
+    }
+    for (let k = 0; k < S.towers; k++) {
+      const ti = spot();
+      if (ti >= 0) this.addBuilding(team, 'tower', ti, null);
+    }
+  }
+
   pickUnit(rarity: number): UnitKey {
     const list = UNITS_BY_RARITY[rarity];
     return list[this.rng.loot.int(list.length)];
@@ -384,7 +425,7 @@ export class Engine {
         for (const u of this.units) u.hold = 0;
         this.emit('wave');
       }
-      if (this.playT >= SIEGE.after && (this.playT - SIEGE.after) % SIEGE.every === 0) this.emit('siege', { n: siegeLevel(this.playT) });
+      if (this.playT >= this.siegeAt && (this.playT - this.siegeAt) % SIEGE.every === 0) this.emit('siege', { n: this.siegeLevel() });
       updateEconomy(this);
       if (this.config.aiRed) aiUpdate(this, TEAM_RED);
       if (this.config.aiBlue) aiUpdate(this, TEAM_BLUE);

@@ -9,6 +9,7 @@
 import { Engine } from './engine';
 import { unpackCmd, type Cmd, type InputSource, type PackedCmd } from './input';
 import { ENGINE_VERSION } from './rules';
+import { makeConfig, type ConfigInput } from './setup';
 import type { EngineConfig, MatchResult } from './types';
 
 /** Ticks between stored checkpoint hashes. */
@@ -25,9 +26,9 @@ export interface Replay {
   result: MatchResult | null;
 }
 
-export function makeReplay(config: { seed: number; aiBlue?: boolean; aiRed?: boolean }, log: readonly PackedCmd[], engine: Engine): Replay {
+export function makeReplay(config: ConfigInput, log: readonly PackedCmd[], engine: Engine): Replay {
   return {
-    v: ENGINE_VERSION, config: { seed: config.seed >>> 0, aiBlue: !!config.aiBlue, aiRed: !!config.aiRed },
+    v: ENGINE_VERSION, config: makeConfig(config),
     log: log.slice(), endTick: engine.tick, hash: engine.hash(), checks: engine.checks.slice(), result: engine.result,
   };
 }
