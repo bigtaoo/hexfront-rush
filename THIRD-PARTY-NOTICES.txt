@@ -14,13 +14,13 @@ Lilita One  (fonts/LilitaOne-Regular.ttf)
 SOUND EFFECTS  (sfx/)  - all CC0 1.0 (public domain dedication)
 ------------------------------------------------------------------
 Kenney (www.kenney.nl), CC0:
-  Interface Sounds  - tap (click_002), pop (drop_002), quest (select_002), spawn (drop_001),
-                      beep (tick_001), nothing (minimize_001), error (error_004)
-  Impact Sounds     - hit (impactGeneric_light_003), build (impactSoft_heavy_000),
+  Interface Sounds  - quest (select_002), beep (tick_001), nothing (minimize_001), error (error_004)
+  Impact Sounds     - tap (impactWood_light_002), hit (impactWood_light_000),
+                      melee (impactWood_medium_001), build (impactPlank_medium_000),
+                      spawn (footstep_wood_001), destroy (impactWood_heavy_000),
                       go (impactBell_heavy_000)
-  Sci-fi Sounds     - destroy (explosionCrunch_001)
-  RPG Audio         - coin (handleCoins)
-  8-Bit Jingles     - win (NES03), lose (NES00), legend (NES12)
+  RPG Audio         - coin (handleCoins), pop (bookPlace1)
+  Music Jingles     - win (Pizzicato 03), lose (Pizzicato 00), legend (Pizzicato 12)
 qubodup, "swosh-05" (OpenGameArt.org), CC0 - shoot
 
 MUSIC  (music/)  - CC0 1.0

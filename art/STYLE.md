@@ -112,3 +112,15 @@ brown planks): a ruin should read as "something stood here", not as a dark hole 
   mine, the portrait of the troop it trains for a barracks. A progress ring around the badge
   shows the next payout or troop: yellow for coin, the rarity colour on a barracks, grey once
   the barracks is full.
+
+## Store covers (art/covers/)
+- Three covers for the Playgama form, uploaded 2026-11-10: `cover_landscape.jpg` 1920×1080,
+  `cover_square.jpg` 800×800, `cover_portrait.jpg` 1080×1920 (JPEG q92).
+- Composed in `cover.html` (layout by URL hash: #landscape, #square, #portrait), shot with headless
+  Chrome at the exact size: the menu logo (Lilita One, cream face with stacked wood-brown shadows,
+  RUSH in red) over a blurred, vignetted meadow board, blue pieces on the left or bottom, red
+  pieces facing them. The meadow background is the clean grass band of stage 1's board, repeated
+  and mirrored; the HUD never appears. Sprites are the game's own wooden-toy renders with the grey
+  base plates keyed out. The background and sprite copies (bg.png, sp/) lived in a scratch folder
+  and are not kept: rebuild them from the game if a cover needs changing.
+- No face-down card or its contents appear on a cover.

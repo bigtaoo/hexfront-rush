@@ -9,10 +9,14 @@ export interface FakeBridge {
   saved: [string[], string[]][];
   /** How many interstitials were asked for. */
   shown: number;
+  /** How many rewarded ads were asked for. */
+  rewards: number;
+  /** The scores set, as [leaderboard, score]. */
+  scores: [string, number][];
   emit(event: string, value: unknown): void;
 }
 
-export function fakeBridge(opts: { id?: string; stored?: Record<string, unknown>; adblock?: boolean; audio?: boolean; interstitial?: boolean; language?: string } = {}): FakeBridge {
+export function fakeBridge(opts: { id?: string; stored?: Record<string, unknown>; adblock?: boolean; audio?: boolean; interstitial?: boolean; rewarded?: boolean; language?: string; board?: string; entries?: unknown } = {}): FakeBridge {
   const listeners = new Map<string, ((v: unknown) => void)[]>();
   const on = (event: string, cb: (v: unknown) => void) => void listeners.set(event, [...(listeners.get(event) ?? []), cb]);
   const fake: FakeBridge = {
@@ -20,6 +24,8 @@ export function fakeBridge(opts: { id?: string; stored?: Record<string, unknown>
     messages: [],
     saved: [],
     shown: 0,
+    rewards: 0,
+    scores: [],
     emit: (event, value) => listeners.get(event)?.forEach((cb) => cb(value)),
   };
   const bridge: BridgeShape = {
@@ -34,7 +40,14 @@ export function fakeBridge(opts: { id?: string; stored?: Record<string, unknown>
       isInterstitialSupported: opts.interstitial ?? true,
       checkAdBlock: async () => opts.adblock === true,
       showInterstitial: () => void fake.shown++,
+      isRewardedSupported: opts.rewarded ?? true,
+      showRewarded: () => void fake.rewards++,
       on,
+    },
+    leaderboards: {
+      type: opts.board ?? 'not_available',
+      setScore: async (id, score) => void fake.scores.push([id, score]),
+      getEntries: async () => opts.entries ?? [],
     },
   };
   fake.global.bridge = bridge;

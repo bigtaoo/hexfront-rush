@@ -1,0 +1,75 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  @font-face { font-family: "Lilita One"; src: url("file:///D:/new/game/public/fonts/LilitaOne-Regular.ttf"); }
+  :root { --ink: #3a2412; --wood-rim: #6e4320; --u: 1px; }
+  html, body { margin: 0; width: 100vw; height: 100vh; overflow: hidden; background: #6f9a4a; }
+  .bg { position: absolute; inset: -20px; background: url("bg.png") center / cover; filter: blur(3px) saturate(1.08); }
+  .vig { position: absolute; inset: 0; background:
+    radial-gradient(ellipse at 50% 18%, rgba(40,24,10,.45), rgba(40,24,10,0) 42%),
+    radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 45%, rgba(30,18,8,.55) 100%), linear-gradient(rgba(30,18,8,0) 80%, rgba(30,18,8,.45)); }
+  .logo { position: absolute; left: 0; right: 0; text-align: center; font-family: "Lilita One"; letter-spacing: calc(2 * var(--u));
+    line-height: .92; color: #fff6e2; -webkit-text-stroke: calc(3.5 * var(--u)) var(--ink); paint-order: stroke fill;
+    text-shadow: 0 calc(2*var(--u)) 0 #e9c48c, 0 calc(4*var(--u)) 0 #c8955a, 0 calc(6*var(--u)) 0 #a8743d, 0 calc(8*var(--u)) 0 #8a5a2b, 0 calc(10*var(--u)) 0 var(--wood-rim), 0 calc(14*var(--u)) 0 var(--ink), 0 calc(24*var(--u)) calc(30*var(--u)) rgba(0,0,0,.55); }
+  .logo span { display: block; color: #ef5a3c; font-size: 1.22em;
+    text-shadow: 0 calc(2*var(--u)) 0 #d8452a, 0 calc(4*var(--u)) 0 #c03a22, 0 calc(6*var(--u)) 0 #a3301b, 0 calc(8*var(--u)) 0 #862713, 0 calc(10*var(--u)) 0 #6b1d0c, 0 calc(14*var(--u)) 0 var(--ink), 0 calc(24*var(--u)) calc(30*var(--u)) rgba(0,0,0,.55); }
+  .landscape .bg, .square .bg { background-position: center 12%; }
+  img.t { position: absolute; filter: drop-shadow(0 calc(14*var(--u)) calc(10*var(--u)) rgba(0,0,0,.45)); }
+  .flip { transform: scaleX(-1); }
+
+  /* landscape 1920x1080 */
+  .landscape { --u: 2.4px; }
+  .landscape .logo { top: 40px; font-size: 172px; }
+  .landscape .b_base { left: -40px; bottom: 120px; height: 470px; }
+  .landscape .b_drake { left: 300px; top: 70px; height: 330px; }
+  .landscape .b_col { left: 250px; bottom: -30px; height: 560px; }
+  .landscape .b_bow { left: 40px; bottom: -40px; height: 430px; }
+  .landscape .b_guard { left: 610px; bottom: -50px; height: 520px; }
+  .landscape .r_base { right: -40px; bottom: 120px; height: 470px; }
+  .landscape .r_drake { right: 300px; top: 70px; height: 330px; }
+  .landscape .r_col { right: 250px; bottom: -30px; height: 560px; }
+  .landscape .r_adept { right: 40px; bottom: -40px; height: 430px; }
+  .landscape .r_ogre { right: 560px; bottom: -50px; height: 540px; }
+  .landscape .chest { display: none; }
+
+  /* square 800x800 */
+  .square { --u: 1.15px; }
+  .square .logo { top: 34px; font-size: 104px; }
+  .square .b_base, .square .r_base, .square .b_drake, .square .r_drake, .square .b_bow, .square .r_adept { display: none; }
+  .square .b_col { left: -40px; bottom: 40px; height: 330px; }
+  .square .b_guard { left: 130px; bottom: -30px; height: 380px; }
+  .square .r_col { right: -40px; bottom: 40px; height: 330px; }
+  .square .r_ogre { right: 100px; bottom: -30px; height: 390px; }
+  .square .chest { left: 50%; bottom: 20px; height: 140px; transform: translateX(-50%); }
+
+  /* portrait 1080x1920 */
+  .portrait { --u: 1.9px; }
+  .portrait .logo { top: 120px; font-size: 168px; }
+  .portrait .r_base { right: 30px; top: 560px; height: 360px; }
+  .portrait .r_drake { left: 60px; top: 600px; height: 290px; }
+  .portrait .r_col { right: -60px; top: 860px; height: 440px; }
+  .portrait .r_ogre { left: 200px; top: 840px; height: 470px; }
+  .portrait .r_adept { display: none; }
+  .portrait .b_base { left: 30px; bottom: 300px; height: 380px; }
+  .portrait .b_drake { display: none; }
+  .portrait .b_col { left: -60px; bottom: -40px; height: 520px; }
+  .portrait .b_bow { right: -30px; bottom: -40px; height: 430px; }
+  .portrait .b_guard { left: 330px; bottom: -40px; height: 560px; }
+  .portrait .chest { display: none; }
+</style></head>
+<body>
+<div class="bg"></div><div class="vig"></div>
+<img class="t b_base" src="sp/base_blue.png">
+<img class="t r_base" src="sp/base_red.png">
+<img class="t b_drake" src="sp/drake_blue.png">
+<img class="t r_drake" src="sp/drake_red.png">
+<img class="t chest" src="sp/hoard.png">
+<img class="t b_col" src="sp/colossus_blue.png">
+<img class="t r_col" src="sp/colossus_red.png">
+<img class="t b_bow" src="sp/bowman_blue.png">
+<img class="t r_adept" src="sp/adept_red.png">
+<img class="t b_guard" src="sp/guard_blue.png">
+<img class="t r_ogre" src="sp/ogre_red.png">
+<div class="logo">HEXFRONT <span>RUSH</span></div>
+<script>document.body.className = location.hash.slice(1) || 'landscape';</script>
+</body></html>

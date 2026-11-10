@@ -5,14 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Hexfront Rush</title>
 <style>
-  /* Lilita One, SIL Open Font License 1.1 (fonts/OFL-LilitaOne.txt). One weight: never fake a bold of it. */
+  /* The UI is the board's toy box (art/STYLE.md, UI): painted wooden pieces on a warm board.
+     Planks of natural wood are the plain buttons, lacquered green the main one, gold a setting,
+     cream boards the panels; blue and red appear only where they mean the teams.
+     Lilita One, SIL Open Font License 1.1 (fonts/OFL-LilitaOne.txt). One weight: never fake a bold of it. */
   @font-face { font-family: "Lilita One"; src: url(fonts/LilitaOne-Regular.ttf) format("truetype"); font-display: swap; }
-  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e293b; }
+  :root {
+    --ink: #3b2412; --wood-hi: #f3d6a4; --wood: #d9a865; --wood-lo: #a8743d; --wood-rim: #6e4320;
+    --paper: #fbf1dc; --paper-lo: #f1e0bb; --leaf-hi: #8fd35c; --leaf: #58a332; --leaf-rim: #2f6418;
+    --gold-hi: #ffd76a; --gold: #f0a92a; --gold-rim: #8f5a12; --star: #f2b01e;
+    --team-b: #2563eb; --team-r: #dc2626;
+    --grain: repeating-linear-gradient(100deg, rgba(110,67,32,0) 0 7px, rgba(110,67,32,.07) 7px 9px, rgba(110,67,32,0) 9px 17px, rgba(255,255,255,.06) 17px 18px);
+    --gloss: radial-gradient(ellipse at 30% 15%, rgba(255,255,255,.42), rgba(255,255,255,0) 50%);
+  }
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #3a2a1c; }
   body, body * {
     -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent; touch-action: none;
   }
   body { font-family: "Lilita One", "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-synthesis: none; letter-spacing: .3px; color: #fff; overscroll-behavior: none; }
+  /* the languages Lilita One cannot write (i18n.ts systemFont): the system font at real weights */
+  html:is([lang=zh],[lang=ru],[lang=tr]) body { font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif; font-weight: 800; font-synthesis: weight; }
+  html:is([lang=zh],[lang=ru],[lang=tr]) :is(.card h2, #resultTitle, #roomCode) { font-weight: 900; }
   /* results reveal: reason, title, chips, buttons pop in one after another */
   @keyframes pop { 0% { opacity: 0; transform: scale(.4); } 70% { opacity: 1; transform: scale(1.12); } 100% { transform: scale(1); } }
   #result.reveal > * { animation: pop .42s cubic-bezier(.2,.9,.3,1.3) both; }
@@ -26,106 +40,166 @@
   #game { position: fixed; left: 0; top: 0; display: block; }
   .panel {
     position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(15, 23, 42, 0.62); gap: 14px; padding: 20px; box-sizing: border-box; text-align: center;
+    background: radial-gradient(ellipse at 50% 45%, rgba(40,24,10,.12), rgba(30,18,8,.6) 78%);
+    gap: 14px; padding: 20px; box-sizing: border-box; text-align: center;
   }
   .hidden { display: none !important; }
-  .logo { font-size: clamp(38px, 9vmin, 76px); font-weight: 900; letter-spacing: 1px; line-height: 1;
-    color: #fff; text-shadow: 0 4px 0 #1d4ed8, 0 8px 18px rgba(0,0,0,.5); }
-  .logo span { color: #fca5a5; text-shadow: 0 4px 0 #b91c1c, 0 8px 18px rgba(0,0,0,.5); }
-  .sub { font-size: clamp(14px, 3.2vmin, 20px); opacity: .9; font-weight: 700; }
+
+  /* the title: carved letters in cream and red paint, standing between two of the toys */
+  .title { display: flex; align-items: flex-end; justify-content: center; gap: clamp(2px, 1.5vmin, 16px); margin-bottom: 2px; }
+  .title img { height: clamp(74px, 18vmin, 160px); width: auto; filter: drop-shadow(0 6px 5px rgba(0,0,0,.4)); }
+  .title img.l { animation: bob 2.6s ease-in-out infinite; }
+  .title img.r { animation: bob 2.6s ease-in-out -1.3s infinite; }
+  @keyframes bob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
+  .logo { font-family: "Lilita One", "Trebuchet MS", sans-serif; font-synthesis: none; font-size: clamp(34px, 8.5vmin, 74px); letter-spacing: 1px; line-height: .95; color: #fff6e2; font-weight: 400; padding-bottom: 8px;
+    -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill;
+    text-shadow: 0 1px 0 #e9c48c, 0 2px 0 #c8955a, 0 3px 0 #a8743d, 0 4px 0 #8a5a2b, 0 5px 0 var(--wood-rim), 0 7px 0 var(--ink), 0 12px 16px rgba(0,0,0,.5); }
+  .logo span { display: block; color: #ef5a3c; font-size: 1.2em;
+    text-shadow: 0 1px 0 #d8452a, 0 2px 0 #c03a22, 0 3px 0 #a3301b, 0 4px 0 #862713, 0 5px 0 #6b1d0c, 0 7px 0 var(--ink), 0 12px 16px rgba(0,0,0,.5); }
+  .sub { font-size: clamp(14px, 3.2vmin, 20px); opacity: .95; }
+  .panel > .sub { text-shadow: 0 2px 0 var(--ink), 0 0 8px rgba(0,0,0,.6); }
+
+  /* buttons: lacquered green (the main action), natural wood (the rest), gold (a setting) */
   .btn {
-    font: inherit; font-weight: 900; font-size: clamp(20px, 4.8vmin, 30px); color: #fff; cursor: pointer;
-    border: none; border-radius: 18px; padding: 14px 40px; min-width: 220px;
-    background: linear-gradient(#4ade80, #16a34a); box-shadow: 0 6px 0 #166534, 0 10px 20px rgba(0,0,0,.35);
+    font: inherit; font-size: clamp(20px, 4.8vmin, 30px); color: #fff; cursor: pointer;
+    border: 3px solid var(--leaf-rim); border-radius: 16px; padding: 11px 40px; min-width: 220px;
+    background: var(--gloss), linear-gradient(var(--leaf-hi), var(--leaf));
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), 0 6px 0 var(--leaf-rim), 0 10px 16px rgba(0,0,0,.35);
+    text-shadow: 0 2px 0 var(--leaf-rim), 0 -1px 0 var(--leaf-rim), 1px 0 0 var(--leaf-rim), -1px 0 0 var(--leaf-rim);
     transition: transform .08s;
   }
-  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #166534; }
-  .btn.blue { background: linear-gradient(#60a5fa, #2563eb); box-shadow: 0 6px 0 #1e3a8a, 0 10px 20px rgba(0,0,0,.35); font-size: clamp(16px, 3.8vmin, 22px); padding: 10px 28px; }
-  .card { background: rgba(15, 23, 42, 0.94); border: 3px solid #93c5fd; border-radius: 20px; padding: 20px 22px; max-width: 520px; width: 100%; box-sizing: border-box; }
-  .card h2 { margin: 0 0 10px; font-size: clamp(22px, 5vmin, 32px); }
-  .card ol { text-align: left; margin: 0 0 16px; padding-left: 22px; font-size: clamp(14px, 3.4vmin, 18px); line-height: 1.45; font-weight: 700; }
+  .btn:active { transform: translateY(4px); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), 0 2px 0 var(--leaf-rim); }
+  .btn.wood, .btn.small { color: var(--ink); font-size: clamp(16px, 3.8vmin, 22px); padding: 9px 24px; text-shadow: 0 1px 0 rgba(255,255,255,.5); }
+  .btn.wood { border-color: var(--wood-rim);
+    background: var(--gloss), var(--grain), linear-gradient(var(--wood-hi), var(--wood));
+    box-shadow: inset 0 -4px 0 rgba(110,67,32,.25), 0 6px 0 var(--wood-rim), 0 10px 16px rgba(0,0,0,.35); }
+  .btn.wood:active { box-shadow: inset 0 -4px 0 rgba(110,67,32,.25), 0 2px 0 var(--wood-rim); }
+  .btn.small { min-width: 0; padding: 9px 18px; border-color: var(--gold-rim);
+    background: var(--gloss), linear-gradient(var(--gold-hi), var(--gold));
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.12), 0 6px 0 var(--gold-rim), 0 10px 16px rgba(0,0,0,.35); }
+  .btn.small:active { box-shadow: 0 2px 0 var(--gold-rim); }
+  #menu .row .btn.wood { min-width: 0; }
+  /* the brief's rewarded-ad offer: labelled as an ad (the screen icon and the text say so) */
+  .btn.boost { display: inline-flex; align-items: center; gap: 8px; margin: 0 auto 14px; font-size: clamp(14px, 3.2vmin, 18px); }
+  .btn.boost svg { width: 1.4em; height: 1.4em; flex: none; }
+  .btn.boost.on { background: var(--gloss), linear-gradient(#c9eaa8, #9fd27a); border-color: var(--leaf-rim); box-shadow: 0 3px 0 var(--leaf-rim); cursor: default; }
+  .btn.boost:disabled:not(.on) { opacity: .6; }
+
+  /* panels: a cream board in a wooden frame */
+  .card { color: var(--ink); background: var(--grain), linear-gradient(var(--paper), var(--paper-lo));
+    border: 6px solid var(--wood-lo); border-radius: 22px; padding: 20px 22px;
+    box-shadow: 0 0 0 3px var(--wood-rim), inset 0 0 0 3px rgba(255,255,255,.55), inset 0 -10px 24px rgba(168,116,61,.18), 0 12px 0 var(--wood-rim), 0 18px 30px rgba(0,0,0,.45);
+    max-width: 520px; width: 100%; box-sizing: border-box; max-height: calc(100% - 30px); overflow: auto; }
+  .card h2 { margin: 0 0 10px; font-size: clamp(22px, 5vmin, 32px); color: var(--wood-rim); font-weight: 400; }
+  .card .sub { color: #6b4a2e; }
+  .card ol { text-align: left; margin: 0 0 16px; padding-left: 22px; font-size: clamp(14px, 3.4vmin, 18px); line-height: 1.45; }
   .card li { margin-bottom: 8px; }
-  #resultTitle { font-size: clamp(40px, 10vmin, 72px); font-weight: 900; margin: 0; }
-  #resultTitle.win { color: #93c5fd; } #resultTitle.lose { color: #fca5a5; } #resultTitle.draw { color: #fff; }
-  .score { display: flex; gap: 18px; align-items: center; justify-content: center; font-size: clamp(26px, 6vmin, 40px); font-weight: 900; }
-  .chip { min-width: 90px; padding: 8px 14px; border-radius: 14px; }
-  .chip.b { background: #2563eb; } .chip.r { background: #dc2626; }
-  .chip small { display: block; font-size: 13px; font-weight: 700; opacity: .85; }
-  #muteBtn {
-    position: fixed; right: 10px; bottom: 12px; width: 48px; height: 48px; border-radius: 14px; border: 2px solid rgba(255,255,255,.7);
-    background: rgba(15,23,42,.75); cursor: pointer; z-index: 20; padding: 8px; box-sizing: border-box;
+  .card li::marker { color: var(--leaf); }
+  #resultTitle { font-size: clamp(40px, 10vmin, 72px); margin: 0; font-weight: 400; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
+    text-shadow: 0 4px 0 var(--ink), 0 8px 18px rgba(0,0,0,.5); }
+  #resultTitle.win { color: #93c5fd; } #resultTitle.lose { color: #fca5a5; } #resultTitle.draw { color: #fff6e2; }
+  .score { display: flex; gap: 18px; align-items: center; justify-content: center; font-size: clamp(26px, 6vmin, 40px); }
+  .chip { min-width: 90px; padding: 8px 14px; border-radius: 16px; border: 3px solid var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,.35);
+    box-shadow: inset 0 -4px 0 rgba(0,0,0,.2), 0 5px 0 var(--ink); }
+  .chip.b { background: var(--gloss), var(--team-b); } .chip.r { background: var(--gloss), var(--team-r); }
+  .chip small { display: block; font-size: 13px; opacity: .9; }
+
+  /* the corner buttons: round wooden tokens */
+  #muteBtn, #leaveBtn, #speedBtn {
+    position: fixed; bottom: 12px; width: 50px; height: 50px; border-radius: 50%; border: 3px solid var(--wood-rim);
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), rgba(255,255,255,0) 45%), var(--grain), radial-gradient(circle, var(--wood-hi), var(--wood) 72%);
+    box-shadow: inset 0 -3px 0 rgba(110,67,32,.3), 0 4px 0 var(--wood-rim), 0 6px 10px rgba(0,0,0,.35);
+    color: var(--ink); cursor: pointer; z-index: 20; padding: 10px; box-sizing: border-box;
   }
-  #muteBtn svg { width: 100%; height: 100%; display: block; }
+  #muteBtn { right: 10px; } #leaveBtn { right: 68px; }
+  #speedBtn { right: 126px; min-width: 50px; width: auto; border-radius: 25px; padding: 0 12px; font: inherit; font-size: 20px; }
+  #muteBtn:active, #leaveBtn:active, #speedBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--wood-rim); }
+  #muteBtn svg, #leaveBtn svg { width: 100%; height: 100%; display: block; }
   #muteBtn .x { display: none; }
   #muteBtn.muted .x { display: inline; }
   #muteBtn.muted .w { display: none; }
-  #loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #1e293b; font-size: 22px; font-weight: 800; z-index: 30; }
-  #leaveBtn {
-    position: fixed; right: 66px; bottom: 12px; width: 48px; height: 48px; border-radius: 14px; border: 2px solid rgba(255,255,255,.7);
-    background: rgba(15,23,42,.75); cursor: pointer; z-index: 20; padding: 8px; box-sizing: border-box;
-  }
-  #leaveBtn svg { width: 100%; height: 100%; display: block; }
-  #speedBtn {
-    position: fixed; right: 122px; bottom: 12px; min-width: 48px; height: 48px; border-radius: 14px; border: 2px solid rgba(255,255,255,.7);
-    background: rgba(15,23,42,.75); cursor: pointer; z-index: 20; padding: 0 8px; box-sizing: border-box; font: inherit; font-size: 20px; color: #fff;
-  }
-  .share { display: flex; align-items: center; gap: 8px; max-width: 420px; font-size: clamp(12px, 2.6vmin, 15px); opacity: .8; font-weight: 700; cursor: pointer; text-align: left; }
-  .privacy { margin-top: -6px; font-size: clamp(11px, 2.3vmin, 13px); font-weight: 700; color: #93c5fd; opacity: .8; }
-  .share input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: #4ade80; cursor: pointer; }
+
+  /* loading: the board's wood, the title, a carved groove filling up */
+  #loading { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 26px; align-items: center; justify-content: center; text-align: center; z-index: 30;
+    background: var(--grain), radial-gradient(ellipse at 50% 40%, #8a6440, #3a2a1c 80%); }
+  #loading .bar { width: min(260px, 60vw); height: 16px; border-radius: 10px; background: #2a1a0c; border: 3px solid var(--wood-rim); overflow: hidden;
+    box-shadow: inset 0 3px 4px rgba(0,0,0,.5), 0 2px 0 rgba(255,255,255,.15); }
+  #loading .bar i { display: block; height: 100%; width: 40%; border-radius: 6px; background: linear-gradient(var(--leaf-hi), var(--leaf));
+    animation: load 1.2s ease-in-out infinite alternate; }
+  @keyframes load { from { margin-left: 0; } to { margin-left: 60%; } }
+
+  .share { display: flex; align-items: center; gap: 8px; max-width: 420px; font-size: clamp(12px, 2.6vmin, 15px); opacity: .92; cursor: pointer; text-align: left; text-shadow: 0 1px 0 var(--ink); }
+  .privacy { margin-top: -6px; font-size: clamp(11px, 2.3vmin, 13px); color: var(--wood-hi); opacity: .9; }
+  .share input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--leaf); cursor: pointer; }
   #online .card { display: flex; flex-direction: column; align-items: center; gap: 14px; }
   #online .card h2 { margin: 0; }
   #onlineMsg { min-height: 1.3em; white-space: pre-line; }
   #onlineForm { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  #roomCode { font-size: clamp(56px, 14vmin, 96px); letter-spacing: 12px; color: #fde047; text-shadow: 0 4px 0 #a16207; line-height: 1; }
+  #roomCode { font-size: clamp(56px, 14vmin, 96px); letter-spacing: 12px; color: var(--gold); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--ink); line-height: 1; }
   #codeIn {
     font: inherit; font-size: clamp(22px, 5vmin, 30px); width: 5.2em; text-align: center; letter-spacing: 6px; text-transform: uppercase;
-    padding: 8px 10px; border-radius: 14px; border: 3px solid #93c5fd; background: #0f172a; color: #fff; outline: none;
+    padding: 8px 10px; border-radius: 14px; border: 3px solid var(--wood-rim); background: #fffaf0; color: var(--ink); outline: none;
+    box-shadow: inset 0 3px 6px rgba(110,67,32,.3);
     -webkit-user-select: text; user-select: text; touch-action: auto;
   }
-  #codeIn::placeholder { color: rgba(255,255,255,.35); letter-spacing: 2px; }
+  #codeIn::placeholder { color: rgba(59,36,18,.35); letter-spacing: 2px; }
   .row.join { align-items: center; }
   .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
-  .btn.small { min-width: 0; padding: 10px 18px; background: linear-gradient(#a78bfa, #7c3aed); box-shadow: 0 6px 0 #4c1d95, 0 10px 20px rgba(0,0,0,.35); }
-  #menu .row .btn.blue { min-width: 0; }
-  .st { color: #fde047; letter-spacing: 1px; }
-  .st .off { color: rgba(255,255,255,.25); }
+  .st { color: var(--star); letter-spacing: 1px; }
+  .panel > .sub .st, .btn .st { text-shadow: 0 1px 0 var(--ink); }
+  .st .off { color: rgba(110,67,32,.28); }
+  .btn .st .off, .panel > .sub .st .off { color: rgba(255,255,255,.35); }
   .chapRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .chapRow h2 { margin: 0 0 2px; }
-  .arrow { font: inherit; font-size: 22px; width: 48px; height: 48px; flex: none; border-radius: 14px; border: 2px solid #93c5fd; background: #1e293b; color: #fff; cursor: pointer; }
-  .arrow:disabled { opacity: .25; cursor: default; }
+  #boardBtn { display: inline-flex; align-items: center; gap: 8px; }
+  #boardBtn svg { width: 1.3em; height: 1.3em; flex: none; }
+  #boardList { list-style: none; margin: 14px 0 18px; padding: 0; min-height: 3em; max-height: 46vh; overflow-y: auto; text-align: left; }
+  #boardList li { display: flex; gap: 10px; align-items: center; padding: 6px 12px; border-radius: 10px; }
+  #boardList li:nth-child(odd) { background: rgba(120, 72, 30, .09); }
+  #boardList li b { min-width: 2em; text-align: right; color: var(--wood-lo); }
+  #boardList li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #boardList li i { font-style: normal; color: var(--gold-rim); font-weight: 800; }
+  #boardList li.note { justify-content: center; background: none; opacity: .75; }
+  .arrow { font: inherit; font-size: 20px; width: 48px; height: 48px; flex: none; border-radius: 50%; border: 3px solid var(--wood-rim); color: var(--ink); cursor: pointer;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), rgba(255,255,255,0) 45%), radial-gradient(circle, var(--wood-hi), var(--wood) 72%); box-shadow: 0 4px 0 var(--wood-rim); }
+  .arrow:disabled { opacity: .3; cursor: default; }
+  .stage svg.lock { width: 1.1em; height: 1.1em; opacity: .75; }
   .stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
-  .stage { font: inherit; font-size: clamp(18px, 4vmin, 24px); color: #fff; border: none; border-radius: 14px; padding: 8px 4px 6px; cursor: pointer;
-    background: linear-gradient(#60a5fa, #2563eb); box-shadow: 0 4px 0 #1e3a8a; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-  .stage.boss { background: linear-gradient(#f87171, #b91c1c); box-shadow: 0 4px 0 #7f1d1d; }
-  .stage:disabled { background: #334155; box-shadow: 0 4px 0 #1e293b; cursor: default; }
+  .stage { font: inherit; font-size: clamp(18px, 4vmin, 24px); color: var(--ink); border: 3px solid var(--wood-rim); border-radius: 14px; padding: 8px 4px 6px; cursor: pointer;
+    background: var(--gloss), var(--grain), linear-gradient(var(--wood-hi), var(--wood));
+    box-shadow: 0 4px 0 var(--wood-rim); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .stage.boss { color: #fff; border-color: #6b1d0c; background: var(--gloss), linear-gradient(#f2795c, #c8402a); box-shadow: 0 4px 0 #6b1d0c; text-shadow: 0 2px 0 #6b1d0c; }
+  .stage:disabled { color: rgba(59,36,18,.4); background: linear-gradient(#e3d3b5, #cdb68e); border-color: #a08a66; box-shadow: 0 4px 0 #a08a66; cursor: default; text-shadow: none; }
   .stage .st { font-size: 14px; }
+  .stage.boss .st .off { color: rgba(255,255,255,.4); }
   .stage:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
   .twists, .goals { list-style: none; padding: 0; margin: 12px 0; text-align: left; font-size: clamp(14px, 3.4vmin, 18px); line-height: 1.4; }
-  .twists li::before { content: '⚑ '; color: #fca5a5; }
-  .goals li::before { content: '★ '; color: #fde047; }
-  .goals li.off::before { color: rgba(255,255,255,.3); }
-  .tip { font-size: clamp(13px, 3vmin, 16px); opacity: .85; font-style: italic; margin: 4px auto 10px; max-width: 30em; line-height: 1.35; }
+  .twists li::before { content: '⚑ '; color: #c8402a; }
+  .goals li::before { content: '★ '; color: var(--star); }
+  .goals li.off::before { color: rgba(110,67,32,.3); }
+  .tip { font-size: clamp(13px, 3vmin, 16px); opacity: .9; font-style: italic; margin: 4px auto 10px; max-width: 30em; line-height: 1.35; }
+  .panel > .tip { text-shadow: 0 1px 0 var(--ink), 0 0 6px rgba(0,0,0,.6); }
   .stars { display: flex; gap: 18px; justify-content: center; }
-  .stars div { display: flex; flex-direction: column; align-items: center; font-size: clamp(12px, 2.6vmin, 15px); opacity: .9; min-width: 80px; }
-  .stars b { font-size: clamp(40px, 9vmin, 60px); font-weight: 400; line-height: 1; color: rgba(255,255,255,.18); }
-  .stars .had b { color: rgba(253,224,71,.45); }
-  .stars .on b { color: #fde047; text-shadow: 0 3px 0 #a16207; }
+  .stars div { display: flex; flex-direction: column; align-items: center; font-size: clamp(12px, 2.6vmin, 15px); opacity: .95; min-width: 80px; text-shadow: 0 1px 0 var(--ink); }
+  .stars b { font-size: clamp(40px, 9vmin, 60px); font-weight: 400; line-height: 1; color: rgba(255,255,255,.2); }
+  .stars .had b { color: rgba(242,176,30,.5); }
+  .stars .on b { color: var(--star); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 var(--ink); }
 </style>
 </head>
 <body>
 
 <div id="menu" class="panel hidden">
-  <div class="logo">HEXFRONT <span>RUSH</span></div>
+  <div class="title"><img class="l" src="ui/guard_blue.webp" alt=""><div class="logo">HEXFRONT <span>RUSH</span></div><img class="r" src="ui/ogre_red.webp" alt=""></div>
   <div class="sub" id="record"></div>
   <button class="btn" id="playBtn"></button>
   <div class="row">
-    <button class="btn blue" id="quickBtn" data-t="quick"></button>
-    <button class="btn blue small" id="diffBtn"></button>
+    <button class="btn wood" id="quickBtn" data-t="quick"></button>
+    <button class="btn small" id="diffBtn"></button>
   </div>
   <div class="row">
-    <button class="btn blue" id="dailyBtn"></button>
-    <button class="btn blue" id="onlineBtn" data-t="online"></button>
-    <button class="btn blue" id="howBtn" data-t="howto"></button>
+    <button class="btn wood" id="dailyBtn"></button>
+    <button class="btn wood" id="onlineBtn" data-t="online"></button>
+    <button class="btn wood" id="howBtn" data-t="howto"></button>
   </div>
   <label class="share hidden" id="share"><input type="checkbox" id="shareIn"><span data-t="shareReplays"></span></label>
   <a class="privacy hidden" id="privacyLink" target="_blank" rel="noopener" data-t="privacy"></a>
@@ -139,7 +213,19 @@
       <button class="arrow" id="chNext" aria-label="Next chapter">▶</button>
     </div>
     <div class="stages" id="stageGrid"></div>
-    <button class="btn blue" id="campBack" data-t="menu"></button>
+    <div class="row">
+      <button class="btn wood" id="campBack" data-t="menu"></button>
+      <button class="btn small hidden" id="boardBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20h18M5 20v-6h4v6M10 20V8h4v12M15 20v-9h4v9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg><span data-t="leaderboard"></span></button>
+    </div>
+  </div>
+</div>
+
+<div id="board" class="panel hidden">
+  <div class="card">
+    <h2 data-t="leaderboard"></h2>
+    <div class="sub" data-t="boardSub"></div>
+    <ol id="boardList"></ol>
+    <button class="btn wood" id="boardBack" data-t="back"></button>
   </div>
 </div>
 
@@ -150,9 +236,10 @@
     <ul class="twists" id="briefTwists"></ul>
     <ul class="goals" id="briefGoals"></ul>
     <div class="tip" id="briefTip"></div>
+    <button class="btn small boost hidden" id="boostBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M10 9v6l5-3z" fill="currentColor"/></svg><span></span></button>
     <div class="row">
       <button class="btn" id="briefGo" data-t="go"></button>
-      <button class="btn blue" id="briefBack" data-t="back"></button>
+      <button class="btn wood" id="briefBack" data-t="back"></button>
     </div>
   </div>
 </div>
@@ -166,10 +253,10 @@
       <button class="btn" id="createBtn" data-t="createRoom"></button>
       <div class="row join">
         <input id="codeIn" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text">
-        <button class="btn blue" id="joinBtn" data-t="join"></button>
+        <button class="btn wood" id="joinBtn" data-t="join"></button>
       </div>
     </div>
-    <button class="btn blue" id="onlineBack" data-t="cancel"></button>
+    <button class="btn wood" id="onlineBack" data-t="cancel"></button>
   </div>
 </div>
 
@@ -199,28 +286,28 @@
   <div class="row">
     <button class="btn hidden" id="nextBtn" data-t="nextStage"></button>
     <button class="btn" id="againBtn" data-t="playAgain"></button>
-    <button class="btn blue" id="menuBtn" data-t="menu"></button>
+    <button class="btn wood" id="menuBtn" data-t="menu"></button>
   </div>
-  <button class="btn blue hidden" id="watchBtn" data-t="watchReplay"></button>
+  <button class="btn wood hidden" id="watchBtn" data-t="watchReplay"></button>
 </div>
 
 <button id="muteBtn" aria-label="Sound">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M4 9h4l5-4v14l-5-4H4z" fill="#fff"/>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>
     <path class="w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>
     <path class="x" d="M16 9l6 6M22 9l-6 6"/>
   </svg>
 </button>
 
 <button id="leaveBtn" class="hidden" aria-label="Leave">
-  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5" fill="#fca5a5"/>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5" fill="#ef5a3c"/>
   </svg>
 </button>
 
 <button id="speedBtn" class="hidden" aria-label="Replay speed">1×</button>
 
-<div id="loading">Loading…</div>
+<div id="loading"><div class="logo">HEXFRONT <span>RUSH</span></div><div class="bar"><i></i></div></div>
 
 <script type="module" src="/src/main.ts"></script>
 </body>

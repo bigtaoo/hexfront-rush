@@ -10,7 +10,7 @@ import { loadDigits } from '../view/digits';
 import { patchGraphicsDestroy } from '../view/graphicsDestroy';
 import { canvasDensity, densityCap, levelRange, type DeviceInfo } from '../view/quality';
 import { QualityRuntime, gpuName } from '../view/qualityRuntime';
-import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER } from './campaign';
+import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER, totalStars } from './campaign';
 import { updateMenu } from './campaignUi';
 import { devSwitches, LOCAL_HOST } from './dev';
 import { $, applyTexts, updateMuteIcon, updateShare } from './dom';
@@ -80,6 +80,8 @@ export async function boot(platform: Platform): Promise<void> {
 
   const dev = devSwitches(location.hostname, location.search);
   const game = new Game(app, platform, save, dev);
+  // stars won before the leaderboard existed count too (the platform keeps the best score)
+  platform.submitStars(totalStars(save.stages));
   // a build sends to its relay (or VITE_REPLAY_URL); the dev server only with ?upload
   const upTo = replayUrl(relayUrl(), import.meta.env.VITE_REPLAY_URL);
   if (upTo && (!import.meta.env.DEV || dev.upload)) {
@@ -172,7 +174,17 @@ function wire(g: Game, platform: Platform): void {
     g.openCampaign(Math.min(CHAPTERS.length - 1, g.chapter + 1));
   });
   $('campBack').addEventListener('click', toMenuPanel);
+  $('boardBtn').addEventListener('click', () => {
+    tap();
+    g.openBoard();
+  });
+  $('boardBack').addEventListener('click', () => {
+    tap();
+    g.openCampaign(g.chapter);
+  });
+  $('boostBtn').addEventListener('click', () => g.watchForHeadStart());
   $('briefGo').addEventListener('click', () => {
+    if (g.adShowing) return;
     tap();
     g.beginMatch();
   });

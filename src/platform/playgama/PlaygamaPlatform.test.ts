@@ -28,6 +28,11 @@ describe('PlaygamaPlatform', () => {
     expect((await platform({ id: 'playgama' })).pg.name).toBe('playgama');
   });
 
+  it("takes the language from Bridge alone, English when it names none", async () => {
+    expect((await platform({ language: 'ru' })).pg.languages()).toEqual(['ru']);
+    expect((await platform({})).pg.languages()).toEqual(['en']);
+  });
+
   it('holds gameplay_started until game_ready and drops repeats', async () => {
     const { f, pg } = await platform();
     pg.gameplayStart();

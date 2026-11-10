@@ -5,6 +5,8 @@
 // coming is given up (AD_START_MS, AD_PLAY_MS). A given-up ad may still be on screen: no other
 // opens over it until its own end arrives or AD_PLAY_MS went by.
 
+import type { ScoreRow } from '../types';
+
 type Listener = (...args: unknown[]) => void;
 
 interface Emitter {
@@ -28,7 +30,14 @@ export interface BridgeShape {
   advertisement?: Emitter & {
     isInterstitialSupported?: boolean;
     showInterstitial?: (placement?: string) => unknown;
+    isRewardedSupported?: boolean;
+    showRewarded?: (placement?: string) => unknown;
     checkAdBlock?: () => unknown;
+  };
+  leaderboards?: {
+    type?: string;
+    setScore?: (id: string, score: number) => unknown;
+    getEntries?: (id: string) => unknown;
   };
 }
 
@@ -44,6 +53,13 @@ export const AD_START_MS = 15_000;
 export const AD_PLAY_MS = 300_000;
 /** How long boot waits for the adblock probe; no answer counts as no adblocker. */
 export const ADBLOCK_WAIT_MS = 1500;
+
+type AdKind = 'interstitial' | 'rewarded';
+/** The placements, as playgama-bridge-config.json names them (vite.playgama.config.js). */
+export const PLACEMENT = { interstitial: 'match_end', rewarded: 'head_start' } as const;
+/** The campaign's leaderboard (its tag in the console and in the config): total stars won. */
+export const LEADERBOARD = 'campaign_stars';
+
 
 export type Wait = (ms: number) => Promise<void>;
 export interface Timers {
@@ -71,11 +87,11 @@ function guard(fn: () => void): void {
 export class PlaygamaBridge {
   private sdk: BridgeShape | null = null;
   private adblock = false;
-  /** The interstitial waiting for its end, if any. */
-  private inFlight: { listen: (state: unknown) => void; giveUp: () => void } | null = null;
+  /** The ad waiting for its end, if any (one at a time, of either kind). */
+  private inFlight: { kind: AdKind; listen: (state: unknown) => void; giveUp: () => void } | null = null;
   /** A given-up ad may still be playing until then: none opens over it. */
   private strayUntil = 0;
-  private subscribed = false;
+  private readonly subscribed = new Set<AdKind>();
 
   constructor(
     private readonly global: BridgeGlobal = globalThis as BridgeGlobal,
@@ -165,20 +181,63 @@ export class PlaygamaBridge {
   /** One interstitial; `started` runs when it is on screen. Resolves true once it was shown and
    *  is over, false when it failed, was refused (a cooldown fails at once) or was given up. */
   interstitial(started?: () => void): Promise<boolean> {
+    return this.ad('interstitial', started);
+  }
+
+  /** Whether this platform plays rewarded ads (the game shows its offer only then). */
+  rewardedSupported(): boolean {
+    return this.sdk?.advertisement?.isRewardedSupported === true;
+  }
+
+  /** One rewarded ad, asked for by the player; `started` runs when it is on screen. Resolves true
+   *  only when the platform said `rewarded` (watched through), never on a bare close. */
+  rewarded(started?: () => void): Promise<boolean> {
+    return this.ad('rewarded', started);
+  }
+
+  /** Whether the game shows its own leaderboard: Bridge says `in_game` (on Playgama that is its
+   *  SaaS leaderboard, enabled in the config); anything else hides it. */
+  leaderboardShown(): boolean {
+    return this.sdk?.leaderboards?.type === 'in_game';
+  }
+
+  setScore(id: string, score: number): void {
+    if (!this.leaderboardShown()) return;
+    void settle(() => this.sdk?.leaderboards?.setScore?.(id, score));
+  }
+
+  /** The leaderboard's rows, best first; empty when it cannot be read. */
+  async entries(id: string): Promise<ScoreRow[]> {
+    if (!this.leaderboardShown()) return [];
+    const got = await settle(() => this.sdk?.leaderboards?.getEntries?.(id));
+    if (!Array.isArray(got)) return [];
+    const rows: ScoreRow[] = [];
+    for (const e of got as Record<string, unknown>[]) {
+      const score = Number(e?.score);
+      if (!Number.isFinite(score)) continue;
+      const rank = Number(e?.rank);
+      rows.push({ rank: Number.isFinite(rank) && rank > 0 ? rank : rows.length + 1, name: typeof e?.name === 'string' ? e.name : '', score });
+    }
+    return rows.sort((a, b) => a.rank - b.rank);
+  }
+
+  private ad(kind: AdKind, started?: () => void): Promise<boolean> {
     const ad = this.sdk?.advertisement;
-    if (!ad || ad.isInterstitialSupported !== true || typeof ad.on !== 'function') return Promise.resolve(false);
+    const supported = kind === 'interstitial' ? ad?.isInterstitialSupported : ad?.isRewardedSupported;
+    if (!ad || supported !== true || typeof ad.on !== 'function') return Promise.resolve(false);
     this.inFlight?.giveUp();
     if (this.timers.now() < this.strayUntil) return Promise.resolve(false);
     return new Promise<boolean>((resolve) => {
       let over = false;
       let shown = false;
+      let earned = false;
       let timer: unknown;
       const finish = () => {
         if (over) return;
         over = true;
         this.timers.clear(timer);
         if (this.inFlight?.listen === listen) this.inFlight = null;
-        resolve(shown);
+        resolve(kind === 'rewarded' ? earned : shown);
       };
       const giveUp = () => {
         this.strayUntil = this.timers.now() + AD_PLAY_MS;
@@ -190,25 +249,27 @@ export class PlaygamaBridge {
           this.timers.clear(timer);
           timer = this.timers.set(giveUp, AD_PLAY_MS);
           guard(() => started?.());
-        } else if (state === 'closed' || state === 'failed') finish();
+        } else if (state === 'rewarded') earned = true;
+        else if (state === 'closed' || state === 'failed') finish();
       };
       timer = this.timers.set(giveUp, AD_START_MS);
-      this.inFlight = { listen, giveUp };
-      if (!this.subscribed) {
-        this.subscribed = true;
+      this.inFlight = { kind, listen, giveUp };
+      if (!this.subscribed.has(kind)) {
+        this.subscribed.add(kind);
         void settle(() =>
-          ad.on?.('interstitial_state_changed', (s) => {
+          ad.on?.(`${kind}_state_changed`, (s) => {
             // late states of a given-up ad go nowhere; its end lets the next one open
             if (this.timers.now() < this.strayUntil) {
               if (s === 'closed' || s === 'failed') this.strayUntil = 0;
               return;
             }
-            this.inFlight?.listen(s);
+            if (this.inFlight?.kind === kind) this.inFlight.listen(s);
           }),
         );
       }
       try {
-        ad.showInterstitial?.('match_end');
+        if (kind === 'interstitial') ad.showInterstitial?.(PLACEMENT.interstitial);
+        else ad.showRewarded?.(PLACEMENT.rewarded);
       } catch {
         listen('failed');
       }

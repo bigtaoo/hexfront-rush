@@ -3,10 +3,10 @@
 // `create()`, which waits (bounded) for Bridge and reads the save through it first. Without Bridge
 // (local preview, adblocker) everything falls back to WebPlatform.
 
-import type { LevelMessage, Platform } from '../types';
+import type { LevelMessage, Platform, ScoreRow } from '../types';
 import { SafeStore } from '../types';
 import { WebPlatform } from '../web';
-import { PlaygamaBridge } from './bridge';
+import { LEADERBOARD, PlaygamaBridge } from './bridge';
 import { BridgeStore } from './bridgeStore';
 
 /** Bridge's stand-ins for a page that is no portal: a developer's own preview and the QA tool. */
@@ -62,10 +62,13 @@ export class PlaygamaPlatform extends WebPlatform implements Platform {
     return new PlaygamaPlatform(bridge, saves, doc, win);
   }
 
-  /** The platform's language first, then the browser's. */
+  /** With Bridge up, its language alone (Playgama 3.4.2: never the browser's), English when it
+   *  names none; `?lang=` still wins on a test platform, to check a translation in the QA tool.
+   *  Without Bridge (a local preview) the browser's, as on the web. */
   override languages(): string[] {
-    const lang = this.bridge.language();
-    return lang ? [lang, ...super.languages()] : super.languages();
+    if (!this.bridge.platformId()) return super.languages();
+    const own = this.name === 'web' && this.lang ? [this.lang] : [];
+    return [...own, this.bridge.language() ?? 'en'];
   }
 
   override loaded(): void {
@@ -104,6 +107,30 @@ export class PlaygamaPlatform extends WebPlatform implements Platform {
       this.pacing.shown();
       onStart();
     });
+  }
+
+  override rewardedReady(): boolean {
+    return this.bridge.rewardedSupported() && !this.bridge.hasAdblock();
+  }
+
+  /** The player's own ask: no pacing, and the interstitial clock starts over after it. */
+  override rewarded(onStart: () => void): Promise<boolean> {
+    return this.bridge.rewarded(() => {
+      this.pacing.shown();
+      onStart();
+    });
+  }
+
+  override leaderboardReady(): boolean {
+    return this.bridge.leaderboardShown();
+  }
+
+  override submitStars(stars: number): void {
+    if (stars > 0) this.bridge.setScore(LEADERBOARD, stars);
+  }
+
+  override topStars(): Promise<ScoreRow[]> {
+    return this.bridge.entries(LEADERBOARD);
   }
 
   /** An adblocker stops the ads the platform would play. */

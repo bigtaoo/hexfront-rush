@@ -32,7 +32,7 @@ export const CUES = {
   spawn: { pri: 1, gain: 0.3, gap: 0.2, vary: true },
   shoot: { pri: 0, gain: 0.3, gap: 0.09, vary: true },
   hit: { pri: 0, gain: 0.3, gap: 0.07, vary: true },
-  melee: { pri: 0, gain: 0.22, gap: 0.1, file: 'hit', vary: true },
+  melee: { pri: 0, gain: 0.22, gap: 0.1, vary: true },
   pop: { pri: 1, gain: 0.4, gap: 0.08, vary: true },
   destroy: { pri: 5, gain: 0.6, gap: 0.2, vary: true },
   // results

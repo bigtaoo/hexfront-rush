@@ -1,4 +1,4 @@
-// The HTML panels over the canvas (index.html): menu, how-to, online lobby, campaign, brief, results, and the
+// The HTML panels over the canvas (index.html): menu, how-to, online lobby, campaign, brief, leaderboard, results, and the
 // mute, leave and replay speed buttons. Every text comes from i18n through data-t attributes.
 
 import { T } from './i18n';
@@ -10,8 +10,8 @@ export function $<E extends HTMLElement = HTMLElement>(id: string): E {
   return el as E;
 }
 
-export type Panel = 'menu' | 'howto' | 'result' | 'online' | 'campaign' | 'brief';
-const PANELS: readonly Panel[] = ['menu', 'howto', 'result', 'online', 'campaign', 'brief'];
+export type Panel = 'menu' | 'howto' | 'result' | 'online' | 'campaign' | 'brief' | 'board';
+const PANELS: readonly Panel[] = ['menu', 'howto', 'result', 'online', 'campaign', 'brief', 'board'];
 
 /** Shows one panel (null: none, the match is on); the leave flag shows during an online match
  *  and a replay, the speed button during a replay. */

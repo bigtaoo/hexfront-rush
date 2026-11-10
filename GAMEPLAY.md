@@ -140,7 +140,7 @@ Events stand on the map from the start, face up for both players: the one thing 
 - **Handicaps** (per side): starting gold, income %, castle hp %, a starting barracks (rarity), starting towers; and the siege time for both. Income is the smooth difficulty lever; a starting barracks is a strong one; castle hp barely matters.
 
 ## Campaign, quick match, daily — src/app/campaign.ts
-- **Menu:** Campaign (the next stage) · Quick match + its difficulty (Easy / Normal / Hard / Brutal) · Daily · Online · How to play.
+- **Menu:** the HEXFRONT RUSH logo between a blue guard and a red ogre over the AI demo (the match HUD stays hidden behind the menu), then Play (the next campaign stage) · Quick match + its difficulty (Easy / Normal / Hard / Brutal) · Daily · Online · How to play · Leaderboard (where the platform has one).
 - **Campaign:** 6 chapters × 7 stages (the 7th a boss), each chapter one theme and one idea: first steps, gold rush (both start rich), blitz (early siege), fortresses (towers, strong castle), warlords (rival starts with barracks), the last front (all at once). Each stage is a fixed map (the seed), its rival's setup and maybe the player's. Stage 1-1 is the tutorial.
 - **Brief** before a stage: what is different there (one line each), the three goals and the chapter's tip (how to play its idea).
 - **In the match:** the HUD's bottom-right line counts the chests and camps taken toward the second star (green once there) and gives the par.
@@ -175,13 +175,16 @@ barracks card (barracks), then the nearest map event (events).
 ## Platform — src/platform/
 The game talks to its host through one `Platform` interface. `WebPlatform` is the plain page; `PlaygamaPlatform` (the Playgama build, after Potion Siege) adds Bridge. Nothing in the game can break because of the SDK.
 - **Init:** `PlaygamaPlatform.create()` waits at most 5 s for Bridge and reads the save through it before the game boots. Without Bridge (local preview, adblocker) everything falls back to the web platform. Bridge's `mock` and `qa_tool` platforms count as web, so a preview never counts as a Playgama player.
-- **Language:** the platform's first, then the browser's. English, with Chinese for `zh`.
+- **Language:** with Bridge up, the platform's language alone (Playgama rule 3.4.2: never the browser's), English when it names none or one the game lacks. Without Bridge (the web page) the browser's. `?lang=xx` still wins on a test platform (QA tool), to check a translation.
+- **Languages:** English, Chinese, Russian, Spanish, Portuguese (Brazil), German, French, Turkish: one table each in `src/app/lang/`; English fills any key a table lacks. Lilita One has no CJK, no Cyrillic and no ş ğ İ, so zh, ru and tr draw in the system font at a heavy weight.
 - **Storage:** one batched read at boot, then writes are batched to the next tick and flushed on hide, pagehide and the host's pause. It falls back to localStorage when Bridge is absent.
 - **Lifecycle:** `game_ready` goes out on the first menu frame. Gameplay start/stop brackets are deduplicated, and a start never goes out before `game_ready`. Level started / completed / failed follow the match.
 - **Interstitial `match_end`:** plays between matches, at most one per 2.5 min of actual match play (`adPacing.ts`), with Bridge's own 60 s minimum on top.
   - Watchdogs: 15 s for the ad to open, 300 s for it to close.
   - A given-up ad can't stack with the next one.
   - The game pauses and mutes while the ad is on screen, and also follows the host's pause and sound switches.
+- **Rewarded ad `head_start`** (`src/app/headStart.ts`): an offer on the brief of a campaign stage or the daily challenge, only where Bridge says rewarded ads play. The player alone asks for it; the button says it is an ad. Watched through (the `rewarded` state, never a bare close), the next attempt of that stage starts with +60 gold, once; the offer then comes back. A skipped or failed ad gives nothing. Stages are balanced without it. The gold goes into the match config, so its replay plays the same.
+- **Leaderboard `campaign_stars`** (numeric, highest first, set in the console): the player's campaign star total (0–126) is set after every stage result that changes it. The menu's Leaderboard button opens a panel with the top rows (rank, the platform's name, stars) and shows only where Bridge runs leaderboards in the game (`leaderboards.type === 'in_game'`). `playgama-bridge-config.json` names it under `leaderboards` and turns Playgama's SaaS boards on for `playgama` and `qa_tool` (public token = the app id). `?lb=fake` fakes a board on localhost.
 - **The Playgama build** (`vite.playgama.config.js`): relative base, entry `src/main.playgama.ts`, the Bridge SDK tag from Playgama's CDN ahead of the entry, and `playgama-bridge-config.json` emitted next to `index.html`. The build fails if the page was never rewritten. `scripts/pack_playgama.py` zips it with `/` paths and no directory entries.
 - No other external requests.
 
@@ -192,10 +195,12 @@ Ported from Holy Kicker.
 - 14-voice cap with priority stealing; compressor on the effects bus.
 - Music: two `<audio>` decks with 2 s equal-power crossfades, used both for track changes (lobby ↔ battle) and for the loop.
 - Respects the mute button, platform audio state and pause.
+- **Wood sounds** to match the toy look: wood knocks for taps, hits, melee (`melee`, its own cue), building (a plank), spawn (a wooden step), a book placed for the card pop and a heavy wood crack for a building lost; the win, lose and legendary jingles are Kenney's pizzicato versions of the old 8-bit melodies.
 - Sources: all CC0 (Kenney, OpenGameArt), see THIRD-PARTY-NOTICES.txt. Rebuild `public/sfx` and `public/music` with `python scripts/import_audio.py`.
 
 ## Feel
-- Font: Lilita One (OFL), Latin only. Chinese falls back to the system font.
+- Font: Lilita One (OFL), Latin only. Chinese, Russian and Turkish use the system font.
+- **UI skin:** wooden-toy panels and buttons (cream wood with a dark rim, green for the main action, gold for the selected difficulty; never blue, which belongs to the teams), the same logo on the loading screen, SVG icons only (no emoji).
 - Hit flash is a white overlay.
 - Trauma screen shake on building loss.
 - Damage numbers on guards, troops and buildings; hits within 0.4 s merge and re-pop.

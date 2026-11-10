@@ -10,6 +10,7 @@ import {
 } from './campaign';
 import { $ } from './dom';
 import { T } from './i18n';
+import type { ScoreRow } from '../platform/types';
 import type { Save } from './save';
 
 export type MatchKind = { kind: 'stage'; id: number } | { kind: 'quick' } | { kind: 'daily'; day: number };
@@ -86,6 +87,8 @@ export function goalText(bit: number, st: Stage, short: boolean): string {
   return T(short ? 'goal_parShort' : 'goal_par', { t: fmtTime(st.par) });
 }
 
+/** A locked stage's padlock (an icon drawn here, no emoji: Playgama 4.3.2). */
+const LOCK = '<svg class="lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="currentColor"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>';
 const starsHtml = (goals: number) => GOALS.map((b) => `<span class="${goals & b ? '' : 'off'}">★</span>`).join('');
 
 /** The in-match line on a stage or the daily challenge: the chests taken toward the second
@@ -124,9 +127,34 @@ export function showChapter(save: Save, ch: number, pick: (id: number) => void):
     b.className = 'stage' + (s === STAGES_PER_CHAPTER - 1 ? ' boss' : '');
     const open = stageOpen(save.stages, id);
     b.disabled = !open;
-    b.innerHTML = `<span>${open ? stageLabel(id) : '🔒'}</span><span class="st">${starsHtml(save.stages[id] ?? 0)}</span>`;
+    b.innerHTML = `<span>${open ? stageLabel(id) : LOCK}</span><span class="st">${starsHtml(save.stages[id] ?? 0)}</span>`;
     if (open) b.addEventListener('click', () => pick(id));
     grid.appendChild(b);
+  }
+}
+
+/** The leaderboard's rows (null: still loading); a row's name is the platform's, shown as text. */
+export function showBoard(rows: ScoreRow[] | null): void {
+  const list = $('boardList');
+  list.textContent = '';
+  const note = (key: string) => {
+    const li = document.createElement('li');
+    li.className = 'note';
+    li.textContent = T(key);
+    list.appendChild(li);
+  };
+  if (!rows) return note('boardLoading');
+  if (!rows.length) return note('boardEmpty');
+  for (const r of rows.slice(0, 50)) {
+    const li = document.createElement('li');
+    const rank = document.createElement('b');
+    rank.textContent = String(r.rank);
+    const name = document.createElement('span');
+    name.textContent = r.name || T('boardAnon');
+    const score = document.createElement('i');
+    score.textContent = `★ ${r.score}`;
+    li.append(rank, name, score);
+    list.appendChild(li);
   }
 }
 

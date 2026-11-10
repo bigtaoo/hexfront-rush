@@ -80,6 +80,58 @@ describe('PlaygamaBridge', () => {
     expect(await done).toBe(true);
   });
 
+  it('grants a rewarded ad only once the platform says rewarded, never on a bare close', async () => {
+    const f = fakeBridge();
+    const b = new PlaygamaBridge(f.global, noWait, handTimers());
+    await b.init();
+    expect(b.rewardedSupported()).toBe(true);
+    const skipped = b.rewarded();
+    f.emit('rewarded_state_changed', 'opened');
+    f.emit('rewarded_state_changed', 'closed');
+    expect(await skipped).toBe(false);
+    const watched = b.rewarded();
+    f.emit('rewarded_state_changed', 'opened');
+    f.emit('rewarded_state_changed', 'rewarded');
+    f.emit('rewarded_state_changed', 'closed');
+    expect(await watched).toBe(true);
+    expect(f.rewards).toBe(2);
+    // an interstitial's states never answer a rewarded ad
+    const inter = b.interstitial();
+    f.emit('interstitial_state_changed', 'closed');
+    await inter;
+    const third = b.rewarded();
+    f.emit('rewarded_state_changed', 'opened');
+    f.emit('interstitial_state_changed', 'closed');
+    f.emit('rewarded_state_changed', 'rewarded');
+    f.emit('rewarded_state_changed', 'closed');
+    expect(await third).toBe(true);
+  });
+
+  it('uses the leaderboard only where Bridge runs it in the game, and reads its rows defensively', async () => {
+    const off = fakeBridge();
+    const b0 = new PlaygamaBridge(off.global, noWait);
+    await b0.init();
+    expect(b0.leaderboardShown()).toBe(false);
+    b0.setScore('campaign_stars', 5);
+    expect(off.scores).toEqual([]);
+    expect(await b0.entries('campaign_stars')).toEqual([]);
+    const f = fakeBridge({
+      board: 'in_game',
+      entries: [{ rank: 2, name: 'B', score: 7 }, { rank: 1, name: 'A', score: 9 }, { name: 'bad', score: 'x' }, { score: 3 }],
+    });
+    const b = new PlaygamaBridge(f.global, noWait);
+    await b.init();
+    expect(b.leaderboardShown()).toBe(true);
+    b.setScore('campaign_stars', 12);
+    await Promise.resolve();
+    expect(f.scores).toEqual([['campaign_stars', 12]]);
+    expect(await b.entries('campaign_stars')).toEqual([
+      { rank: 1, name: 'A', score: 9 },
+      { rank: 2, name: 'B', score: 7 },
+      { rank: 3, name: '', score: 3 },
+    ]);
+  });
+
   it('gives up an ad that never opens, and opens none over a given-up one until it ends', async () => {
     const f = fakeBridge();
     const t = handTimers();

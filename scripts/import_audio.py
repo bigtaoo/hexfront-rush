@@ -7,23 +7,28 @@ HK = 'D:/standing/client/public/audio/sfx/'
 CORGI = 'D:/standing/art/reskin/corgi/game/audio/'
 K = 'D:/standing/art/audio/source/kenney/'
 COPY = {
-    'sfx/tap.mp3': HK + 'tap.mp3',          # Kenney interface click_002
-    'sfx/hit.mp3': HK + 'hit.mp3',          # Kenney impactGeneric_light_003
     'sfx/shoot.mp3': HK + 'swish.mp3',      # qubodup swosh-05 (OGA, CC0)
-    'sfx/build.mp3': HK + 'thump.mp3',      # Kenney impactSoft_heavy_000
-    'sfx/pop.mp3': HK + 'pop.mp3',          # Kenney interface drop_002
     'sfx/quest.mp3': HK + 'gem.mp3',        # Kenney interface select_002
     'sfx/go.mp3': HK + 'wave.mp3',          # Kenney impactBell_heavy_000
-    'sfx/destroy.mp3': HK + 'boom.mp3',     # Kenney sci-fi explosionCrunch_001
-    'sfx/win.mp3': CORGI + 'sfx/cleared.mp3',    # Kenney 8-Bit jingles NES03
-    'sfx/lose.mp3': CORGI + 'sfx/heroDown.mp3',  # Kenney 8-Bit jingles NES00
-    'sfx/legend.mp3': CORGI + 'sfx/levelUp.mp3', # Kenney 8-Bit jingles NES12
     'music/battle.mp3': CORGI + 'music/battle.mp3',  # HydroGene, OGA, CC0
     'music/lobby.mp3': CORGI + 'music/lobby.mp3',    # TinyWorlds, OGA, CC0
 }
+IMP = K + 'kenney_impact-sounds/Audio/'
+PIZ = K + 'kenney_music-jingles/Audio/Pizzicato jingles/'
+# the wooden-toy look sounds like one: wood knocks for the pieces and the buttons, a pizzicato
+# box for the jingles (the same melodies as the 8-bit ones before)
 RAW = {
+    'sfx/tap.mp3': IMP + 'impactWood_light_002.ogg',
+    'sfx/hit.mp3': IMP + 'impactWood_light_000.ogg',
+    'sfx/melee.mp3': IMP + 'impactWood_medium_001.ogg',
+    'sfx/build.mp3': IMP + 'impactPlank_medium_000.ogg',
+    'sfx/spawn.mp3': IMP + 'footstep_wood_001.ogg',
+    'sfx/pop.mp3': K + 'kenney_rpg-audio/Audio/bookPlace1.ogg',
+    'sfx/destroy.mp3': IMP + 'impactWood_heavy_000.ogg',
+    'sfx/win.mp3': PIZ + 'jingles_PIZZI03.ogg',
+    'sfx/lose.mp3': PIZ + 'jingles_PIZZI00.ogg',
+    'sfx/legend.mp3': PIZ + 'jingles_PIZZI12.ogg',
     'sfx/coin.mp3': K + 'kenney_rpg-audio/Audio/handleCoins.ogg',
-    'sfx/spawn.mp3': K + 'kenney_interface-sounds/Audio/drop_001.ogg',
     'sfx/beep.mp3': K + 'kenney_interface-sounds/Audio/tick_001.ogg',
     'sfx/nothing.mp3': K + 'kenney_interface-sounds/Audio/minimize_001.ogg',
     'sfx/error.mp3': K + 'kenney_interface-sounds/Audio/error_004.ogg',

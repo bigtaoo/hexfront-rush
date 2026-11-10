@@ -4,7 +4,7 @@
 // alpha of everything drawn after it is set (the canvas's globalAlpha).
 
 import { Graphics, GraphicsContext, Text, type TextStyleOptions } from 'pixi.js';
-import { FONT_STACK, fontW } from './viewConst';
+import { fontStack, fontW } from './viewConst';
 
 export type LineCap = 'butt' | 'round' | 'square';
 
@@ -152,7 +152,7 @@ export interface LabelOpts {
 }
 export function labelStyle(o: LabelOpts): TextStyleOptions {
   return {
-    fontFamily: FONT_STACK,
+    fontFamily: fontStack(),
     fontSize: o.size,
     fill: o.color,
     fontWeight: fontW(o.weight ?? 800),

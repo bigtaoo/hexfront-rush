@@ -29,7 +29,12 @@ const PORTAL_ENTRY = '/src/main.playgama.ts';
 export const BRIDGE_CONFIG = {
   advertisement: {
     interstitial: { placementFallback: 'match_end', placements: [{ id: 'match_end' }], minimumDelayBetweenInterstitial: 60 },
+    rewarded: { placementFallback: 'head_start', placements: [{ id: 'head_start' }] },
   },
+  // the campaign's leaderboard (total stars) runs on Bridge SaaS: the playgama platform has none of
+  // its own; the tag is the one in the console (bridge.ts LEADERBOARD), the token is public
+  saas: { publicToken: 'cmw804jyv1kfgmt0hi783aoav', leaderboards: { platforms: ['playgama', 'qa_tool'] } },
+  leaderboards: [{ id: 'campaign_stars', isMain: true }],
 };
 
 export function rewritePlaygamaHtml(html) {

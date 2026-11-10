@@ -137,6 +137,8 @@ export function goalsMet(won: boolean, taken: number, total: number, secs: numbe
 }
 
 export const starCount = (goals: number): number => (goals & 1) + ((goals >> 1) & 1) + ((goals >> 2) & 1);
+/** Every star the campaign's stages won (the leaderboard's score). */
+export const totalStars = (goals: readonly number[]): number => goals.reduce((n, g) => n + starCount(g ?? 0), 0);
 
 /** Stage id is open: the first one, or the one before it is won. */
 export const stageOpen = (goals: readonly number[], id: number): boolean => id === 0 || ((goals[id - 1] ?? 0) & GOAL_WIN) !== 0;

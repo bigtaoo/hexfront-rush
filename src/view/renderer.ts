@@ -245,7 +245,9 @@ export class Renderer {
     this.sprites.draw(f);
     this.effects.draw(f);
     this.edges.draw(f, ui.look ?? false);
-    this.hud.draw(f);
+    // behind the menu the match is a backdrop: no bars, no hand (the menu has its own buttons)
+    this.hud.root.visible = !ui.demo;
+    if (!ui.demo) this.hud.draw(f);
     this.overlays.draw(f);
   }
 

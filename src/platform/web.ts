@@ -1,5 +1,5 @@
 import { AdPacing } from './adPacing';
-import { SafeStore, type KeyValueStore, type LevelMessage, type Platform } from './types';
+import { SafeStore, type KeyValueStore, type LevelMessage, type Platform, type ScoreRow } from './types';
 
 export function browserStorage(): KeyValueStore | null {
   try {
@@ -10,21 +10,28 @@ export function browserStorage(): KeyValueStore | null {
 }
 
 /** Plain web: local storage and no portal. With `?ads=fake` on a local host a pretend ad that
- *  lasts a second plays between matches (paced like a real one), to try the pause and mute. */
+ *  lasts a second plays between matches (paced like a real one), to try the pause and mute, and
+ *  the rewarded offer shows, its pretend ad always watched through; with `?lb=fake` a pretend
+ *  leaderboard shows, the player's own best among made-up rows. */
 export class WebPlatform implements Platform {
   readonly name: string = 'web';
   storage: KeyValueStore = new SafeStore(browserStorage());
   protected readonly pacing = new AdPacing();
   private readonly fakeAds: boolean;
+  private readonly fakeBoard: boolean;
+  private myStars = 0;
   private playing = false;
 
   constructor(search = typeof location === 'undefined' ? '' : location.search, host = typeof location === 'undefined' ? '' : location.hostname) {
-    this.fakeAds = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(host) && new URLSearchParams(search).get('ads') === 'fake';
-    this.lang = new URLSearchParams(search).get('lang');
+    const local = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(host);
+    const q = new URLSearchParams(search);
+    this.fakeAds = local && q.get('ads') === 'fake';
+    this.fakeBoard = local && q.get('lb') === 'fake';
+    this.lang = q.get('lang');
   }
 
   /** `?lang=zh` picks the language over the browser's (to check a translation). */
-  private readonly lang: string | null;
+  protected readonly lang: string | null;
 
   languages(): string[] {
     const own = this.lang ? [this.lang] : [];
@@ -57,6 +64,32 @@ export class WebPlatform implements Platform {
     this.pacing.shown();
     onStart();
     await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  rewardedReady(): boolean {
+    return this.fakeAds;
+  }
+
+  async rewarded(onStart: () => void): Promise<boolean> {
+    if (!this.fakeAds) return false;
+    onStart();
+    await new Promise((r) => setTimeout(r, 1000));
+    return true;
+  }
+
+  leaderboardReady(): boolean {
+    return this.fakeBoard;
+  }
+
+  submitStars(stars: number): void {
+    this.myStars = Math.max(this.myStars, stars);
+  }
+
+  async topStars(): Promise<ScoreRow[]> {
+    if (!this.fakeBoard) return [];
+    const made = [117, 96, 80, 61, 44, 30, 18, 9, 4].map((score, i) => ({ name: `Player ${i + 1}`, score }));
+    const all = [...made, { name: 'You', score: this.myStars }].sort((a, b) => b.score - a.score);
+    return all.map((r, i) => ({ rank: i + 1, ...r }));
   }
 
   onHostMute(_listener: (muted: boolean) => void): void {}

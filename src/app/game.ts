@@ -25,12 +25,14 @@ import type { MatchResult } from '../sim/types';
 import type { DrawUi } from '../view/frame';
 import { Renderer } from '../view/renderer';
 import { Sound } from './audio';
-import { chapterOfNext, goalTrack, matchConfig, recordGoals, showBrief, showChapter, showStars, updateMenu, type MatchKind } from './campaignUi';
+import { totalStars } from './campaign';
+import { chapterOfNext, goalTrack, matchConfig, recordGoals, showBoard, showBrief, showChapter, showStars, updateMenu, type MatchKind } from './campaignUi';
 import { Controls } from './controls';
 import type { DevSwitches } from './dev';
 import { $, countUp, replay, show, updateRecord, type Panel } from './dom';
 import { handleEvents, type Fx } from './events';
 import { FaultGuard, markRestart, restartedLately } from './faultGuard';
+import { HeadStart } from './headStart';
 import { T } from './i18n';
 import { Online } from './online';
 import type { ReplayUpload } from './replayUpload';
@@ -97,6 +99,11 @@ export class Game {
   private hostPaused = false;
   private adPause = false;
   private adBusy = false;
+  private readonly headStart = new HeadStart();
+  /** An ad is on its way or on screen: the buttons that start a match wait. */
+  get adShowing(): boolean {
+    return this.adBusy;
+  }
   hostMuted = false;
   private readySent = false;
 
@@ -197,7 +204,18 @@ export class Game {
     this.state = 'campaign';
     this.chapter = ch;
     showChapter(this.save, ch, (id) => this.openBrief({ kind: 'stage', id }));
+    $('boardBtn').classList.toggle('hidden', !this.platform.leaderboardReady());
     this.show('campaign');
+  }
+
+  /** The campaign's leaderboard (total stars), read when opened. */
+  openBoard(): void {
+    this.state = 'campaign';
+    this.show('board');
+    showBoard(null);
+    void this.platform.topStars().then((rows) => {
+      if (!$('board').classList.contains('hidden')) showBoard(rows);
+    });
   }
 
   /** The brief before a stage or the daily challenge; its button starts the match. */
@@ -206,6 +224,7 @@ export class Game {
     this.state = 'brief';
     this.match = m;
     showBrief(this.save, m);
+    this.headStart.show(m, this.platform.rewardedReady());
     this.show('brief');
   }
 
@@ -219,6 +238,7 @@ export class Game {
     const tutorial = !this.save.tutorialDone && !this.dev.autoplay && m.kind === 'stage' && m.id === 0;
     const config = matchConfig(m, this.save, randomSeed());
     if (this.dev.seed !== null) config.seed = this.dev.seed;
+    this.headStart.apply(m, config);
     const input = new LocalInput();
     this.setupEngine({ ...config, aiBlue: this.dev.autoplay }, TEAM_BLUE, input);
     if (!this.dev.autoplay) this.uploads?.start(this.eng, input.log, TEAM_BLUE);
@@ -271,6 +291,7 @@ export class Game {
       else this.save.draws++;
       if (this.mode === 'solo' && res) got = recordGoals(this.match, this.save, won, this.eventsTaken, this.eventsTotal, Math.round(this.eng.elapsed() / TICK_RATE));
       this.persist();
+      if (got && this.match.kind === 'stage' && got.now & ~got.before) this.platform.submitStars(totalStars(this.save.stages));
     }
     showStars(this.match, got, won && this.mode === 'solo', lost && this.mode === 'solo', this.save);
     $('againBtn').textContent = T(got && !won ? 'retry' : 'playAgain');
@@ -315,6 +336,29 @@ export class Game {
         this.adPause = false;
         this.refreshPause();
         then();
+      });
+  }
+
+  /** The brief's offer: a rewarded ad the player asked for (the game pauses and mutes while it is
+   *  on screen); watched through, the next match of this stage starts with the head start. */
+  watchForHeadStart(): void {
+    const hs = this.headStart, m = this.match;
+    if (hs.busy || this.adBusy || m.kind === 'quick') return;
+    this.sound.play('tap');
+    hs.busy = this.adBusy = true;
+    hs.show(m, true);
+    this.platform
+      .rewarded(() => {
+        this.adPause = true;
+        this.refreshPause();
+      })
+      .catch(() => false)
+      .then((ok) => {
+        hs.busy = this.adBusy = false;
+        this.adPause = false;
+        this.refreshPause();
+        if (ok) hs.earned(m);
+        if (this.state === 'brief') hs.show(m, this.platform.rewardedReady());
       });
   }
 

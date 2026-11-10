@@ -11,6 +11,9 @@ import { enemyOf, INTRO_TICKS, PHASE_INTRO, TEAM_BLUE, TEAM_RED } from '../sim/r
 import { LOOK_B, LOOKB_VIEW } from './lookB';
 import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, SQRT3, VIEW_FLIP_Y, VIEW_HEXES, VIEW_ROWS, type Pt } from './viewConst';
 
+/** The menu's match: between play zoom (0) and the whole map (1); lookB's toys want a closer look. */
+const DEMO_ZOOM = LOOK_B ? 0.45 : 1;
+
 /** Something that moves in the sim: its position now and a tick ago (FP). */
 export interface Mobile {
   x: number;
@@ -149,6 +152,19 @@ export class Camera {
     }
     return this.camGoal;
   }
+  /** The menu's match: where the troops are (their middle), drifting slowly; the map's middle
+   *  while there are none. */
+  private demoGoal(eng: Engine): Pt {
+    let sx = 0, sy = 0, n = 0;
+    for (const u of eng.units) {
+      if (u.hp <= 0) continue;
+      sx += u.x;
+      sy += u.y;
+      n++;
+    }
+    if (!n) return { x: (MAP_X0 + MAP_X1) / 2, y: (MAP_Y0 + MAP_Y1) / 2 };
+    return this.view(sx / n, sy / n);
+  }
   /** Drag the map by a screen-pixel delta: the camera follows the finger 1:1. */
   panBy(dx: number, dy: number): void {
     if (!this.cam || this.fitAll) return;
@@ -165,7 +181,7 @@ export class Camera {
     if (demo !== this.demo) {
       this.demo = demo;
       this.overview = false;
-      this.zoomK = demo ? 1 : 0;
+      this.zoomK = demo ? DEMO_ZOOM : 0;
       this.setScale(this.zoomScale());
     }
     if (!demo) {
@@ -176,12 +192,12 @@ export class Camera {
         this.setScale(this.zoomScale());
       }
     }
-    const g = demo ? { x: (MAP_X0 + MAP_X1) / 2, y: (MAP_Y0 + MAP_Y1) / 2 } : this.goal(eng);
+    const g = demo ? this.demoGoal(eng) : this.goal(eng);
     if (!this.cam) {
       this.placeCamera(g.x, g.y);
       return;
     }
-    const k = 1 - Math.exp(-dt * (eng.phase === PHASE_INTRO ? 2.2 : 5));
+    const k = 1 - Math.exp(-dt * (demo ? 0.6 : eng.phase === PHASE_INTRO ? 2.2 : 5));
     this.placeCamera(this.cam.x + (g.x - this.cam.x) * k, this.cam.y + (g.y - this.cam.y) * k);
   }
 

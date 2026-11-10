@@ -4,7 +4,7 @@
 // side: for red the view flips vertically (the grid is mirrored top to bottom, so it maps onto
 // itself) and sprites stay upright.
 
-import { LANG } from '../app/i18n';
+import { systemFont } from '../app/i18n';
 import { FP } from '../sim/fixed';
 import { COLS, hexY, ROWS } from '../sim/hex';
 import { TEAM_BLUE } from '../sim/rules';
@@ -15,11 +15,12 @@ export const COL = {
   gold: '#fbbf24', ink: '#1f2937', white: '#ffffff',
 } as const;
 
-// Lilita One (SIL OFL 1.1, public/fonts/) has one weight and no CJK: Latin text uses it as is,
-// Chinese falls back to the system font at a heavy weight.
-export const FONT_STACK = ['Lilita One', 'Trebuchet MS', 'Segoe UI', 'system-ui', 'sans-serif'];
+// Lilita One (SIL OFL 1.1, public/fonts/) has one weight and no CJK or Cyrillic: Latin text uses it
+// as is, the languages it cannot write (i18n.ts systemFont) use the system font at a heavy weight.
+const SYSTEM_STACK = ['Trebuchet MS', 'Segoe UI', 'system-ui', 'sans-serif'];
+export const fontStack = (): string[] => (systemFont() ? SYSTEM_STACK : ['Lilita One', ...SYSTEM_STACK]);
 export type Weight = '400' | '800' | '900';
-export const fontW = (w: number = 800): Weight => (LANG === 'zh' ? (String(w) as Weight) : '400');
+export const fontW = (w: number = 800): Weight => (systemFont() ? (String(w) as Weight) : '400');
 
 export const teamCol = (t: number): string => (t === TEAM_BLUE ? COL.blue : COL.red);
 export const teamDark = (t: number): string => (t === TEAM_BLUE ? COL.blueDark : COL.redDark);
