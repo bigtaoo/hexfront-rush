@@ -5,6 +5,7 @@ import type { Engine } from '../sim/engine';
 import { makeReplay } from '../sim/replay';
 import { SIEGE, TEAM_BLUE } from '../sim/rules';
 import type { SimEvent } from '../sim/types';
+import { $ } from './dom';
 import type { Game } from './game';
 import { T } from './i18n';
 
@@ -20,7 +21,6 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
       if (g.mode !== 'demo') onMatchEnd(g, eng, e, fx !== 'none');
       continue;
     }
-    if (e.type === 'mapEvent' && e.team === me) g.eventsTaken++;
     if (fx === 'none') continue;
     R.onEvent(e);
     if (fx !== 'full') continue;
@@ -127,6 +127,7 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
 function onMatchEnd(g: Game, eng: Engine, e: SimEvent, loud: boolean): void {
   const me = g.localTeam;
   g.platform.gameplayStop();
+  $('pauseBtn').classList.add('hidden');
   if (loud) {
     const won = e.winner === me;
     g.sound.play(won ? 'win' : e.winner ? 'lose' : 'beep');

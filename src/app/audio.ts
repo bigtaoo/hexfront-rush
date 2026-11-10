@@ -2,8 +2,12 @@
 // a per-frame gate that merges repeats of one cue into one louder voice; a voice cap where higher
 // priority steals from lower; a compressor on the effects bus; and two-deck music that changes
 // track and loops by equal-power crossfades (MP3 streams are padded, so a native loop clicks).
-// The game tells it whether to be silent (the player's switch, the host's, a pause) through
-// MuteState; while paused the context is suspended and the decks stop.
+// The game tells it what to silence (the player's effects and music switches, the host's, a pause)
+// through MuteState; while paused the context is suspended and the decks stop.
+//
+// The mix: the results' stings sit with the game's own cues rather than over them (they were
+// ~11 dB above), the legendary sting about level with a build, melee as loud as a shot (it was
+// ~7 dB under the arrows).
 
 interface CueDef {
   pri: number;
@@ -27,17 +31,17 @@ export const CUES = {
   build: { pri: 3, gain: 0.7, gap: 0.08, vary: true },
   quest: { pri: 4, gain: 0.6, gap: 0.3 },
   nothing: { pri: 4, gain: 0.5, gap: 0.3 },
-  legend: { pri: 6, gain: 0.7, gap: 1 },
+  legend: { pri: 6, gain: 0.35, gap: 1 },
   // battle
   spawn: { pri: 1, gain: 0.3, gap: 0.2, vary: true },
   shoot: { pri: 0, gain: 0.3, gap: 0.09, vary: true },
   hit: { pri: 0, gain: 0.3, gap: 0.07, vary: true },
-  melee: { pri: 0, gain: 0.22, gap: 0.1, vary: true },
+  melee: { pri: 0, gain: 0.5, gap: 0.1, vary: true },
   pop: { pri: 1, gain: 0.4, gap: 0.08, vary: true },
   destroy: { pri: 5, gain: 0.6, gap: 0.2, vary: true },
   // results
-  win: { pri: 7, gain: 0.8, gap: 1 },
-  lose: { pri: 7, gain: 0.8, gap: 1 },
+  win: { pri: 7, gain: 0.22, gap: 1 },
+  lose: { pri: 7, gain: 0.22, gap: 1 },
 } satisfies Record<string, CueDef>;
 export type Cue = keyof typeof CUES;
 const cueDef = (c: Cue): CueDef => CUES[c];
@@ -47,13 +51,16 @@ export type Track = keyof typeof MUSIC;
 const MAX_VOICES = 14;
 const XFADE = 2;
 const MUSIC_LEVEL = 0.32;
+const SFX_LEVEL = 0.9;
 
 /** How loud a cue asked for `n` times in one frame plays: one voice, louder, capped. */
 export const mergedGain = (n: number): number => Math.min(1 + 0.15 * Math.log2(n), 1.5);
 
 export interface MuteState {
-  /** The player's switch or the host's. */
-  muted(): boolean;
+  /** The effects are off (the player's switch or the host's). */
+  sfxOff(): boolean;
+  /** The music is off (the player's switch or the host's). */
+  musicOff(): boolean;
   /** The game is paused (hidden tab, an ad, the host's pause): everything stops. */
   paused(): boolean;
 }
@@ -118,7 +125,7 @@ export class Sound {
     comp.release.value = 0.15;
     comp.connect(this.master);
     this.sfxBus = c.createGain();
-    this.sfxBus.gain.value = 0.9;
+    this.sfxBus.gain.value = SFX_LEVEL;
     this.sfxBus.connect(comp);
     this.musicBus = c.createGain();
     this.musicBus.gain.value = MUSIC_LEVEL;
@@ -164,16 +171,15 @@ export class Sound {
     }
   }
 
-  private silent(): boolean {
-    return this.st.muted() || this.st.paused();
-  }
 
   /** Call after any change of the mute or pause state. */
   applyMute(): void {
     const c = this.ctx;
     if (!c) return;
     const paused = this.st.paused();
-    this.master.gain.setTargetAtTime(this.silent() ? 0 : 1, c.currentTime, 0.02);
+    this.master.gain.setTargetAtTime(paused ? 0 : 1, c.currentTime, 0.02);
+    this.sfxBus.gain.setTargetAtTime(this.st.sfxOff() ? 0 : SFX_LEVEL, c.currentTime, 0.02);
+    this.musicBus.gain.setTargetAtTime(this.st.musicOff() ? 0 : MUSIC_LEVEL, c.currentTime, 0.02);
     for (const d of this.decks) {
       if (paused) d.el.pause();
       else if (d.level > 0 && d.el.paused && d.holds) d.el.play().catch(() => {});
@@ -198,7 +204,7 @@ export class Sound {
     const q = this.queue;
     this.queue = new Map();
     const c = this.ctx;
-    if (!c || this.silent()) return;
+    if (!c || this.st.paused() || this.st.sfxOff()) return;
     const now = c.currentTime;
     for (const [name, { n, vol }] of q) {
       const cue = cueDef(name);

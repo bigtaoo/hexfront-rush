@@ -14,6 +14,7 @@ import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER, totalStars } from '.
 import { updateMenu } from './campaignUi';
 import { devSwitches, LOCAL_HOST } from './dev';
 import { $, applyTexts, updateMuteIcon, updateShare } from './dom';
+import { wirePause } from './pauseMenu';
 import { Game, WATCH_SPEEDS } from './game';
 import { LANG, setLang } from './i18n';
 import { readReplayFile, replayFromJson } from './replayFile';
@@ -81,7 +82,8 @@ export async function boot(platform: Platform): Promise<void> {
   const dev = devSwitches(location.hostname, location.search);
   const game = new Game(app, platform, save, dev);
   // stars won before the leaderboard existed count too (the platform keeps the best score)
-  platform.submitStars(totalStars(save.stages));
+  platform.submitScore('stars', totalStars(save.stages));
+  if (save.dailyWins) platform.submitScore('daily', save.dailyWins);
   // a build sends to its relay (or VITE_REPLAY_URL); the dev server only with ?upload
   const upTo = replayUrl(relayUrl(), import.meta.env.VITE_REPLAY_URL);
   if (upTo && (!import.meta.env.DEV || dev.upload)) {
@@ -143,6 +145,7 @@ function wire(g: Game, platform: Platform): void {
     S.unlock();
     S.play('tap');
   };
+  wirePause(g, tap);
   $('playBtn').addEventListener('click', () => g.startMatch());
   // the campaign, the quick match and the daily challenge (campaignUi.ts)
   const toMenuPanel = () => {

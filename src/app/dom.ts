@@ -1,5 +1,5 @@
-// The HTML panels over the canvas (index.html): menu, how-to, online lobby, campaign, brief, leaderboard, results, and the
-// mute, leave and replay speed buttons. Every text comes from i18n through data-t attributes.
+// The HTML panels over the canvas (index.html): menu, how-to, online lobby, campaign, brief, leaderboard, results, the
+// pause menu and the achievements, and the corner buttons (sound, music, pause, leave, replay speed). Every text comes from i18n through data-t attributes.
 
 import { T } from './i18n';
 import type { Save } from './save';
@@ -10,15 +10,18 @@ export function $<E extends HTMLElement = HTMLElement>(id: string): E {
   return el as E;
 }
 
-export type Panel = 'menu' | 'howto' | 'result' | 'online' | 'campaign' | 'brief' | 'board';
-const PANELS: readonly Panel[] = ['menu', 'howto', 'result', 'online', 'campaign', 'brief', 'board'];
+export type Panel = 'menu' | 'howto' | 'result' | 'online' | 'campaign' | 'brief' | 'board' | 'pause' | 'ach';
+const PANELS: readonly Panel[] = ['menu', 'howto', 'result', 'online', 'campaign', 'brief', 'board', 'pause', 'ach'];
 
-/** Shows one panel (null: none, the match is on); the leave flag shows during an online match
- *  and a replay, the speed button during a replay. */
-export function show(id: Panel | null, leave: boolean, watch: boolean): void {
+/** Shows one panel (null: none, the match is on); the leave button shows during an online match
+ *  and a replay, the speed button during a replay, the pause button during a solo match. The
+ *  music switch shows beside the sound one whenever a panel is up (in a match only the sound one). */
+export function show(id: Panel | null, leave: boolean, watch: boolean, pause: boolean): void {
   for (const p of PANELS) $(p).classList.toggle('hidden', p !== id);
   $('leaveBtn').classList.toggle('hidden', !(id === null && leave));
   $('speedBtn').classList.toggle('hidden', !(id === null && watch));
+  $('pauseBtn').classList.toggle('hidden', !(id === null && pause));
+  $('musicBtn').classList.toggle('hidden', id === null);
 }
 
 export function applyTexts(save: Save): void {
@@ -39,6 +42,7 @@ export function updateShare(save: Save): void {
 
 export function updateMuteIcon(save: Save): void {
   $('muteBtn').classList.toggle('muted', save.muted);
+  $('musicBtn').classList.toggle('muted', save.musicOff);
 }
 
 /** The score counts up from 0 once its chip has popped in; the last value always lands. */

@@ -1,7 +1,7 @@
 // What the game needs from the page it runs in: plain web (web.ts) or Playgama's portal
 // (playgama/PlaygamaPlatform.ts). After Potion Siege's platform/types.ts, cut to what a
 // one-screen match game uses: storage, the language, the lifecycle messages, the gameplay
-// brackets, one paced interstitial between matches, an opt-in rewarded ad, the campaign's leaderboard, and the host's pause and sound switches.
+// brackets, one paced interstitial between matches, an opt-in rewarded ad, two leaderboards, and the host's pause and sound switches.
 
 /** A key/value store that behaves like localStorage. */
 export interface KeyValueStore {
@@ -15,6 +15,9 @@ export interface ScoreRow {
   name: string;
   score: number;
 }
+
+/** The game's leaderboards: total campaign stars, and daily challenges won (one a day at most). */
+export type Board = 'stars' | 'daily';
 
 /** Bridge's level messages (the game reports each match's start and end). */
 export type LevelMessage = 'level_started' | 'level_completed' | 'level_failed';
@@ -41,12 +44,12 @@ export interface Platform {
   /** One rewarded ad the player asked for: `onStart` runs when it is on screen (pause and mute
    *  there). Resolves true only when it was watched through: grant the bonus then, never else. */
   rewarded(onStart: () => void): Promise<boolean>;
-  /** Whether the campaign's leaderboard can be shown (its button shows only then). */
+  /** Whether the leaderboards can be shown (their buttons show only then). */
   leaderboardReady(): boolean;
-  /** The player's total campaign stars, for the leaderboard (the best one counts). */
-  submitStars(stars: number): void;
-  /** The leaderboard's rows, best first; empty when it cannot be read. */
-  topStars(): Promise<ScoreRow[]>;
+  /** The player's score on a board (the best one counts); 0 sends nothing. */
+  submitScore(board: Board, score: number): void;
+  /** A board's rows, best first; empty when it cannot be read. */
+  topScores(board: Board): Promise<ScoreRow[]>;
   /** Called with the host's mute state now and whenever it changes. */
   onHostMute(listener: (muted: boolean) => void): void;
   /** Called whenever the host pauses (true) or resumes (false) the game. */

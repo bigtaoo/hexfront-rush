@@ -57,8 +57,9 @@ export const ADBLOCK_WAIT_MS = 1500;
 type AdKind = 'interstitial' | 'rewarded';
 /** The placements, as playgama-bridge-config.json names them (vite.playgama.config.js). */
 export const PLACEMENT = { interstitial: 'match_end', rewarded: 'head_start' } as const;
-/** The campaign's leaderboard (its tag in the console and in the config): total stars won. */
-export const LEADERBOARD = 'campaign_stars';
+/** The leaderboards' tags, in the console and in the config: total campaign stars, and daily
+ *  challenges won (the console's boards never reset, so the daily one counts the days won). */
+export const LEADERBOARDS = { stars: 'campaign_stars', daily: 'daily_wins' } as const;
 
 
 export type Wait = (ms: number) => Promise<void>;

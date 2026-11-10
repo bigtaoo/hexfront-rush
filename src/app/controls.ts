@@ -217,6 +217,18 @@ export class Controls {
       }
       return;
     }
+    // the pause menu (a solo match): Esc / P toggle it, Enter / Space close it too
+    const pauseKey = ev.code === 'Escape' || ev.code === 'KeyP';
+    if (g.userPause && (pauseKey || ev.code === 'Enter' || ev.code === 'Space')) {
+      ev.preventDefault();
+      if (!ev.repeat) $('pResume').click();
+      return;
+    }
+    if (pauseKey && g.canPause()) {
+      ev.preventDefault();
+      if (!ev.repeat) $('pauseBtn').click();
+      return;
+    }
     if (KEYMAP[ev.code]) {
       ev.preventDefault();
       g.sound.unlock();

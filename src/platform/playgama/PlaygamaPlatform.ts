@@ -3,10 +3,10 @@
 // `create()`, which waits (bounded) for Bridge and reads the save through it first. Without Bridge
 // (local preview, adblocker) everything falls back to WebPlatform.
 
-import type { LevelMessage, Platform, ScoreRow } from '../types';
+import type { Board, LevelMessage, Platform, ScoreRow } from '../types';
 import { SafeStore } from '../types';
 import { WebPlatform } from '../web';
-import { LEADERBOARD, PlaygamaBridge } from './bridge';
+import { LEADERBOARDS, PlaygamaBridge } from './bridge';
 import { BridgeStore } from './bridgeStore';
 
 /** Bridge's stand-ins for a page that is no portal: a developer's own preview and the QA tool. */
@@ -125,12 +125,12 @@ export class PlaygamaPlatform extends WebPlatform implements Platform {
     return this.bridge.leaderboardShown();
   }
 
-  override submitStars(stars: number): void {
-    if (stars > 0) this.bridge.setScore(LEADERBOARD, stars);
+  override submitScore(board: Board, score: number): void {
+    if (score > 0) this.bridge.setScore(LEADERBOARDS[board], score);
   }
 
-  override topStars(): Promise<ScoreRow[]> {
-    return this.bridge.entries(LEADERBOARD);
+  override topScores(board: Board): Promise<ScoreRow[]> {
+    return this.bridge.entries(LEADERBOARDS[board]);
   }
 
   /** An adblocker stops the ads the platform would play. */

@@ -8,9 +8,10 @@ import {
   CHAPTERS, EVENTS_ON_MAP, GOAL_EVENTS, GOAL_PAR, GOAL_WIN, SKIRMISH, STAGE_COUNT, STAGES_PER_CHAPTER, chapterStars, dailyStage, dayNumber, goalsMet,
   nextStage, stageAt, stageConfig, stageLabel, stageOpen, type Stage,
 } from './campaign';
+import { ACHIEVEMENTS, achCount } from './achievements';
 import { $ } from './dom';
 import { T } from './i18n';
-import type { ScoreRow } from '../platform/types';
+import type { Board, ScoreRow } from '../platform/types';
 import type { Save } from './save';
 
 export type MatchKind = { kind: 'stage'; id: number } | { kind: 'quick' } | { kind: 'daily'; day: number };
@@ -49,6 +50,7 @@ export function recordGoals(m: MatchKind, save: Save, won: boolean, taken: numbe
   if (won && save.streakDay !== m.day) {
     save.streak = save.streakDay === m.day - 1 ? save.streak + 1 : 1;
     save.streakDay = m.day;
+    save.dailyWins++;
   }
   return { now, before };
 }
@@ -110,6 +112,7 @@ export function updateMenu(save: Save): void {
   const today = dayNumber(Date.now());
   const done = save.dailyDay === today ? save.dailyGoals : 0;
   $('dailyBtn').innerHTML = `${T('daily')} <span class="st">${starsHtml(done)}</span>`;
+  $('achN').textContent = `${achCount(save.ach)}/${ACHIEVEMENTS.length}`;
 }
 
 /** The chapter map: chapter ch's seven stages, open or locked, with their stars. */
@@ -133,8 +136,12 @@ export function showChapter(save: Save, ch: number, pick: (id: number) => void):
   }
 }
 
-/** The leaderboard's rows (null: still loading); a row's name is the platform's, shown as text. */
-export function showBoard(rows: ScoreRow[] | null): void {
+/** The leaderboard's rows (null: still loading); a row's name is the platform's, shown as text.
+ *  The stars board scores in stars, the daily one in challenges won. */
+export function showBoard(rows: ScoreRow[] | null, board: Board): void {
+  $('boardSub').textContent = T(board === 'stars' ? 'boardSub' : 'boardSubDaily');
+  $('boardStars').classList.toggle('on', board === 'stars');
+  $('boardDaily').classList.toggle('on', board === 'daily');
   const list = $('boardList');
   list.textContent = '';
   const note = (key: string) => {
@@ -152,7 +159,7 @@ export function showBoard(rows: ScoreRow[] | null): void {
     const name = document.createElement('span');
     name.textContent = r.name || T('boardAnon');
     const score = document.createElement('i');
-    score.textContent = `★ ${r.score}`;
+    score.textContent = board === 'stars' ? `★ ${r.score}` : String(r.score);
     li.append(rank, name, score);
     list.appendChild(li);
   }
@@ -176,6 +183,9 @@ export function showBrief(save: Save, m: Exclude<MatchKind, { kind: 'quick' }>):
   $('briefTwists').innerHTML = twists(st).map((t) => `<li>${t}</li>`).join('');
   $('briefGoals').innerHTML = GOALS.map((b) => `<li class="${had & b ? '' : 'off'}">${goalText(b, st, false)}</li>`).join('');
   $('briefTip').textContent = m.kind === 'stage' ? T(`chtip_${CHAPTERS[Math.floor(m.id / STAGES_PER_CHAPTER)]!.key}`) : '';
+  const best = m.kind === 'stage' ? (save.best[m.id] ?? 0) : 0;
+  $('briefBest').textContent = best ? T('bestTime', { t: fmtTime(best) }) : '';
+  $('briefBest').classList.toggle('hidden', !best);
 }
 
 const LOSS_TIPS = 6;

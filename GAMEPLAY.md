@@ -23,12 +23,12 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 - **Camera:** the play view shows about 11 hexes across and 17 rows. The intro opens on the enemy castle and pans home; after that the camera stays where the player puts it: drag the map, scroll the mouse wheel or hold WASD / the arrow keys. It never leaves the map. The menu's AI demo shows the whole map.
 - **Overview:** the map is only a little bigger than the play view, so there is no minimap. The magnifier button (top right of the play area), Space, a pinch or Ctrl + the wheel (a trackpad pinch) zoom out to the whole map; tapping the map there zooms back in on that spot (a pinch out, Ctrl + wheel up, Space or the button again also come back). Cards cannot be flipped in the overview: a tap only zooms in. Where the whole map fits at play zoom (a large screen) the button does not show.
 - **Edge markers:** at play zoom, markers on the edge of the play area point at what is off screen; tapping one glides the camera there. Every map event still waiting has a quiet marker with its icon (gold rim for gold, rarity colour for troops). Things that just happened off screen ping a bright marker for about 3 s: an event claimed (gold when you took it, red when the rival did), your castle under attack (at most every 5 s), a building lost (red) or destroyed (gold), and an epic or legendary barracks the rival raised.
-- Each match picks one of three themes: Meadow, Desert or Snow.
+- Each match picks one of three themes: Meadow, Desert or Snow. Snow's neutral ground is a grey-white a step darker than the pieces, so the white trees, chests and price tags stand out on it.
 - Each player starts with a castle and the 6 cards around it. Blue's castle is at the bottom, red's at the top. Each player always sees their own castle at the bottom: the red player's view is mirrored top to bottom.
 
 ## The player's move: flipping cards
 - The player has no avatar. The **only** action is tapping a card.
-- Cards (offers) stand on the free tiles next to the tiles the player has flipped (the castle counts as flipped), each showing what it builds and its price. An affordable card has a breathing gold rim; one you can't afford is grey with a red price.
+- Cards (offers) stand on the free tiles next to the tiles the player has flipped (the castle counts as flipped), each showing what it builds and its price. An affordable card has a breathing gold rim; one you can't afford is grey with its price faded (not red: red is the rival's colour).
 - Tapping an affordable card flips it and the building appears on that tile. Tapping one you can't afford shakes the gold pill.
 - **Every flip opens the tiles around it,** whatever the card gave, a mystery that gave nothing included: the free tiles next to it turn face-up as new cards. A flipped mystery tile is spent (its card does not come back). A building that falls closes its tile again, so the tile gets a card again if it is next to another flipped tile.
 - **Ground:** every new building claims the neutral tiles around it (never enemy tiles). Troops claim every tile they walk over, so most ground is won by the army.
@@ -49,7 +49,7 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
   - The castle gives +10 every 3 s.
   - Each gold mine gives +10 every 5 s.
   - Map events (below) pay gold or troops to whoever flips their card first.
-- **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a type and price. Tapping a card you can afford builds it. The price shows red when you can't afford it.
+- **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a type and price. Tapping a card you can afford builds it. The price fades when you can't afford it.
 - **Network:** every flip, a building or a mystery, extends your network and reveals the offers around it.
 - **Rising prices:** each card costs its base price plus a step for every building of its kind the team has standing (a mystery stays 25). Losing a building makes the next one cheaper again.
 
@@ -128,7 +128,8 @@ Events stand on the map from the start, face up for both players: the one thing 
 - **Bottom:**
   - Gold.
   - Current mini quest. Completing it pays bonus gold; there are up to 3 quests per match.
-- **Always on screen:** a mute button.
+- **Always on screen:** the sound button (effects). On the menus and boards a music button sits beside it (music alone); in a solo match a pause button takes its place.
+- **Pause** (solo matches: campaign, daily, quick match; Esc or P): the match stops and a board offers Resume, Restart (this stage again, counted as quit) and Menu. Esc, P, Enter or Space resume. The music keeps playing. Online and replays have no pause.
 
 ## Rival AI
 - Plays by the same rule as a person: every 0.5–1 s it may flip one of its cards.
@@ -140,11 +141,12 @@ Events stand on the map from the start, face up for both players: the one thing 
 - **Handicaps** (per side): starting gold, income %, castle hp %, a starting barracks (rarity), starting towers; and the siege time for both. Income is the smooth difficulty lever; a starting barracks is a strong one; castle hp barely matters.
 
 ## Campaign, quick match, daily — src/app/campaign.ts
-- **Menu:** the HEXFRONT RUSH logo between a blue guard and a red ogre over the AI demo (the match HUD stays hidden behind the menu), then Play (the next campaign stage) · Quick match + its difficulty (Easy / Normal / Hard / Brutal) · Daily · Online · How to play · Leaderboard (where the platform has one).
+- **Menu:** the HEXFRONT RUSH logo between a blue guard and a red ogre over the AI demo (the match HUD stays hidden behind the menu), then Play (the next campaign stage) · Quick match + its difficulty (Easy / Normal / Hard / Brutal) · Daily · Online · How to play · Leaderboard (where the platform has one) · Achievements (a medal with n/9).
 - **Campaign:** 6 chapters × 7 stages (the 7th a boss), each chapter one theme and one idea: first steps, gold rush (both start rich), blitz (early siege), fortresses (towers, strong castle), warlords (rival starts with barracks), the last front (all at once). Each stage is a fixed map (the seed), its rival's setup and maybe the player's. Stage 1-1 is the tutorial.
-- **Brief** before a stage: what is different there (one line each), the three goals and the chapter's tip (how to play its idea).
+- **Brief** before a stage: what is different there (one line each), the three goals, the chapter's tip (how to play its idea) and the best winning time there, once won.
 - **In the match:** the HUD's bottom-right line counts the chests and camps taken toward the second star (green once there) and gives the par.
-- **Results:** the stars (new ones flash), Next stage after a win, a tip after a loss (a different one each loss), and "Campaign complete! ★ n/126" after winning 6-7.
+- **Results** (a cream board like the other panels): the reason and the title, the tiles held by each side (counting up), the time played and the stage's best winning time ("New best time!" when beaten), the stars (new ones flash), a table of both sides' match (gold mines and barracks built, chests and camps taken, the largest army on the field at once; the better number in its side's colour), Next stage after a win, a tip after a loss (a different one each loss), "Campaign complete! ★ n/126" after winning 6-7, and the achievements just earned. On a short, wide screen (a phone held sideways) the board splits in two columns: the score on the left, the stats and the buttons on the right.
+- **Achievements** (`src/app/achievements.ts`, nine, kept in the save, earned at the end of a match against the AI): First Victory; Treasure Hunter (win having taken every chest and camp); Legend (a legendary barracks); Blitz (win within 2:30); Full Chapter (every star of a chapter); Daily Habit (the daily won 3 days in a row); Brutal (a quick match on Brutal); Horde (50 troops on the field at once); Conqueror (all 42 stages). The menu's medal opens them all, lit when earned, each with how to earn it.
 - **Stars:** win; win having taken at least half the map's chests and camps; win within the par time. A stage keeps every star ever earned. The next stage opens when this one is won.
 - **Daily challenge:** the same for everyone that day (seed from the date), a twist by day of the week, the rival's style by date; its own three stars and a win streak.
 - **Calibration:** `npm run campaign` plays each stage with the standard AI standing in for the player; `npm run campaigntune -- <chapter>` sets the rivals' incomes for a falling win-rate curve (DECISIONS.md).
@@ -155,6 +157,8 @@ The first match starts with a "How to play" card, followed by contextual hints. 
 2. Barracks.
 3. Map events: "Chests and camps go to whoever flips their card first" (8 s).
 4. Win condition.
+
+**First-time hints** (`src/app/hints.ts`), after the tutorial, on the same hint pill, each said once ever (Save.hints), one at a time for 6 s with 3 s between, only in solo matches: the waves (the first barracks: troops gather and march out together every 15 s), the mystery card (the first one offered: 25 gold, it may hold nothing, a squad or even a barracks, and it opens the tiles around it), the siege (20 s before it: when it starts; troops then hit buildings harder and more are allowed), the troop cap (the first time the army reaches it: barracks wait for room; the siege raises the cap). They explain rules, never what a face-down card holds.
 
 A pointing hand taps where the current step wants the player: the nearest affordable card to the castle (build), then a
 barracks card (barracks), then the nearest map event (events).
@@ -185,6 +189,7 @@ The game talks to its host through one `Platform` interface. `WebPlatform` is th
   - The game pauses and mutes while the ad is on screen, and also follows the host's pause and sound switches.
 - **Rewarded ad `head_start`** (`src/app/headStart.ts`): an offer on the brief of a campaign stage or the daily challenge, only where Bridge says rewarded ads play. The player alone asks for it; the button says it is an ad. Watched through (the `rewarded` state, never a bare close), the next attempt of that stage starts with +60 gold, once; the offer then comes back. A skipped or failed ad gives nothing. Stages are balanced without it. The gold goes into the match config, so its replay plays the same.
 - **Leaderboard `campaign_stars`** (numeric, highest first, set in the console): the player's campaign star total (0–126) is set after every stage result that changes it. The menu's Leaderboard button opens a panel with the top rows (rank, the platform's name, stars) and shows only where Bridge runs leaderboards in the game (`leaderboards.type === 'in_game'`). `playgama-bridge-config.json` names it under `leaderboards` and turns Playgama's SaaS boards on for `playgama` and `qa_tool` (public token = the app id). `?lb=fake` fakes a board on localhost.
+- **Leaderboard `daily_wins`** (numeric, highest first): the total of daily challenges the player has won (Save.dailyWins), set after each daily win (and both boards again at boot). The board panel has two tabs, Stars and Daily.
 - **The Playgama build** (`vite.playgama.config.js`): relative base, entry `src/main.playgama.ts`, the Bridge SDK tag from Playgama's CDN ahead of the entry, and `playgama-bridge-config.json` emitted next to `index.html`. The build fails if the page was never rewritten. `scripts/pack_playgama.py` zips it with `/` paths and no directory entries.
 - No other external requests.
 
@@ -194,7 +199,8 @@ Ported from Holy Kicker.
 - Per-frame gate: repeats of a cue merge into one louder voice.
 - 14-voice cap with priority stealing; compressor on the effects bus.
 - Music: two `<audio>` decks with 2 s equal-power crossfades, used both for track changes (lobby ↔ battle) and for the loop.
-- Respects the mute button, platform audio state and pause.
+- Two switches: the sound button silences the effects, the music button the music; the host's sound switch and a pause (hidden tab, an ad, the host's pause) silence both. The player's pause menu keeps the music on.
+- **Mix:** the win and lose stings at gain 0.22 (they were about 11 dB over the game), the legendary sting at 0.35 (about a build's level), melee at 0.5 (about a shot's level; it was about 7 dB under the arrows).
 - **Wood sounds** to match the toy look: wood knocks for taps, hits, melee (`melee`, its own cue), building (a plank), spawn (a wooden step), a book placed for the card pop and a heavy wood crack for a building lost; the win, lose and legendary jingles are Kenney's pizzicato versions of the old 8-bit melodies.
 - Sources: all CC0 (Kenney, OpenGameArt), see THIRD-PARTY-NOTICES.txt. Rebuild `public/sfx` and `public/music` with `python scripts/import_audio.py`.
 

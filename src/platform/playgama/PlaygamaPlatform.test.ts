@@ -83,4 +83,13 @@ describe('PlaygamaPlatform', () => {
     await pg.midgame(() => {});
     expect(f.shown).toBe(1);
   });
+
+  it('sends each board to its own tag, and no empty score', async () => {
+    const { f, pg } = await platform({ board: 'in_game' });
+    pg.submitScore('stars', 14);
+    pg.submitScore('daily', 3);
+    pg.submitScore('daily', 0);
+    await Promise.resolve();
+    expect(f.scores).toEqual([['campaign_stars', 14], ['daily_wins', 3]]);
+  });
 });

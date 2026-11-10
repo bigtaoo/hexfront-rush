@@ -28,8 +28,9 @@ interface GroundLook {
 export const GROUND: Record<ThemeKey, GroundLook> = {
   meadow: { top: ['#a3cc78', '#9bc570'], side: '#5d8a3e', bg: '#2f4a2b' },
   desert: LOOK_B ? { top: ['#e6d1a4', '#e2cc9e'], side: '#ad8b5a', bg: '#5f4936' } : { top: ['#e8d1a0', '#e1c995'], side: '#a9844d', bg: '#5e4630' },
-  // warm grey snow: a blue-white would read as the blue team's
-  snow: { top: ['#eceee9', '#e4e7e2'], side: '#99a2a3', bg: '#3c4448' },
+  // warm grey snow: a blue-white would read as the blue team's; a step darker than white, so the
+  // white offer symbols and the pale team grounds still stand out on it
+  snow: { top: ['#d5d9d3', '#cdd2cb'], side: '#8a9394', bg: '#3c4448' },
 };
 
 /** A team's ground: mid-tone tops (two shades) and the border line in the full hue. A full team

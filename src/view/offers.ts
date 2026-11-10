@@ -21,6 +21,8 @@ const REVEAL = 0.35;
 const GLYPH_K = LOOK_B ? 0.85 : 1.3, GLYPH_Y = LOOK_B ? -0.14 : -0.22, PRICE_Y = LOOK_B ? 0.32 : 0.46;
 /** The price's height (view units), a picture number (digits.ts). */
 const PRICE_H = LOOK_B ? 0.3 : 0.46;
+/** An offer the player cannot pay for: its price and coin this faint. */
+const POOR_ALPHA = 0.42;
 
 /** The stamp's two colours: a light cream face and a dark brown ink rim. */
 // lookB: a stamp in the ground's own light tone with a soft brown rim, not white on black
@@ -195,8 +197,10 @@ export class OfferLayer {
         c.key = off.key;
         c.glyph.context = glyphCtx(off.key);
       }
-      // what the player cannot pay for keeps its symbol (a faded one was unreadable); the price turns red
-      c.cost.set(String(cost), { h: PRICE_H, tint: afford ? '#ffffff' : LOOK_B ? '#d9624f' : '#ff4a3d', align: 'left', screen: zoom });
+      // what the player cannot pay for keeps its symbol (a faded one was unreadable); its price and
+      // coin fade instead (a red price on every card early on read as an alarm)
+      c.cost.set(String(cost), { h: PRICE_H, tint: '#ffffff', align: 'left', screen: zoom });
+      c.cost.alpha = c.coin.alpha = afford ? 1 : POOR_ALPHA;
     }
     for (const [i, c] of this.cards) {
       if (c.seen === n) continue;

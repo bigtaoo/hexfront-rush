@@ -1,9 +1,10 @@
 import type { KeyValueStore } from '../platform/types';
 import { GOAL_ALL, SKIRMISH, SKIRMISH_STD, STAGE_COUNT } from './campaign';
 
-// The one save: the record, whether the tutorial was played, the sound switch, whether the
-// player shares their solo matches' replays (replayUpload.ts), the campaign's stars, the quick
-// match's difficulty and the daily challenge's day and streak. Kept as JSON
+// The one save: the record, whether the tutorial was played, the sound and music switches, whether
+// the player shares their solo matches' replays (replayUpload.ts), the campaign's stars and best
+// times, the quick match's difficulty, the daily challenge's day, streak and wins, the first-time
+// hints already shown (hints.ts) and the achievements (achievements.ts). Kept as JSON
 // under one key in the platform's storage (localStorage on the web, Bridge on Playgama).
 
 export const SAVE_KEY = 'hexfront_save';
@@ -13,11 +14,15 @@ export interface Save {
   wins: number;
   losses: number;
   draws: number;
+  /** The sound effects are off (the key is older than the music switch). */
   muted: boolean;
+  musicOff: boolean;
   /** Send each solo match's replay, without anything that says who played (on by default). */
   shareReplays: boolean;
   /** Per campaign stage, the goals ever met there (campaign.ts GOAL_* bits). */
   stages: number[];
+  /** Per campaign stage, the fastest win in seconds of play; 0: not won yet. */
+  best: number[];
   /** The quick match's difficulty (campaign.ts SKIRMISH). */
   skirmish: number;
   /** The day (campaign.ts dayNumber) whose daily challenge dailyGoals counts; -1: none yet. */
@@ -26,16 +31,25 @@ export interface Save {
   /** Daily challenges won on days in a row, the last of them on streakDay. */
   streak: number;
   streakDay: number;
+  /** Daily challenges won, one a day at most (the daily leaderboard). */
+  dailyWins: number;
+  /** hints.ts HINT_* bits: the first-time hints already shown. */
+  hints: number;
+  /** achievements.ts bits: the achievements earned. */
+  ach: number;
 }
 
 export const freshSave = (): Save => ({
-  tutorialDone: false, wins: 0, losses: 0, draws: 0, muted: false, shareReplays: true,
-  stages: [], skirmish: SKIRMISH_STD, dailyDay: -1, dailyGoals: 0, streak: 0, streakDay: -1,
+  tutorialDone: false, wins: 0, losses: 0, draws: 0, muted: false, musicOff: false, shareReplays: true,
+  stages: [], best: [], skirmish: SKIRMISH_STD, dailyDay: -1, dailyGoals: 0, streak: 0, streakDay: -1,
+  dailyWins: 0, hints: 0, ach: 0,
 });
 
 const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
 const intIn = (v: unknown, lo: number, hi: number, std: number): number => (Number.isSafeInteger(v) && (v as number) >= lo && (v as number) <= hi ? (v as number) : std);
 const goals = (v: unknown): number[] => (Array.isArray(v) ? v.slice(0, STAGE_COUNT).map((g) => intIn(g, 0, GOAL_ALL, 0)) : []);
+const times = (v: unknown): number[] => (Array.isArray(v) ? v.slice(0, STAGE_COUNT).map(count) : []);
+const bits = (v: unknown): number => intIn(v, 0, 0x3fffffff, 0);
 
 /** The stored save, field by field: a missing, corrupt or foreign value falls back to the default. */
 export function loadSave(store: KeyValueStore): Save {
@@ -48,10 +62,15 @@ export function loadSave(store: KeyValueStore): Save {
   }
   if (!raw || typeof raw !== 'object') return s;
   const r = raw as Record<string, unknown>;
+  const muted = r.muted === true, streak = count(r.streak);
   return {
-    tutorialDone: r.tutorialDone === true, wins: count(r.wins), losses: count(r.losses), draws: count(r.draws), muted: r.muted === true,
-    shareReplays: r.shareReplays !== false, stages: goals(r.stages), skirmish: intIn(r.skirmish, 0, SKIRMISH.length - 1, SKIRMISH_STD),
-    dailyDay: intIn(r.dailyDay, -1, 1e7, -1), dailyGoals: intIn(r.dailyGoals, 0, GOAL_ALL, 0), streak: count(r.streak), streakDay: intIn(r.streakDay, -1, 1e7, -1),
+    tutorialDone: r.tutorialDone === true, wins: count(r.wins), losses: count(r.losses), draws: count(r.draws), muted,
+    // a save from before the music switch: its one switch silenced both
+    musicOff: typeof r.musicOff === 'boolean' ? r.musicOff : muted,
+    shareReplays: r.shareReplays !== false, stages: goals(r.stages), best: times(r.best), skirmish: intIn(r.skirmish, 0, SKIRMISH.length - 1, SKIRMISH_STD),
+    dailyDay: intIn(r.dailyDay, -1, 1e7, -1), dailyGoals: intIn(r.dailyGoals, 0, GOAL_ALL, 0), streak, streakDay: intIn(r.streakDay, -1, 1e7, -1),
+    // a save from before the count: the streak is a floor for it
+    dailyWins: Math.max(count(r.dailyWins), streak), hints: bits(r.hints), ach: bits(r.ach),
   };
 }
 

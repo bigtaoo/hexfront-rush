@@ -1,5 +1,5 @@
 import { AdPacing } from './adPacing';
-import { SafeStore, type KeyValueStore, type LevelMessage, type Platform, type ScoreRow } from './types';
+import { SafeStore, type Board, type KeyValueStore, type LevelMessage, type Platform, type ScoreRow } from './types';
 
 export function browserStorage(): KeyValueStore | null {
   try {
@@ -19,7 +19,7 @@ export class WebPlatform implements Platform {
   protected readonly pacing = new AdPacing();
   private readonly fakeAds: boolean;
   private readonly fakeBoard: boolean;
-  private myStars = 0;
+  private readonly mine: Record<Board, number> = { stars: 0, daily: 0 };
   private playing = false;
 
   constructor(search = typeof location === 'undefined' ? '' : location.search, host = typeof location === 'undefined' ? '' : location.hostname) {
@@ -81,14 +81,14 @@ export class WebPlatform implements Platform {
     return this.fakeBoard;
   }
 
-  submitStars(stars: number): void {
-    this.myStars = Math.max(this.myStars, stars);
+  submitScore(board: Board, score: number): void {
+    this.mine[board] = Math.max(this.mine[board], score);
   }
 
-  async topStars(): Promise<ScoreRow[]> {
+  async topScores(board: Board): Promise<ScoreRow[]> {
     if (!this.fakeBoard) return [];
-    const made = [117, 96, 80, 61, 44, 30, 18, 9, 4].map((score, i) => ({ name: `Player ${i + 1}`, score }));
-    const all = [...made, { name: 'You', score: this.myStars }].sort((a, b) => b.score - a.score);
+    const made = (board === 'stars' ? [117, 96, 80, 61, 44, 30, 18, 9, 4] : [41, 33, 20, 12, 7, 5, 3, 2, 1]).map((score, i) => ({ name: `Player ${i + 1}`, score }));
+    const all = [...made, { name: 'You', score: this.mine[board] }].sort((a, b) => b.score - a.score);
     return all.map((r, i) => ({ rank: i + 1, ...r }));
   }
 
