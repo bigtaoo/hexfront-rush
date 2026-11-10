@@ -219,12 +219,11 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
   });
   $('howBtn').addEventListener('click', () => {
     tap();
-    g.openHowTo('menu');
+    g.openHowTo();
   });
   $('howtoOk').addEventListener('click', () => {
     S.play('tap');
-    if (g.howtoThen === 'match') g.beginMatch();
-    else g.toMenu();
+    g.toMenu();
   });
   $('watchBtn').addEventListener('click', () => {
     tap();

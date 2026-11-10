@@ -20,7 +20,7 @@ export default {
   record: 'Vitórias {w} · Derrotas {l}',
   baseDestroyed: 'Castelo destruído!',
   timeUp: 'Impasse: vence quem tiver mais casas',
-  waveIn: 'onda {n}',
+  waveIn: 'onda em {n}s',
   siegeTag: 'cerco +{n}%',
   siege: 'CERCO! As tropas batem mais forte nas construções e o limite de tropas aumenta',
   siegeMore: 'Cerco +{n}%',

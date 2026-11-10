@@ -20,7 +20,7 @@ export default {
   record: '{w}승 · {l}패',
   baseDestroyed: '성 파괴!',
   timeUp: '교착 상태: 타일이 많은 쪽 승리',
-  waveIn: '웨이브 {n}',
+  waveIn: '출격까지 {n}초',
   siegeTag: '공성 +{n}%',
   siege: '공성전! 병력의 건물 피해 증가, 병력 상한 증가',
   siegeMore: '공성 +{n}%',

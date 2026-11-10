@@ -61,6 +61,9 @@ export interface MuteState {
   sfxOff(): boolean;
   /** The music is off (the player's switch or the host's). */
   musicOff(): boolean;
+  /** The effects' and the music's volume, 0..1 (the settings' sliders). */
+  sfxVol(): number;
+  musicVol(): number;
   /** The game is paused (hidden tab, an ad, the host's pause): everything stops. */
   paused(): boolean;
 }
@@ -172,14 +175,14 @@ export class Sound {
   }
 
 
-  /** Call after any change of the mute or pause state. */
+  /** Call after any change of the mute, volume or pause state. */
   applyMute(): void {
     const c = this.ctx;
     if (!c) return;
     const paused = this.st.paused();
     this.master.gain.setTargetAtTime(paused ? 0 : 1, c.currentTime, 0.02);
-    this.sfxBus.gain.setTargetAtTime(this.st.sfxOff() ? 0 : SFX_LEVEL, c.currentTime, 0.02);
-    this.musicBus.gain.setTargetAtTime(this.st.musicOff() ? 0 : MUSIC_LEVEL, c.currentTime, 0.02);
+    this.sfxBus.gain.setTargetAtTime(this.st.sfxOff() ? 0 : SFX_LEVEL * this.st.sfxVol(), c.currentTime, 0.02);
+    this.musicBus.gain.setTargetAtTime(this.st.musicOff() ? 0 : MUSIC_LEVEL * this.st.musicVol(), c.currentTime, 0.02);
     for (const d of this.decks) {
       if (paused) d.el.pause();
       else if (d.level > 0 && d.el.paused && d.holds) d.el.play().catch(() => {});

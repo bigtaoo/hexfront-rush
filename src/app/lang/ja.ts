@@ -20,7 +20,7 @@ export default {
   record: '{w}勝 · {l}敗',
   baseDestroyed: '城を破壊！',
   timeUp: '膠着：マスが多い方の勝ち',
-  waveIn: '第{n}波',
+  waveIn: '出撃まで{n}秒',
   siegeTag: '攻城 +{n}%',
   siege: '攻城戦！兵の建物への攻撃が強まり、兵の上限も増える',
   siegeMore: '攻城 +{n}%',

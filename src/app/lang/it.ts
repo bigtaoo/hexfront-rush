@@ -20,7 +20,7 @@ export default {
   record: "Vittorie {w} · Sconfitte {l}",
   baseDestroyed: "Castello distrutto!",
   timeUp: "Stallo: vince chi ha più caselle",
-  waveIn: "ondata {n}",
+  waveIn: 'ondata tra {n}s',
   siegeTag: "assedio +{n}%",
   siege: "ASSEDIO! Le truppe colpiscono più forte gli edifici, più truppe consentite",
   siegeMore: "Assedio +{n}%",

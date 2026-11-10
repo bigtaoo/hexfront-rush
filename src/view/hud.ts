@@ -117,11 +117,11 @@ export class Hud {
     const tPlayed = Math.floor(eng.elapsed() / TICK_RATE);
     const mm = Math.floor(tPlayed / 60), ss = tPlayed % 60;
     this.num('clock', `${mm}:${String(ss).padStart(2, '0')}`, cx, top * 0.3, { size: fs * 1.15, color: '#ffffff', weight: 900 });
-    // beside it: the seconds to the next wave, and the siege once it is on
+    // beside it: the seconds to the next wave (bigger and yellow in its last 3), and the siege once it is on
     const toWave = Math.ceil((WAVE_TICKS - (eng.elapsed() % WAVE_TICKS)) / TICK_RATE);
-    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * 0.62, color: toWave <= 3 ? '#fde047' : '#cbd5e1', weight: 800, align: 'left' });
+    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * (toWave <= 3 ? 0.78 : 0.7), color: toWave <= 3 ? '#fde047' : '#e2e8f0', weight: 800, align: 'left' });
     const siege = eng.siegeLevel();
-    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: fs * 0.62, color: '#fca5a5', weight: 800, align: 'right' });
+    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: fs * 0.7, color: '#fca5a5', weight: 800, align: 'right' });
     // the tug bar: tiles held, own side from the left
     const { bx, by, bw, bh } = this.tugRect(cam);
     const a = Tme.tiles, b = Tfoe.tiles;

@@ -20,7 +20,7 @@ export default {
   record: '胜 {w} · 负 {l}',
   baseDestroyed: '城堡被摧毁！',
   timeUp: '僵持：领地多者胜',
-  waveIn: '出兵 {n}',
+  waveIn: '{n}秒后出兵',
   siegeTag: '攻城 +{n}%',
   siege: '攻城开始！拆建筑更快，兵力上限提高',
   siegeMore: '攻城 +{n}%',

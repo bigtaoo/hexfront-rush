@@ -89,7 +89,6 @@ export class Game {
   /** The replay being watched, and how fast. */
   watching: Replay | null = null;
   watchSpeed: number = WATCH_SPEEDS[0];
-  howtoThen: 'match' | 'menu' = 'menu';
   /** The match being played (or the last one): a campaign stage, a quick match or the daily one. */
   match: MatchKind = { kind: 'quick' };
   /** The chapter the campaign panel shows, and on which campaign (Normal or Hard). */
@@ -127,6 +126,9 @@ export class Game {
     this.sound = new Sound({
       sfxOff: () => this.save.muted || this.hostMuted,
       musicOff: () => this.save.musicOff || this.hostMuted,
+      // squared: the slider's middle sounds like half as loud
+      sfxVol: () => (this.save.sfxVol / 100) ** 2,
+      musicVol: () => (this.save.musicVol / 100) ** 2,
       paused: () => this.sysPaused(),
     });
     this.online = new Online(this);
@@ -197,21 +199,18 @@ export class Game {
     this.sound.music('lobby');
   }
 
-  openHowTo(then: 'match' | 'menu'): void {
+  openHowTo(): void {
     this.state = 'howto';
-    this.howtoThen = then;
     this.show('howto');
   }
 
-  /** The menu's main button: the first time the how-to and then the first stage (the tutorial),
-   *  after that the campaign's chapter map. */
+  /** The menu's main button: the first time straight into the first stage (the tutorial: its
+   *  pointing hand teaches by doing; the how-to stays on the menu), after that the campaign's
+   *  chapter map. */
   startMatch(): void {
     this.sound.unlock();
     this.sound.play('tap');
-    if (!this.save.tutorialDone) {
-      this.match = { kind: 'stage', id: 0 };
-      return this.openHowTo('match');
-    }
+    if (!this.save.tutorialDone) return this.beginMatch({ kind: 'stage', id: 0 });
     this.openCampaign(chapterOfNext(this.save));
   }
 

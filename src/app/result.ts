@@ -52,7 +52,7 @@ export function showResult(g: Game, res: MatchResult | null): void {
     if (got && m.kind === 'stage' && got.now & ~got.before) g.platform.submitScore('stars', allStars(save));
     if (save.dailyWins > daily) g.platform.submitScore('daily', save.dailyWins);
   }
-  showStars(m, got, won && solo, lost && solo, save);
+  showStars(m, got, won && solo, lost && solo, save, st.taken(me));
   $('againBtn').textContent = T(got && !won ? 'retry' : 'playAgain');
   const title = $('resultTitle');
   title.textContent = !res ? T('replayOver') : won ? T('victory') : lost ? T('defeat') : T('draw');

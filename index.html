@@ -231,6 +231,17 @@
     background: radial-gradient(circle at 35% 30%, #fff, var(--wood-hi)); box-shadow: 0 2px 0 var(--wood-rim); transition: left .15s; }
   .sw:checked { border-color: var(--leaf-rim); background: linear-gradient(var(--leaf), var(--leaf-hi)); }
   .sw:checked::before { left: 24px; }
+  /* a volume slider: a carved groove, leaf green up to the knob (--v, set by settings.ts) */
+  .opt.volrow { cursor: default; }
+  .opt.volrow > label { flex: 0 0 36%; cursor: pointer; }
+  .vol { appearance: none; -webkit-appearance: none; flex: 1; min-width: 70px; height: 14px; margin: 0; border-radius: 7px; cursor: pointer;
+    border: 3px solid var(--wood-rim); box-shadow: inset 0 2px 3px rgba(110,67,32,.35);
+    background: linear-gradient(90deg, var(--leaf) 0 var(--v, 100%), #d8c4a0 var(--v, 100%)); }
+  .vol::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%;
+    border: 2px solid var(--wood-rim); background: radial-gradient(circle at 35% 30%, #fff, var(--wood-hi)); box-shadow: 0 2px 0 var(--wood-rim); }
+  .vol::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid var(--wood-rim); background: radial-gradient(circle at 35% 30%, #fff, var(--wood-hi)); box-shadow: 0 2px 0 var(--wood-rim); }
+  .vol:disabled { opacity: .45; cursor: default; }
   .card .share { text-shadow: none; color: var(--ink); max-width: none; }
   .card .privacy { margin-top: -8px; color: var(--wood-lo); }
   /* the brief's rival card */
@@ -437,8 +448,8 @@
   <div class="card narrow">
     <h2 data-t="settings"></h2>
     <div class="opts">
-      <label class="opt"><span data-t="optSound"></span><input type="checkbox" class="sw" id="optSfx"></label>
-      <label class="opt"><span data-t="optMusic"></span><input type="checkbox" class="sw" id="optMusic"></label>
+      <div class="opt volrow"><label for="optSfx" id="lblSfx" data-t="optSound"></label><input type="range" class="vol" id="optSfxVol" min="0" max="100" step="5" aria-labelledby="lblSfx"><input type="checkbox" class="sw" id="optSfx"></div>
+      <div class="opt volrow"><label for="optMusic" id="lblMusic" data-t="optMusic"></label><input type="range" class="vol" id="optMusicVol" min="0" max="100" step="5" aria-labelledby="lblMusic"><input type="checkbox" class="sw" id="optMusic"></div>
       <label class="opt hidden" id="optVibRow"><span data-t="optVibrate"></span><input type="checkbox" class="sw" id="optVib"></label>
       <div class="opt q"><span data-t="optGraphics"></span>
         <div class="tabs" id="optQuality"><button class="tab" data-q="0" data-t="qAuto"></button><button class="tab" data-q="1" data-t="qHigh"></button><button class="tab" data-q="2" data-t="qSaver"></button></div>

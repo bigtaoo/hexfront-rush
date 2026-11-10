@@ -92,10 +92,14 @@ export function twists(st: Stage): string[] {
 }
 
 const GOALS = [GOAL_WIN, GOAL_EVENTS, GOAL_PAR] as const;
-export function goalText(bit: number, st: Stage, short: boolean): string {
+/** A goal in words: the brief's full line, or (taken given: the results) the short one, where
+ *  the chests read as the ones taken against the ones needed, like the in-match line. */
+export function goalText(bit: number, st: Stage, taken: number | null = null): string {
+  const need = Math.ceil(EVENTS_ON_MAP / 2);
   if (bit === GOAL_WIN) return T('goal_win');
-  if (bit === GOAL_EVENTS) return T(short ? 'goal_eventsShort' : 'goal_events', { n: Math.ceil(EVENTS_ON_MAP / 2), t: EVENTS_ON_MAP });
-  return T(short ? 'goal_parShort' : 'goal_par', { t: fmtTime(st.par) });
+  if (bit === GOAL_EVENTS)
+    return taken === null ? T('goal_events', { n: need, t: EVENTS_ON_MAP }) : T('goal_eventsShort', { n: Math.min(taken, need), t: need });
+  return T(taken === null ? 'goal_par' : 'goal_parShort', { t: fmtTime(st.par) });
 }
 
 /** A locked stage's padlock (an icon drawn here, no emoji: Playgama 4.3.2). */
@@ -203,7 +207,7 @@ export function showBrief(save: Save, m: Exclude<MatchKind, { kind: 'quick' }>):
   }
   fillRivalCard($('briefRival'), rivalStyle(st), boss);
   $('briefTwists').innerHTML = twists(st).map((t) => `<li>${t}</li>`).join('');
-  $('briefGoals').innerHTML = GOALS.map((b) => `<li class="${had & b ? '' : 'off'}">${goalText(b, st, false)}</li>`).join('');
+  $('briefGoals').innerHTML = GOALS.map((b) => `<li class="${had & b ? '' : 'off'}">${goalText(b, st)}</li>`).join('');
   $('briefTip').textContent = m.kind === 'stage' ? T(`chtip_${CHAPTERS[Math.floor(m.id / STAGES_PER_CHAPTER)]!.key}`) : '';
   const best = m.kind === 'stage' ? (bestOf(save, m.hard)[m.id] ?? 0) : 0;
   $('briefBest').textContent = best ? T('bestTime', { t: fmtTime(best) }) : '';
@@ -223,8 +227,8 @@ function resultTip(m: MatchKind, won: boolean, save: Save): string {
 }
 
 /** The results' stars (null: a quick match, none), the next-stage button and the tip line
- *  (lost: whether the player lost, not merely failed to win). */
-export function showStars(m: MatchKind, got: { now: number; before: number } | null, won: boolean, lost: boolean, save: Save): void {
+ *  (lost: whether the player lost, not merely failed to win; taken: the chests and camps taken). */
+export function showStars(m: MatchKind, got: { now: number; before: number } | null, won: boolean, lost: boolean, save: Save, taken = 0): void {
   const tip = won || lost ? resultTip(m, won, save) : '';
   $('resTip').textContent = tip;
   $('resTip').classList.toggle('hidden', !tip);
@@ -235,6 +239,6 @@ export function showStars(m: MatchKind, got: { now: number; before: number } | n
   if (!got || !st) return;
   box.innerHTML = GOALS.map((b) => {
     const cls = got.now & b ? (got.before & b ? 'on' : 'on new') : got.before & b ? 'had' : '';
-    return `<div class="${cls}"><b>★</b>${goalText(b, st, true)}</div>`;
+    return `<div class="${cls}"><b>★</b>${goalText(b, st, taken)}</div>`;
   }).join('');
 }

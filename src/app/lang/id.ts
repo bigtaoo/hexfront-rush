@@ -20,7 +20,7 @@ export default {
   record: 'Menang {w} · Kalah {l}',
   baseDestroyed: 'Kastel hancur!',
   timeUp: 'Buntu: petak terbanyak menang',
-  waveIn: 'gelombang {n}',
+  waveIn: 'gelombang {n} dtk',
   siegeTag: 'kepungan +{n}%',
   siege: 'PENGEPUNGAN! Pasukan menghantam bangunan lebih keras, batas pasukan naik',
   siegeMore: 'Kepungan +{n}%',

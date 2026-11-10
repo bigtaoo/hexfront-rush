@@ -32,8 +32,11 @@ export function applyTexts(save: Save): void {
   updateShare(save);
 }
 
+/** The menu's record line; kept invisible (its room kept) until the first match is over. */
 export function updateRecord(save: Save): void {
-  $('record').textContent = T('record', { w: save.wins, l: save.losses });
+  const el = $('record');
+  el.textContent = T('record', { w: save.wins, l: save.losses });
+  el.style.visibility = save.wins + save.losses + save.draws ? '' : 'hidden';
 }
 
 export function updateShare(save: Save): void {
@@ -45,6 +48,16 @@ export function updateMuteIcon(save: Save): void {
   $('musicBtn').classList.toggle('muted', save.musicOff);
   $<HTMLInputElement>('optSfx').checked = !save.muted;
   $<HTMLInputElement>('optMusic').checked = !save.musicOff;
+  showVolume('optSfxVol', save.sfxVol, save.muted);
+  showVolume('optMusicVol', save.musicVol, save.musicOff);
+}
+
+/** A volume slider: its knob, its green fill, and greyed out while its switch is off. */
+export function showVolume(id: string, pct: number, off: boolean): void {
+  const el = $<HTMLInputElement>(id);
+  el.value = String(pct);
+  el.style.setProperty('--v', `${pct}%`);
+  el.disabled = off;
 }
 
 /** The score counts up from 0 once its chip has popped in; the last value always lands. */

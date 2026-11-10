@@ -21,6 +21,7 @@ describe('save', () => {
       tutorialDone: true, wins: 3, losses: 2, draws: 1, muted: true, musicOff: false, shareReplays: false,
       stages: [7, 1, 3], best: [95, 0, 210], skirmish: 2, dailyDay: 20400, dailyGoals: 5, streak: 3, streakDay: 20400,
       dailyWins: 9, hints: 5, ach: 0x41, hard: [1, 7], hardBest: [140, 0], quality: 2, vibrate: false,
+      sfxVol: 65, musicVol: 0,
     };
     persist(s, save);
     expect(loadSave(s)).toEqual(save);
@@ -46,5 +47,14 @@ describe('save', () => {
     expect(got.hardBest).toEqual([]);
     expect(got.quality).toBe(0);
     expect(got.vibrate).toBe(true);
+    expect(got.sfxVol).toBe(100);
+    expect(got.musicVol).toBe(100);
+  });
+
+  it('reads the volumes only within 0..100', () => {
+    const got = loadSave(store(JSON.stringify({ sfxVol: 140, musicVol: -5 })));
+    expect(got.sfxVol).toBe(100);
+    expect(got.musicVol).toBe(100);
+    expect(loadSave(store(JSON.stringify({ sfxVol: 0, musicVol: 35 }))).musicVol).toBe(35);
   });
 });

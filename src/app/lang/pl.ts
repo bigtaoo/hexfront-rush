@@ -20,7 +20,7 @@ export default {
   record: 'Wygrane {w} · Porażki {l}',
   baseDestroyed: 'Zamek zniszczony!',
   timeUp: 'Pat: wygrywa ten, kto ma więcej pól',
-  waveIn: 'fala {n}',
+  waveIn: 'fala za {n}s',
   siegeTag: 'oblężenie +{n}%',
   siege: 'OBLĘŻENIE! Wojska mocniej biją w budynki, limit wojsk rośnie',
   siegeMore: 'Oblężenie +{n}%',

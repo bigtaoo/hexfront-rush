@@ -6,7 +6,7 @@ import { GOAL_ALL, SKIRMISH, SKIRMISH_STD, STAGE_COUNT } from './campaign';
 // the player shares their solo matches' replays (replayUpload.ts), the campaign's stars and best
 // times (Normal and Hard), the quick match's difficulty, the daily challenge's day, streak and wins, the first-time
 // hints already shown (hints.ts), the achievements (achievements.ts) and the settings (graphics
-// quality, vibration: settings.ts). Kept as JSON
+// quality, vibration, the volumes: settings.ts). Kept as JSON
 // under one key in the platform's storage (localStorage on the web, Bridge on Playgama).
 
 export const SAVE_KEY = 'hexfront_save';
@@ -46,13 +46,16 @@ export interface Save {
   quality: number;
   /** Vibrate on the big moments where the device can (haptics.ts). */
   vibrate: boolean;
+  /** The effects' and the music's volume sliders, in percent (settings.ts). */
+  sfxVol: number;
+  musicVol: number;
 }
 
 
 export const freshSave = (): Save => ({
   tutorialDone: false, wins: 0, losses: 0, draws: 0, muted: false, musicOff: false, shareReplays: true,
   stages: [], best: [], hard: [], hardBest: [], skirmish: SKIRMISH_STD, dailyDay: -1, dailyGoals: 0, streak: 0, streakDay: -1,
-  dailyWins: 0, hints: 0, ach: 0, quality: 0, vibrate: true,
+  dailyWins: 0, hints: 0, ach: 0, quality: 0, vibrate: true, sfxVol: 100, musicVol: 100,
 });
 
 const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
@@ -82,6 +85,7 @@ export function loadSave(store: KeyValueStore): Save {
     // a save from before the count: the streak is a floor for it
     dailyWins: Math.max(count(r.dailyWins), streak), hints: bits(r.hints), ach: bits(r.ach),
     quality: intIn(r.quality, 0, QUALITY_MODES.length - 1, 0), vibrate: r.vibrate !== false,
+    sfxVol: intIn(r.sfxVol, 0, 100, 100), musicVol: intIn(r.musicVol, 0, 100, 100),
   };
 }
 

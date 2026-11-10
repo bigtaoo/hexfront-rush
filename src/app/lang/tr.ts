@@ -20,7 +20,7 @@ export default {
   record: 'Galibiyet {w} · Mağlubiyet {l}',
   baseDestroyed: 'Kale yıkıldı!',
   timeUp: 'Pat: daha çok karesi olan kazanır',
-  waveIn: 'dalga {n}',
+  waveIn: 'dalga {n} sn',
   siegeTag: 'kuşatma +{n}%',
   siege: 'KUŞATMA! Birlikler binalara daha sert vurur, daha çok birliğe izin var',
   siegeMore: 'Kuşatma +{n}%',

@@ -20,7 +20,7 @@ export default {
   record: 'Wins {w} · Losses {l}',
   baseDestroyed: 'Castle destroyed!',
   timeUp: 'Stalemate: more tiles wins',
-  waveIn: 'wave {n}',
+  waveIn: 'wave in {n}s',
   siegeTag: 'siege +{n}%',
   siege: 'SIEGE! Troops hit buildings harder, more troops allowed',
   siegeMore: 'Siege +{n}%',

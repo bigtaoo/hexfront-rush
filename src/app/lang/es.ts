@@ -20,7 +20,7 @@ export default {
   record: 'Victorias {w} · Derrotas {l}',
   baseDestroyed: '¡Castillo destruido!',
   timeUp: 'Tablas: gana quien tenga más casillas',
-  waveIn: 'oleada {n}',
+  waveIn: 'oleada en {n}s',
   siegeTag: 'asedio +{n}%',
   siege: '¡ASEDIO! Las tropas golpean más fuerte los edificios y se permiten más tropas',
   siegeMore: 'Asedio +{n}%',

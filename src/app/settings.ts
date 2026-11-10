@@ -1,10 +1,10 @@
-// The settings panel (the menu's gear): sound effects, music, graphics (auto / high / saver: the
+// The settings panel (the menu's gear): sound effects and music (a switch and a volume slider each), graphics (auto / high / saver: the
 // frame governor's level range, view/quality.ts), vibration (only where the device has it,
 // haptics.ts), and the replay sharing opt-in with its privacy link. Kept in the save.
 
 import { levelRange, QUALITY_MODES, type DeviceInfo } from '../view/quality';
 import type { QualityRuntime } from '../view/qualityRuntime';
-import { $, updateMuteIcon } from './dom';
+import { $, showVolume, updateMuteIcon } from './dom';
 import type { Game } from './game';
 import { haptics } from './haptics';
 
@@ -41,6 +41,22 @@ export function wireSettings(g: Game, quality: QualityRuntime, dev: DeviceInfo, 
     g.save.musicOff = !(e.target as HTMLInputElement).checked;
     syncSound();
   });
+  // the volume sliders: heard while dragged, kept on release (an effect plays then, to judge it by)
+  const volume = (id: string, key: 'sfxVol' | 'musicVol', off: () => boolean) => {
+    const el = check(id);
+    el.addEventListener('input', () => {
+      S.unlock();
+      g.save[key] = Number(el.value);
+      showVolume(id, g.save[key], off());
+      S.applyMute();
+    });
+    el.addEventListener('change', () => {
+      g.persist();
+      if (key === 'sfxVol') S.play('coin');
+    });
+  };
+  volume('optSfxVol', 'sfxVol', () => g.save.muted);
+  volume('optMusicVol', 'musicVol', () => g.save.musicOff);
   for (const b of document.querySelectorAll<HTMLElement>('#optQuality .tab')) {
     b.addEventListener('click', () => {
       tap();

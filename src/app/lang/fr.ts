@@ -20,7 +20,7 @@ export default {
   record: 'Victoires {w} · Défaites {l}',
   baseDestroyed: 'Château détruit !',
   timeUp: 'Impasse : le plus de cases l\'emporte',
-  waveIn: 'vague {n}',
+  waveIn: 'vague dans {n}s',
   siegeTag: 'siège +{n}%',
   siege: 'SIÈGE ! Les troupes frappent plus fort les bâtiments, plus de troupes autorisées',
   siegeMore: 'Siège +{n}%',

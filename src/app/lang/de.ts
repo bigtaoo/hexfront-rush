@@ -20,7 +20,7 @@ export default {
   record: 'Siege {w} · Niederlagen {l}',
   baseDestroyed: 'Burg zerstört!',
   timeUp: 'Patt: Mehr Felder gewinnen',
-  waveIn: 'Welle {n}',
+  waveIn: 'Welle in {n}s',
   siegeTag: 'Belagerung +{n}%',
   siege: 'BELAGERUNG! Truppen treffen Gebäude härter, mehr Truppen erlaubt',
   siegeMore: 'Belagerung +{n}%',
