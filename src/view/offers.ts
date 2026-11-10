@@ -12,17 +12,19 @@ import { OFFER_LIST } from '../sim/rules';
 import { coin } from './bodies';
 import { Num } from './digits';
 import { inView, type Frame } from './frame';
+import { LOOK_B } from './lookB';
 import { sharedCtx, type Pen } from './pen';
 
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
 /** The symbol's scale on its tile, and where its centre and the price row sit (view units). */
-const GLYPH_K = 1.3, GLYPH_Y = -0.22, PRICE_Y = 0.46;
+const GLYPH_K = LOOK_B ? 0.85 : 1.3, GLYPH_Y = LOOK_B ? -0.14 : -0.22, PRICE_Y = LOOK_B ? 0.32 : 0.46;
 /** The price's height (view units), a picture number (digits.ts). */
-const PRICE_H = 0.46;
+const PRICE_H = LOOK_B ? 0.3 : 0.46;
 
 /** The stamp's two colours: a light cream face and a dark brown ink rim. */
-const FACE = '#fffaf0', INK = '#2b2118';
+// lookB: a stamp in the ground's own light tone with a soft brown rim, not white on black
+const FACE = LOOK_B ? '#fbf3e1' : '#fffaf0', INK = LOOK_B ? '#7a6248' : '#2b2118';
 /** Ink rim width around a filled shape, and the extra width under a stroked one. */
 const RIM = 0.07, RIM2 = 0.12;
 
@@ -194,7 +196,7 @@ export class OfferLayer {
         c.glyph.context = glyphCtx(off.key);
       }
       // what the player cannot pay for keeps its symbol (a faded one was unreadable); the price turns red
-      c.cost.set(String(cost), { h: PRICE_H, tint: afford ? '#ffffff' : '#ff4a3d', align: 'left', screen: zoom });
+      c.cost.set(String(cost), { h: PRICE_H, tint: afford ? '#ffffff' : LOOK_B ? '#d9624f' : '#ff4a3d', align: 'left', screen: zoom });
     }
     for (const [i, c] of this.cards) {
       if (c.seen === n) continue;
@@ -211,9 +213,10 @@ export class OfferLayer {
     glyph.position.set(0, GLYPH_Y);
     glyph.scale.set(GLYPH_K);
     const cg = new Graphics(coinCtx());
-    cg.position.set(-0.24, PRICE_Y);
+    cg.position.set(LOOK_B ? -0.17 : -0.24, PRICE_Y);
+    if (LOOK_B) cg.scale.set(0.7);
     const cost = new Num();
-    cost.position.set(-0.08, PRICE_Y);
+    cost.position.set(LOOK_B ? -0.06 : -0.08, PRICE_Y);
     root.addChild(glyph, cg, cost);
     this.root.addChild(root);
     c = { root, glyph, coin: cg, cost, key: '', seen: 0 };

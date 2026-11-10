@@ -21,6 +21,8 @@ import { Juice, type DrawUi, type Frame, type Vis } from './frame';
 import { GROUND, GroundLayer } from './ground';
 import { EdgeLayer } from './edges';
 import { Hud, type Status } from './hud';
+import { LightLayer } from './light';
+import { LOOK_B } from './lookB';
 import { OfferLayer } from './offers';
 import { Overlays, type BannerOpts, type CardPop } from './overlays';
 import { setDigitDensity } from './digits';
@@ -37,6 +39,7 @@ export class Renderer {
   private sprites = new SpriteLayer();
   private edges = new EdgeLayer();
   private hud = new Hud(this.juice);
+  private light = LOOK_B ? new LightLayer() : null;
   private overlays = new Overlays(this.juice);
   private eng: Engine | null = null;
   private local = TEAM_BLUE;
@@ -45,6 +48,10 @@ export class Renderer {
   constructor(private readonly app: Application) {
     this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.root, this.effects.root);
     app.stage.addChild(this.world, this.edges.root, this.hud.root, this.overlays.root);
+    if (this.light) {
+      this.world.addChildAt(this.light.grain, 1);
+      app.stage.addChildAt(this.light.screen, 1);
+    }
     this.resize();
   }
 
@@ -104,6 +111,7 @@ export class Renderer {
   }
   resize(): void {
     this.cam.resize(this.app.screen.width, this.app.screen.height);
+    this.light?.resize(this.cam.W, 0, this.cam.H);
   }
 
   // ---------- camera ----------

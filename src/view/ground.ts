@@ -14,6 +14,7 @@ import { baseTile, type ThemeKey, type Tile } from '../sim/map';
 import { GUARD, TEAM_BLUE, TEAM_RED, TEAMS } from '../sim/rules';
 import type { Camera } from './camera';
 import { Pen, sharedCtx } from './pen';
+import { LOOK_B } from './lookB';
 import type { Pt } from './viewConst';
 
 interface GroundLook {
@@ -26,7 +27,7 @@ interface GroundLook {
 
 export const GROUND: Record<ThemeKey, GroundLook> = {
   meadow: { top: ['#a3cc78', '#9bc570'], side: '#5d8a3e', bg: '#2f4a2b' },
-  desert: { top: ['#e8d1a0', '#e1c995'], side: '#a9844d', bg: '#5e4630' },
+  desert: LOOK_B ? { top: ['#e6d1a4', '#e2cc9e'], side: '#ad8b5a', bg: '#5f4936' } : { top: ['#e8d1a0', '#e1c995'], side: '#a9844d', bg: '#5e4630' },
   // warm grey snow: a blue-white would read as the blue team's
   snow: { top: ['#eceee9', '#e4e7e2'], side: '#99a2a3', bg: '#3c4448' },
 };
@@ -35,10 +36,17 @@ export const GROUND: Record<ThemeKey, GroundLook> = {
  *  fill turned the map into a sheet of blue that swallowed the blue roofs, and a pale pastel left
  *  the white offer symbols with nothing to stand out against; mixing the hue into the theme's
  *  ground turned blue on sand grey, so the tone is the same on every theme. */
-const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = {
-  [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], line: '#2c55a0' },
-  [TEAM_RED]: { top: ['#eaa292', '#e69a89'], line: '#b13a2a' },
-};
+const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = LOOK_B
+  ? {
+      // lookB: a clear team field (the buildings stand on their pale yard and the troops on their
+      // bases, so the field no longer swallows them), the border carries the darker colour
+      [TEAM_BLUE]: { top: ['#a6bddb', '#a1b9d8'], line: '#2c55a0' },
+      [TEAM_RED]: { top: ['#e9b1a0', '#e6ab9a'], line: '#b13a2a' },
+    }
+  : {
+      [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], line: '#2c55a0' },
+      [TEAM_RED]: { top: ['#eaa292', '#e69a89'], line: '#b13a2a' },
+    };
 
 /** Tiles touch (no gaps: a gap per tile drew a heavy honeycomb over the whole map); a faint line
  *  just inside each top keeps the grid readable, and the side shows only along the map's rim. */
@@ -52,7 +60,7 @@ function tileCtx(side: string, top: string, obst: boolean) {
 }
 
 /** Border width and how far inside its tile a team's border line runs, view units. */
-const LINE_W = 0.1;
+const LINE_W = LOOK_B ? 0.15 : 0.1;
 const LINE_IN = 0.91;
 
 export class GroundLayer {

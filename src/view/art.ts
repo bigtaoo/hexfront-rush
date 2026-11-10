@@ -11,6 +11,7 @@ import atlasJson from '../assets/atlas.json';
 import atlasUrl from '../assets/atlas.webp?url';
 import type { Obstacle } from '../sim/map';
 import { TEAM_BLUE, type BuildingType, type UnitKey } from '../sim/rules';
+import { CAST, ONLY3 } from './lookB';
 
 /** Texture pixels per view unit: tools/art/sprites.py draws at TEX_K = 2 over a 38 px hex radius. */
 export const PPU = 76;
@@ -34,11 +35,14 @@ export function tex(name: string): Texture {
 
 const side = (team: number) => (team === TEAM_BLUE ? 'blue' : 'red');
 
-export const unitTex = (type: UnitKey, team: number): Texture => tex(`${type}_${side(team)}`);
+/** ?only3: the big troops are the ogre, every other one the guard (lookB.ts). */
+const only3Unit = (type: UnitKey): string => (type === 'ogre' || type === 'colossus' || type === 'drake' ? 'ogre' : 'guard');
+export const unitTex = (type: UnitKey, team: number): Texture => tex(`${ONLY3 ? only3Unit(type) : type}_${side(team)}`);
 export const guardTex = (team: number): Texture => tex(`guard_${side(team)}`);
 
 /** Barracks by rarity: a wooden hut, a timber hall, a stone fort, a golden hall. */
 export function buildingTex(type: BuildingType, team: number, rarity = 0): Texture {
+  if (ONLY3) return tex(`mine_${side(team)}`);
   const name = type === 'barracks' ? `barracks${Math.min(4, Math.max(1, rarity + 1))}` : type;
   return tex(`${name}_${side(team)}`);
 }
@@ -62,8 +66,9 @@ export function obstacleTex(kind: Obstacle, deco: number, theme: string): { t: T
       name = theme === 'desert' && v > 0.6 ? 'arch' : 'rocks';
       break;
     case 'ice':
-      // the ice crystals are bright blue, and blue on the map means the blue team (STYLE.md)
-      name = 'rocks';
+      // the old sticker crystals were bright blue (blue on the map means the blue team, STYLE.md),
+      // so ice drew as rocks; the wooden-toy crystals are a pale grey-green on a snow mound
+      name = 'ice';
       break;
     default:
       name = kind || 'rocks';
@@ -81,4 +86,22 @@ export function artSprite(t: Texture, footY = 0, face = 1): Sprite {
   s.position.set(0, footY);
   s.scale.set(face / PPU, 1 / PPU);
   return s;
+}
+
+/** lookB: the shadow a picture throws, the same texture dark, flattened and leaned away from the
+ *  light (lookB.ts CAST). Standing on the same foot, it is scaled like the picture with `sx, sy`. */
+export function castSprite(t: Texture, footY = 0): Sprite {
+  const s = new Sprite({ texture: t, anchor: { x: 0.5, y: 1 } });
+  s.tint = CAST.tint;
+  s.alpha = CAST.alpha;
+  s.skew.x = CAST.skew;
+  s.position.set(0, footY);
+  setCast(s, 1 / PPU, 1 / PPU);
+  return s;
+}
+/** Scales a cast shadow like its picture (x may be negative: the picture is mirrored). The picture
+ *  is flipped to hang below the foot, so the shadow lies on the ground in front, away from the
+ *  upper-left light, where the body never covers it. */
+export function setCast(s: Sprite, sx: number, sy: number): void {
+  s.scale.set(sx, -sy * CAST.squash);
 }

@@ -8,6 +8,7 @@ import type { Engine } from '../sim/engine';
 import { FP, ticks } from '../sim/fixed';
 import { baseTile } from '../sim/map';
 import { enemyOf, INTRO_TICKS, PHASE_INTRO, TEAM_BLUE, TEAM_RED } from '../sim/rules';
+import { LOOK_B, LOOKB_VIEW } from './lookB';
 import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, SQRT3, VIEW_FLIP_Y, VIEW_HEXES, VIEW_ROWS, type Pt } from './viewConst';
 
 /** Something that moves in the sim: its position now and a tick ago (FP). */
@@ -91,7 +92,8 @@ export class Camera {
     this.hudBot = Math.max(64, Math.min(92, H * 0.1));
     const availH = H - this.hudTop - this.hudBot - 8;
     const fit = Math.min((W - 12) / (MAP_X1 - MAP_X0), availH / (MAP_Y1 - MAP_Y0));
-    const zoom = Math.min((W - 12) / (SQRT3 * VIEW_HEXES), availH / (1.5 * VIEW_ROWS + 1.5));
+    const vh = LOOK_B ? LOOKB_VIEW.hexes : VIEW_HEXES, vr = LOOK_B ? LOOKB_VIEW.rows : VIEW_ROWS;
+    const zoom = Math.min((W - 12) / (SQRT3 * vh), availH / (1.5 * vr + 1.5));
     this.fitScale = fit;
     this.playScale = Math.max(fit, zoom);
     this.availH = availH;
@@ -131,6 +133,18 @@ export class Camera {
     if (eng.phase === PHASE_INTRO && eng.introT > INTRO_TICKS - ticks(1.3)) return this.tv[baseTile(enemyOf(me))]!;
     if (eng.phase === PHASE_INTRO || !this.camGoal) {
       const b = this.tv[baseTile(me)]!;
+      if (LOOK_B && eng.phase !== PHASE_INTRO) {
+        // lookB: the middle of the own buildings (the castle counts thrice), a little ahead
+        let sx = b.x * 3, sy = b.y * 3, n = 3;
+        for (const bd of eng.blds) {
+          if (bd.team !== me || bd.hp <= 0) continue;
+          const v = this.tv[bd.tile]!;
+          sx += v.x;
+          sy += v.y;
+          n++;
+        }
+        return { x: sx / n, y: sy / n - 1.6 };
+      }
       return { x: b.x, y: b.y - 2.2 };
     }
     return this.camGoal;

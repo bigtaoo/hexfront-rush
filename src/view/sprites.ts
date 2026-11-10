@@ -11,21 +11,24 @@ import { FP, TICK_RATE } from '../sim/fixed';
 import { BUILD, EVENT_LIST, GUARD, HIT_FLASH, LUNGE_TICKS, RARITY_COLOR, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
 import { TILE } from '../sim/hex';
 import type { Building } from '../sim/types';
-import { artH, artSprite, artW, buildingTex, eventTex, guardTex, obstacleTex, PPU, rubbleTex, TILE_FOOT, unitTex } from './art';
+import { artH, artSprite, artW, buildingTex, castSprite, setCast, eventTex, guardTex, obstacleTex, PPU, rubbleTex, TILE_FOOT, unitTex } from './art';
 import { coin, hpBar, shadowCtx } from './bodies';
 import type { Camera } from './camera';
 import { inView, type Frame } from './frame';
 import { label, liveGraphics, Pen, setLabel, sharedCtx } from './pen';
-import { dotCtx, UnitView } from './unitView';
+import { LOOK_B } from './lookB';
+import { DEATH_S, dotCtx, UnitView } from './unitView';
 
 type Live = { g: Graphics; p: Pen };
 
 /** A built mine's or barracks' badge: a dark disc at the building's foot showing what it makes (a
  *  coin, or the troop it trains) inside a ring that fills toward the next coin or troop. The badge
  *  and the full-colour picture are what tell a building from an offer's flat symbol (offers.ts). */
-const BADGE_Y = 0.2, BADGE_R = 0.27;
-/** The widest and tallest a building's picture is drawn (view units; a tile is 1.73 wide). */
-const BLD_W = 1.35, BLD_H = 1.7;
+const BADGE_Y = LOOK_B ? 0.24 : 0.2, BADGE_R = LOOK_B ? 0.2 : 0.27;
+/** The widest and tallest a building's picture is drawn (view units; a tile is 1.73 wide). lookB
+ *  had them smaller, but next to the 1.3x troops the painted toy buildings (wide footprints) then
+ *  read smaller than a soldier, so they fill most of their tile again. */
+const BLD_W = LOOK_B ? 1.45 : 1.35, BLD_H = LOOK_B ? 1.75 : 1.7;
 const badgeCtx = () => sharedCtx('badge', (p) => {
   p.circle(0, 0, BADGE_R + 0.06, 'rgba(24,18,12,0.88)');
   p.circle(0, 0, BADGE_R - 0.005, '#3a3f46');
@@ -64,9 +67,13 @@ class WallLayer {
   /** Per tile, each side's neighbour (-1 on the map's rim) and the side's two corners. */
   private sides: { j: number; ax: number; ay: number; bx: number; by: number }[][] = [];
 
+  /** Tile centres (view units). */
+  private cv: { x: number; y: number }[] = [];
+
   build(eng: Engine, cam: Camera): void {
     this.key = '';
     this.p.clear();
+    this.cv = cam.tv;
     const R = 0.97;
     this.sides = eng.tiles.map((t) => {
       const v = cam.tv[t.i]!;
@@ -100,6 +107,13 @@ class WallLayer {
       }
     }
     const p = this.p.clear();
+    if (LOOK_B) {
+      // lookB: one paved yard under the built tiles, no wall per tile: a block of built tiles reads
+      // as one place, not as a grid of boxes
+      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y + 0.05, 1.03, 'rgba(120,96,64,0.22)');
+      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y, 1.02, '#ece3cf');
+      return;
+    }
     const H = 0.06;
     // outline, then the wall's face, then its top, each over all walls so the joins run on
     for (const s of segs) p.line([s[0]!, s[1]! + H * 0.5, s[2]!, s[3]! + H * 0.5], 'rgba(52,44,34,0.85)', 0.19, 'round');
@@ -136,6 +150,11 @@ class BuildingView {
     this.pop.pivot.set(0, TILE_FOOT);
     this.pop.position.set(0, TILE_FOOT);
     this.pop.addChild(this.shadow, this.body, this.flash);
+    if (LOOK_B) {
+      const c = castSprite(t, TILE_FOOT);
+      setCast(c, k / PPU, k / PPU);
+      this.pop.addChildAt(c, 0);
+    }
     if (b.type !== 'tower') this.pop.addChild(makeBadge(b));
     this.pop.addChild(this.dyn.g);
     this.root.addChild(this.pop, this.hp.g);
@@ -213,11 +232,13 @@ const GUARD_FOOT = 0.36;
 /** Tiles covered per hop: the hop keeps pace with the feet, so a slow giant plods and a quick
  *  troop trots (one rate for all looked like every troop was scurrying). */
 const STRIDE = 0.4;
-/** Hop height (0..0.06) at time `t` for a walker at `speed` (world units x FP per tick). */
-function hop(t: number, speed: number): number {
+/** The walk's foot phase (-1..1: which foot it is on) at time `t` for a walker at `speed` (world
+ *  units x FP per tick); the hop is |phase| x 0.06 view units high. */
+function stride(t: number, speed: number): number {
   const perS = (speed * TICK_RATE) / TILE / STRIDE;
-  return Math.abs(Math.sin(t * Math.PI * perS)) * 0.06;
+  return Math.sin(t * Math.PI * perS);
 }
+
 
 class GuardView {
   readonly root = new Container();
@@ -237,7 +258,12 @@ class GuardView {
     this.flash.blendMode = 'add';
     this.shadow.position.set(0, GUARD_FOOT);
     this.root.addChild(this.shadow, this.body, this.flash, this.hp.g, this.name);
+    if (LOOK_B) {
+      this.cast = castSprite(guardTex(0), GUARD_FOOT);
+      this.root.addChildAt(this.cast, 0);
+    }
   }
+  private cast: Sprite | null = null;
   update(f: Frame, tm: number): void {
     const g = f.eng.guards[tm]!;
     if (g.team !== this.team) {
@@ -245,15 +271,20 @@ class GuardView {
       const t = guardTex(g.team);
       this.body.texture = t;
       this.flash.texture = t;
+      if (this.cast) this.cast.texture = t;
       this.h = artH(t);
     }
-    const bob = g.moving ? hop(f.time + g.id, g.aim ? GUARD.chaseSpeed : GUARD.speed) : 0;
+    const step = g.moving ? stride(f.time + g.id, g.aim ? GUARD.chaseSpeed : GUARD.speed) : 0;
+    const bob = Math.abs(step) * 0.06;
     const face = g.face || 1;
     const sy = bob > 0 ? 1 + (bob - 0.025) * 1.3 : 1 + Math.sin(f.time * 2.2 + tm) * 0.015;
     for (const sp of [this.body, this.flash]) {
       sp.position.set(0, GUARD_FOOT - bob);
       sp.scale.set((face * (2 - sy)) / PPU, sy / PPU);
+      // rocks from foot to foot like the troops (unitView.ts)
+      sp.rotation = step * 0.1;
     }
+    if (this.cast) setCast(this.cast, (face * (2 - sy)) / PPU, sy / PPU);
     const fl = Math.max(0, HIT_FLASH - (f.eng.tick - g.hitT)) / HIT_FLASH;
     this.flash.visible = fl > 0;
     this.flash.alpha = 0.85 * fl;
@@ -295,7 +326,14 @@ export class SpriteLayer {
       const g = new Container();
       const sh = new Graphics(shadowCtx(0.5));
       sh.position.set(0, TILE_FOOT - 0.08);
-      g.addChild(sh, artSprite(tx, TILE_FOOT, flip ? -1 : 1));
+      const sp = artSprite(tx, TILE_FOOT, flip ? -1 : 1);
+      if (LOOK_B) {
+        // lookB: decoration sinks into the ground (a warm tint, part see-through)
+        sp.tint = 0xf2e6cc;
+        g.alpha = 0.62;
+      }
+      g.addChild(sh, sp);
+      if (LOOK_B) g.addChildAt(castSprite(tx, TILE_FOOT), 0);
       const v = cam.tv[t.i]!;
       g.position.set(v.x, v.y);
       g.zIndex = v.y;
@@ -394,17 +432,24 @@ export class SpriteLayer {
       uv.root.zIndex = p.y;
       const def = UNITS[u.type];
       const moving = u.x !== u.px || u.y !== u.py;
+      const step = moving ? stride(f.time + u.id * 0.37, def.speed) : 0;
       uv.update({
         type: u.type, team: u.team, s: def.size / FP, face: u.face || (u.team === TEAM_BLUE ? 1 : -1),
-        lunge: eng.tick - u.lungeT < LUNGE_TICKS, bob: moving ? hop(f.time + u.id * 0.37, def.speed) : 0,
+        lunge: eng.tick - u.lungeT < LUNGE_TICKS, bob: Math.abs(step) * 0.06, step,
+        age: (eng.tick - u.bornT + f.alpha) / TICK_RATE, ranged: !!def.ranged,
         flash: Math.max(0, HIT_FLASH - (eng.tick - u.hitT)) / HIT_FLASH, hp: u.hp / u.maxhp, own: u.team === f.local,
         id: u.id, rarity: def.rarity, time: f.time,
       });
     }
     for (const [id, uv] of this.units) {
       if (uv.seen === n) continue;
-      uv.destroy();
-      this.units.delete(id);
+      // fallen (or gone): it tips over where it stood, then goes (not off screen: nobody sees it)
+      uv.deadT ??= f.time;
+      const k = (f.time - uv.deadT) / DEATH_S;
+      if (k >= 1 || !uv.root.visible) {
+        uv.destroy();
+        this.units.delete(id);
+      } else uv.dieFrame(k, uv.face);
     }
     for (const tm of TEAMS) {
       const g = eng.guards[tm]!;

@@ -6,3 +6,12 @@ Thumbs.db
 dist/
 dist-playgama/
 data/
+# art work files, rebuilt by tools/art3d (art/STYLE.md): only the refs, the glbs and the final sprites are kept
+art/pilot3d/
+art/tripo/compare/
+art/tripo/look/
+art/tripo/render*/
+art/tripo/sprites/
+art/tripo/sprites_paint/
+art/tripo/sprites_toon/
+art/tripo/tex/
