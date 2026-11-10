@@ -6,7 +6,8 @@
 import { idx, inMap, worldToHex } from '../sim/hex';
 import type { Tile } from '../sim/map';
 import { cardCost, standingOf } from '../sim/economy';
-import { $ } from './dom';
+import { $, openPanel } from './dom';
+import { keyboardFocused, noteInput, panelButton, usableButton } from './panelKeys';
 import type { Game } from './game';
 
 /** A press that moves further than this is a drag, not a tap (CSS px). */
@@ -26,8 +27,6 @@ const KEYMAP: Record<string, readonly [number, number]> = {
   KeyD: [1, 0],
   ArrowRight: [1, 0],
 };
-
-const isInput = (t: EventTarget | null): boolean => t instanceof HTMLElement && t.tagName === 'INPUT';
 
 export class Controls {
   private down = false;
@@ -63,6 +62,7 @@ export class Controls {
       if (KEYMAP[e.code]) this.keys.delete(e.code);
     });
     window.addEventListener('blur', () => this.clear());
+    window.addEventListener('pointerdown', () => noteInput(false), true);
   }
 
   private xy(cv: HTMLCanvasElement, ev: PointerEvent): { x: number; y: number } {
@@ -210,16 +210,24 @@ export class Controls {
 
   private onKeyDown(ev: KeyboardEvent): void {
     const g = this.g;
-    if (isInput(ev.target)) {
+    noteInput(true);
+    const t = ev.target;
+    if (t instanceof HTMLInputElement && t.type === 'text') {
+      // the room code: Enter joins, Esc leaves the lobby
       if (ev.code === 'Enter' || ev.code === 'NumpadEnter') {
         ev.preventDefault();
         $('joinBtn').click();
+      } else if (ev.code === 'Escape') {
+        ev.preventDefault();
+        $('onlineBack').click();
       }
       return;
     }
+    // a control reached with Tab keeps its own Enter / Space (and a slider its arrows)
     // the pause menu (a solo match): Esc / P toggle it, Enter / Space close it too
     const pauseKey = ev.code === 'Escape' || ev.code === 'KeyP';
-    if (g.userPause && (pauseKey || ev.code === 'Enter' || ev.code === 'Space')) {
+    const ownKey = keyboardFocused(t) && (ev.code === 'Enter' || ev.code === 'NumpadEnter' || ev.code === 'Space');
+    if (g.userPause && !ownKey && (pauseKey || ev.code === 'Enter' || ev.code === 'Space')) {
       ev.preventDefault();
       if (!ev.repeat) $('pResume').click();
       return;
@@ -229,6 +237,18 @@ export class Controls {
       if (!ev.repeat) $('pauseBtn').click();
       return;
     }
+    if (ownKey) return;
+    const panel = openPanel();
+    if (panel && g.state !== 'match') {
+      if (keyboardFocused(t) && t.tagName === 'INPUT' && ev.code.startsWith('Arrow')) return;
+      const id = panelButton(panel, ev.code, usableButton);
+      if (id) {
+        ev.preventDefault();
+        g.sound.unlock();
+        if (!ev.repeat) $(id).click();
+      }
+      return;
+    }
     if (KEYMAP[ev.code]) {
       ev.preventDefault();
       g.sound.unlock();
@@ -236,11 +256,6 @@ export class Controls {
     } else if (ev.code === 'Space' && g.state === 'match') {
       ev.preventDefault();
       if (g.canLook() && !ev.repeat) g.renderer.setOverview(!g.renderer.overview);
-    } else if ((ev.code === 'Enter' || ev.code === 'Space') && g.state !== 'match') {
-      ev.preventDefault();
-      if (g.state === 'menu') g.startMatch();
-      else if (g.state === 'howto') $('howtoOk').click();
-      else if (g.state === 'result') $('againBtn').click();
     }
   }
 }

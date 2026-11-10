@@ -2,6 +2,7 @@
 // pause menu, the achievements and the settings, and the corner buttons (sound, music, pause, leave, replay speed). Every text comes from i18n through data-t attributes.
 
 import { T } from './i18n';
+import { settleFocus } from './panelKeys';
 import type { Save } from './save';
 
 export function $<E extends HTMLElement = HTMLElement>(id: string): E {
@@ -13,15 +14,21 @@ export function $<E extends HTMLElement = HTMLElement>(id: string): E {
 export type Panel = 'menu' | 'howto' | 'result' | 'online' | 'campaign' | 'brief' | 'board' | 'pause' | 'ach' | 'settings';
 const PANELS: readonly Panel[] = ['menu', 'howto', 'result', 'online', 'campaign', 'brief', 'board', 'pause', 'ach', 'settings'];
 
+let current: Panel | null = null;
+/** The panel up now (null: none). */
+export const openPanel = (): Panel | null => current;
+
 /** Shows one panel (null: none, the match is on); the leave button shows during an online match
  *  and a replay, the speed button during a replay, the pause button during a solo match. The
  *  music switch shows beside the sound one whenever a panel is up (in a match only the sound one). */
 export function show(id: Panel | null, leave: boolean, watch: boolean, pause: boolean): void {
+  current = id;
   for (const p of PANELS) $(p).classList.toggle('hidden', p !== id);
   $('leaveBtn').classList.toggle('hidden', !(id === null && leave));
   $('speedBtn').classList.toggle('hidden', !(id === null && watch));
   $('pauseBtn').classList.toggle('hidden', !(id === null && pause));
   $('musicBtn').classList.toggle('hidden', id === null);
+  settleFocus(id);
 }
 
 export function applyTexts(save: Save): void {

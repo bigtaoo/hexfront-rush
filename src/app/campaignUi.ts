@@ -143,6 +143,7 @@ export function showChapter(save: Save, ch: number, hard: boolean, pick: (id: nu
   const grid = $('stageGrid');
   grid.textContent = '';
   grid.classList.toggle('hard', hard);
+  let last: HTMLButtonElement | null = null;
   for (let s = 0; s < STAGES_PER_CHAPTER; s++) {
     const id = ch * STAGES_PER_CHAPTER + s;
     const b = document.createElement('button');
@@ -150,9 +151,14 @@ export function showChapter(save: Save, ch: number, hard: boolean, pick: (id: nu
     const open = hard ? hardOpen(save.stages, save.hard, id) : stageOpen(save.stages, id);
     b.disabled = !open;
     b.innerHTML = `<span>${open ? stageLabel(id) : LOCK}</span><span class="st">${starsHtml(goals[id] ?? 0)}</span>`;
-    if (open) b.addEventListener('click', () => pick(id));
+    if (open) {
+      b.addEventListener('click', () => pick(id));
+      last = b;
+    }
     grid.appendChild(b);
   }
+  // the newest open stage: Enter plays it, and a key that opens the chapter focuses it
+  if (last) last.id = 'stageLast';
 }
 
 /** The leaderboard's rows (null: still loading); a row's name is the platform's, shown as text.

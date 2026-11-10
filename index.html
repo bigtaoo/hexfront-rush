@@ -303,6 +303,10 @@
     box-shadow: inset 0 3px 6px rgba(110,67,32,.3);
     -webkit-user-select: text; user-select: text; touch-action: auto;
   }
+  /* a control reached with Tab: an ink ring (never blue: blue is a team colour); a tap shows none */
+  button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+  button:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: none; }
+  #codeIn:focus { outline: none; border-color: var(--gold); }
   #codeIn::placeholder { color: rgba(59,36,18,.35); letter-spacing: 2px; }
   .row.join { align-items: center; }
   .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
