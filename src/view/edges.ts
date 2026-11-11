@@ -8,13 +8,13 @@
 
 import { Container, Sprite, type Texture } from 'pixi.js';
 import type { Engine } from '../sim/engine';
-import { EVENT_LIST, RARITY_COLOR, type BuildingType } from '../sim/rules';
+import { EVENT_LIST, type BuildingType } from '../sim/rules';
 import type { SimEvent } from '../sim/types';
 import { buildingTex, eventTex } from './art';
 import type { Camera } from './camera';
 import type { Frame } from './frame';
 import { liveGraphics } from './pen';
-import { UI, type Pt } from './viewConst';
+import { COL, RARITY_COLOR, UI, type Pt } from './viewConst';
 
 /** Marker radius and the margin it keeps from the play area's edge, screen pixels. */
 const MR = 17;
@@ -76,7 +76,7 @@ export class EdgeLayer {
     switch (e.type) {
       case 'mapEvent': {
         const ev = EVENT_LIST.findIndex((d) => d.key === e.kind);
-        if (ev > 0) this.ping(v, mine ? '#fde047' : '#ef4444', eventTex(e.kind!), `ev${e.x},${e.y}`);
+        if (ev > 0) this.ping(v, mine ? COL.coin : COL.red, eventTex(e.kind!), `ev${e.x},${e.y}`);
         break;
       }
       case 'dmg': {
@@ -84,12 +84,12 @@ export class EdgeLayer {
         const b = eng.blds.find((x) => x.id === e.id);
         if (!b || b.type !== 'base') break;
         this.castleT = this.time;
-        this.ping(v, '#ef4444', buildingTex('base', local, 0), 'castle');
+        this.ping(v, COL.red, buildingTex('base', local, 0), 'castle');
         break;
       }
       case 'bldDown':
         if (e.kind === 'base') break;
-        this.ping(v, mine ? '#ef4444' : '#fde047', buildingTex(e.kind as BuildingType, e.team ?? local, 0), `down${e.x},${e.y}`);
+        this.ping(v, mine ? COL.red : COL.coin, buildingTex(e.kind as BuildingType, e.team ?? local, 0), `down${e.x},${e.y}`);
         break;
       case 'mysteryWin':
       case 'barracks':
@@ -130,7 +130,7 @@ export class EdgeLayer {
         if (!t.event) continue;
         const v = cam.tv[t.i]!, d = EVENT_LIST[t.event]!;
         if (this.pings.some((q) => Math.abs(q.x - v.x) < 0.01 && Math.abs(q.y - v.y) < 0.01)) continue;
-        this.marker(cam, v, d.troops ? RARITY_COLOR[d.rarity]! : '#fde047', eventTex(d.key), 0.8, 1);
+        this.marker(cam, v, d.troops ? RARITY_COLOR[d.rarity]! : COL.coin, eventTex(d.key), 0.8, 1);
       }
       for (const q of this.pings) {
         const pulse = 1 + Math.max(0, 1 - q.t / 0.6) * 0.35 + Math.sin(q.t * 9) * 0.05;

@@ -3,8 +3,6 @@
 // own with a growing back-off, and calls onOpen each time so the caller can create, join or
 // resume. It also pings every 2 s and keeps an RTT estimate for the HUD.
 
-export const NET_PROTOCOL = 1;
-
 export type NetState = 'idle' | 'connecting' | 'open' | 'retry';
 /** A relay message: always an object with a string type `t`. */
 export interface NetMsg {

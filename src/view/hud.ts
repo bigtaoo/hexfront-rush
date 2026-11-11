@@ -13,7 +13,7 @@ import type { Camera } from './camera';
 import { Num } from './digits';
 import type { Frame, Juice } from './frame';
 import { label, liveGraphics, setLabel, type LabelOpts, type Pen } from './pen';
-import { teamCol, UI } from './viewConst';
+import { COL, teamCol, UI } from './viewConst';
 
 export interface Status {
   text: string;
@@ -25,7 +25,7 @@ const GRAIN = [0.16, 0.3, 0.52, 0.74, 0.88];
 /** A picture number's height over the font size of the label it replaced (its outline is part of it). */
 const NUM_K = 1.1;
 /** A side whose army is at the troop cap: its count and a ring round its avatar in this. */
-const CAP_COL = '#fde047';
+const CAP_COL = COL.coin;
 
 export class Hud {
   readonly root = new Container();
@@ -140,9 +140,9 @@ export class Hud {
     this.num('clock', `${mm}:${String(ss).padStart(2, '0')}`, cx, top * 0.3, { size: fs * 1.15, color: '#ffffff', weight: 900 });
     // beside it: the seconds to the next wave (bigger and yellow in its last 3), and the siege once it is on
     const toWave = Math.ceil((WAVE_TICKS - (eng.elapsed() % WAVE_TICKS)) / TICK_RATE);
-    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * (toWave <= 3 ? 0.78 : 0.7), color: toWave <= 3 ? '#fde047' : UI.cream, weight: 800, align: 'left' });
+    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * (toWave <= 3 ? 0.78 : 0.7), color: toWave <= 3 ? COL.coin : UI.cream, weight: 800, align: 'left' });
     const siege = eng.siegeLevel();
-    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: fs * 0.7, color: '#fca5a5', weight: 800, align: 'right' });
+    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: fs * 0.7, color: COL.hurt, weight: 800, align: 'right' });
     // the tug bar: tiles held, own side from the left
     const { bx, by, bw, bh } = this.tugRect(cam);
     const a = Tme.tiles, b = Tfoe.tiles;
@@ -173,7 +173,7 @@ export class Hud {
     p.rrect(gx + 2, gy - gfs * 0.75 + 2, gw - 4, gh - 2, gfs * 0.75, null, 'rgba(0,0,0,0.3)', 2);
     const pk = J.goldPop > 0 ? 1 + 0.35 * J.goldPop : J.goldPop < 0 ? 1 + 0.15 * J.goldPop : 1;
     coin(p, gx + gfs * 0.8, gy, gfs * 0.52 * pk);
-    const gt = this.num('gold', String(gold), gx + gfs * 1.55, gy + 1, { size: gfs, color: J.goldShake > 0 ? '#fca5a5' : '#fde047', weight: 900, align: 'left' });
+    const gt = this.num('gold', String(gold), gx + gfs * 1.55, gy + 1, { size: gfs, color: J.goldShake > 0 ? COL.hurt : COL.coin, weight: 900, align: 'left' });
     gt.scale.set(pk);
 
     // the quest (left of the pill)
@@ -192,7 +192,7 @@ export class Hud {
       qt.scale.set(1);
       if (qt.width > qw - 16) qt.scale.set((qw - 16) / qt.width);
       this.num('qprog', `${qp.prog}/${qp.q.need}`, qx + 10 + pbw / 2, gy + qfs * 0.77, { size: qfs * 0.7, color: '#fff', weight: 800 });
-      this.num('qreward', String(qp.q.reward), qx + qw - qfs * 2.0, gy + qfs * 0.78, { size: qfs * 0.85, color: '#fde047', weight: 900, align: 'left' });
+      this.num('qreward', String(qp.q.reward), qx + qw - qfs * 2.0, gy + qfs * 0.78, { size: qfs * 0.85, color: COL.coin, weight: 900, align: 'left' });
     } else {
       this.hide('quest');
       this.hide('qprog');

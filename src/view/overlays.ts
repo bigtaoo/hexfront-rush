@@ -7,13 +7,13 @@ import { Container, type Text } from 'pixi.js';
 import { T } from '../app/i18n';
 import type { Tile } from '../sim/map';
 import { FP } from '../sim/fixed';
-import { PHASE_PLAY, RARITY, RARITY_COLOR, UNITS, type UnitKey } from '../sim/rules';
+import { PHASE_PLAY, RARITY, UNITS, type UnitKey } from '../sim/rules';
 import { coin } from './bodies';
 import type { Frame, Juice } from './frame';
 import { Num } from './digits';
 import { label, liveGraphics, setLabel } from './pen';
 import { UnitView } from './unitView';
-import { UI } from './viewConst';
+import { RARITY_COLOR, UI } from './viewConst';
 
 export interface BannerOpts {
   size?: number;

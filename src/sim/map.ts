@@ -14,19 +14,16 @@ import { HOME_RADIUS, TEAM_BLUE, TEAM_NONE, TEAM_RED } from './rules';
 
 export type Obstacle = '' | 'tree' | 'pine' | 'rock' | 'cactus' | 'ice';
 export type ThemeKey = 'meadow' | 'desert' | 'snow';
-export interface Theme {
-  name: ThemeKey;
-  ground: readonly [string, string];
-  side: string;
-  bg: string;
-  obst: readonly Obstacle[];
-}
-
 export const THEME_KEYS: readonly ThemeKey[] = ['meadow', 'desert', 'snow'];
-export const THEMES: Record<ThemeKey, Theme> = {
-  meadow: { name: 'meadow', ground: ['#9bd06a', '#8fc75f'], side: '#5f8f3a', bg: '#3f6b2a', obst: ['tree', 'tree', 'rock'] },
-  desert: { name: 'desert', ground: ['#ecd08f', '#e4c47d'], side: '#b48a46', bg: '#8a6630', obst: ['cactus', 'rock', 'cactus'] },
-  snow: { name: 'snow', ground: ['#e6eef6', '#dbe6f1'], side: '#93a8bf', bg: '#4d6582', obst: ['pine', 'ice', 'pine'] },
+
+/** All a theme means to the sim: which obstacles its map scatters, drawn from this list. How the
+ *  theme looks (the ground's two tops, the side wall, the backdrop) is the view's business and
+ *  lives in view/ground.ts GROUND, keyed by the same ThemeKey; the sim used to carry a second,
+ *  stale copy of those colours that nothing drew with. */
+export const THEME_OBST: Record<ThemeKey, readonly Obstacle[]> = {
+  meadow: ['tree', 'tree', 'rock'],
+  desert: ['cactus', 'rock', 'cactus'],
+  snow: ['pine', 'ice', 'pine'],
 };
 
 export interface Tile {
@@ -49,7 +46,6 @@ export interface Tile {
 
 export interface GameMap {
   tiles: Tile[];
-  theme: Theme;
   themeKey: ThemeKey;
 }
 
@@ -59,7 +55,7 @@ export const baseTile = (team: number): number => idx(BASE_POS[team]!.c, BASE_PO
 export function generateMap(seed: number): GameMap {
   const rng = new Prng(streamSeed(seed, 1));
   const themeKey = THEME_KEYS[rng.int(THEME_KEYS.length)];
-  const theme = THEMES[themeKey];
+  const kinds = THEME_OBST[themeKey];
   const tiles: Tile[] = [];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
@@ -75,7 +71,7 @@ export function generateMap(seed: number): GameMap {
   // place on the top half (r <= MID_ROW) and its mirror
   const put = (c: number, r: number) => {
     if (!inMap(c, r) || r > MID_ROW || isProtected(c, r)) return;
-    const type = theme.obst[rng.int(theme.obst.length)];
+    const type = kinds[rng.int(kinds.length)];
     tiles[idx(c, r)].obst = type;
     tiles[idx(c, ROWS - 1 - r)].obst = type;
   };
@@ -140,11 +136,11 @@ export function generateMap(seed: number): GameMap {
       }
     }
     if (!seen[baseTile(TEAM_RED)]) continue;
-    for (const t of tiles) if (!t.obst && !seen[t.i]) t.obst = theme.obst[0]; // fill isolated pockets
+    for (const t of tiles) if (!t.obst && !seen[t.i]) t.obst = kinds[0]; // fill isolated pockets
     let obst = 0;
     for (const t of tiles) if (t.obst) obst++;
     if (obst * 100 < NTILES * 7 || obst * 100 > NTILES * 20) continue;
     break;
   }
-  return { tiles, theme, themeKey };
+  return { tiles, themeKey };
 }

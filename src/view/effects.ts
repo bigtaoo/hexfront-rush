@@ -9,6 +9,7 @@ import type { Camera } from './camera';
 import { inView, type Frame } from './frame';
 import { Num, NUM_TEXT } from './digits';
 import { label, liveGraphics, setLabel } from './pen';
+import { COL } from './viewConst';
 
 interface Particle {
   x: number;
@@ -166,7 +167,7 @@ export class EffectLayer {
           p.circle(q.x, q.y, 0.08, '#a8a29e');
           break;
         case 'orb':
-          p.circle(q.x, q.y, 0.14, '#fde047');
+          p.circle(q.x, q.y, 0.14, COL.coin);
           p.circle(q.x, q.y, 0.24, 'rgba(253,224,71,0.3)');
           break;
         case 'fire':

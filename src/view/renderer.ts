@@ -14,7 +14,7 @@ import type { Engine } from '../sim/engine';
 import { FP } from '../sim/fixed';
 import type { Tile } from '../sim/map';
 import { TEAM_BLUE } from '../sim/rules';
-import type { SimEvent } from '../sim/types';
+import type { BurstKind, SimEvent } from '../sim/types';
 import { Camera } from './camera';
 import { EffectLayer } from './effects';
 import { Juice, type DrawUi, type Frame, type Vis } from './frame';
@@ -28,7 +28,18 @@ import { Overlays, type BannerOpts, type CardPop } from './overlays';
 import { setDigitDensity } from './digits';
 import { SpriteLayer } from './sprites';
 import { TableLayer } from './table';
-import type { Pt } from './viewConst';
+import { COL, teamLight, teamSpark, type Pt } from './viewConst';
+
+/** What a burst of particles looks like, by what threw it. The sim names only the occasion
+ *  (types.ts BurstKind) and the colour is picked here: a guard's white armour, a unit's spark in
+ *  its side's colour, a building's grey dust, gold, and a claimed tile in its new owner's colour. */
+const BURST_COL: Record<BurstKind, (team: number) => string> = {
+  guard: () => '#ffffff',
+  unit: teamSpark,
+  rubble: () => '#a8a29e',
+  gold: () => COL.coin,
+  claim: teamLight,
+};
 
 export class Renderer {
   readonly cam = new Camera();
@@ -168,7 +179,7 @@ export class Renderer {
   }
   needGold(x: number, y: number): void {
     const p = this.cam.view(x, y);
-    this.effects.floater(p.x, p.y - 0.6, T('needGold'), '#fca5a5');
+    this.effects.floater(p.x, p.y - 0.6, T('needGold'), COL.hurt);
     this.juice.goldShake = 0.4;
   }
 
@@ -180,25 +191,25 @@ export class Renderer {
     const fx = this.effects;
     switch (e.type) {
       case 'burst':
-        if (p) fx.burst(p.x, p.y, e.color ?? '#ffffff', e.n ?? 8);
+        if (p) fx.burst(p.x, p.y, BURST_COL[e.burst ?? 'guard'](e.team ?? TEAM_BLUE), e.n ?? 8);
         break;
       case 'ring':
         if (p) fx.ring(p.x, p.y, (e.r ?? 0) / FP, e.kind === 'fire' ? '#fb923c' : '#a5b4fc');
         break;
       case 'dmg':
-        if (p) this.overlays.damageNumber(e.id ?? 0, p.x, p.y, e.amount ?? 0, mine ? '#fca5a5' : '#ffffff');
+        if (p) this.overlays.damageNumber(e.id ?? 0, p.x, p.y, e.amount ?? 0, mine ? COL.hurt : '#ffffff');
         break;
       case 'income':
         if (mine && p) {
-          fx.floater(p.x, p.y - 0.9, '+' + e.amount, '#fde047');
+          fx.floater(p.x, p.y - 0.9, '+' + e.amount, COL.coin);
           this.coinFly(p.x, p.y, 1);
         }
         break;
       case 'mapEvent':
         if (!p) break;
-        if (!mine) fx.floater(p.x, p.y - 0.6, T('ev_taken'), '#fca5a5');
+        if (!mine) fx.floater(p.x, p.y - 0.6, T('ev_taken'), COL.hurt);
         else if (e.gold) {
-          fx.floater(p.x, p.y - 0.6, T('ev_gold', { g: e.gold }), '#fde047');
+          fx.floater(p.x, p.y - 0.6, T('ev_gold', { g: e.gold }), COL.coin);
           this.coinFly(p.x, p.y, e.gold >= 100 ? 9 : 5);
         }
         break;
@@ -212,7 +223,7 @@ export class Renderer {
         this.juice.shake += mine ? 0.75 : 0.55;
         break;
       case 'guardDown':
-        if (p) fx.floater(p.x, p.y - 0.8, T(mine ? 'guardDown' : 'guardBeaten'), mine ? '#fca5a5' : '#fde047');
+        if (p) fx.floater(p.x, p.y - 0.8, T(mine ? 'guardDown' : 'guardBeaten'), mine ? COL.hurt : COL.coin);
         break;
       case 'guardBack':
         if (mine && p) fx.floater(p.x, p.y - 0.8, T('guardBack'), '#bbf7d0');

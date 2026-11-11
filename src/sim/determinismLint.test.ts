@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 // Keeps the sim deterministic (after Potion Siege's determinismLint.test.ts): no call whose
 // result can differ between JS engines or between runs, nothing from the host, no walk whose
-// order is not part of the contract. Comments and strings are blanked before scanning, so prose
-// quoting a rule does not trip it. Every non-test file under src/sim is scanned, so a new module
-// cannot slip past it. The allowlist carries a reason per entry and must stay minimal: an
-// exception that stops being needed fails the test.
+// order is not part of the contract. Comments are blanked before scanning (and strings too, bar
+// the colour lint, which is hunting for a literal), so prose quoting a rule does not trip it.
+// Every non-test file under src/sim is scanned, so a new module cannot slip past it. The
+// allowlist carries a reason per entry and must stay minimal: an exception that stops being
+// needed fails the test.
 
 const BANNED: readonly { pattern: RegExp; why: string }[] = [
   { pattern: /\bMath\.random\s*\(/, why: 'use a Prng stream' },
@@ -31,8 +32,10 @@ const ALLOWED: readonly { file: string; pattern: RegExp; why: string }[] = [
   { file: 'hash.ts', pattern: /\bObject\.keys\s*\(.*\.sort\(\s*\)/, why: 'the hash fixes key order itself (keys are plain identifiers)' },
 ];
 
-/** Blanks comments and string literals, keeping line breaks so line numbers stay true. */
-export function strip(src: string): string {
+/** Blanks comments, keeping line breaks so line numbers stay true. String literals are blanked
+ *  too unless `keepStrings`: a lint hunting for a literal (the colour one below) needs the
+ *  strings and only wants the prose out of the way. */
+export function strip(src: string, keepStrings = false): string {
   let out = '';
   for (let i = 0; i < src.length; i++) {
     const c = src[i];
@@ -47,8 +50,11 @@ export function strip(src: string): string {
     } else if (c === "'" || c === '"' || c === '`') {
       out += c;
       for (i++; i < src.length && src[i] !== c; i++) {
-        if (src[i] === '\\') i++;
-        out += src[i] === '\n' ? '\n' : ' ';
+        if (src[i] === '\\') {
+          if (keepStrings) out += src[i];
+          i++;
+        }
+        out += keepStrings ? src[i] : src[i] === '\n' ? '\n' : ' ';
       }
       out += c;
     } else out += c;
@@ -60,7 +66,7 @@ const sources = import.meta.glob<string>('./**/*.ts', { query: '?raw', import: '
 const files = Object.entries(sources)
   .map(([path, text]) => ({ rel: path.slice(2), text }))
   .filter((f) => !f.rel.endsWith('.test.ts'))
-  .map((f) => ({ ...f, code: strip(f.text) }));
+  .map((f) => ({ ...f, code: strip(f.text), text: strip(f.text, true) }));
 
 describe('determinism lint', () => {
   it('scans every sim source, tests aside', () => {
@@ -82,6 +88,21 @@ describe('determinism lint', () => {
     expect(found).toEqual([]);
   });
 
+  it('names no colour: how a thing looks is the view layer business', () => {
+    // The sim used to emit CSS colours with its burst events and keep the rarity palette in its
+    // rules table. Colours belong to the view (view/viewConst.ts, renderer.ts BURST_COL); the sim
+    // names the occasion (types.ts BurstKind) and the rarity, and the view decides how it looks.
+    const COLOUR = /['"]#[0-9a-fA-F]{3,8}['"]|\brgba?\(/;
+    const found = files.flatMap((f) =>
+      f.text
+        .split('\n')
+        .map((line, i) => ({ line, i }))
+        .filter((x) => COLOUR.test(x.line))
+        .map((x) => `${f.rel}:${x.i + 1} ${x.line.trim()}`),
+    );
+    expect(found).toEqual([]);
+  });
+
   it('imports nothing from outside the sim (no Pixi, no view code)', () => {
     const outside = files.flatMap((f) =>
       [...f.text.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)]
@@ -98,5 +119,6 @@ describe('determinism lint', () => {
 
   it('strips comments and strings but keeps code', () => {
     expect(strip("a(); // Math.random()\nb('Math.sqrt(')")).toBe("a(); \nb('          ')");
+    expect(strip("a(); /* #fff */ b('#fff')", true)).toBe("a();        b('#fff')");
   });
 });

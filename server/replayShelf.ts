@@ -26,11 +26,15 @@ export const SOLO_ENDS = ['won', 'lost', 'drawn', 'quit', 'hidden'] as const;
 /** How the relay closes an online record: both seats reported the end, a seat left, or they desynced. */
 export const ONLINE_ENDS = ['over', 'left', 'desync'] as const;
 
+/** Every way a record can end: the two lists above, plus 'file' for a bare replay read off disk
+ *  that never reported an end. A typo is a type error. */
+export type ShelfEnd = (typeof SOLO_ENDS)[number] | (typeof ONLINE_ENDS)[number] | 'file';
+
 export interface ShelfDoc {
   /** The file's name: `s-<random>` for a solo upload, `o-<room>-<seed>` for an online match. */
   id: string;
   kind: 'solo' | 'online';
-  end: string;
+  end: ShelfEnd;
   /** When it came (ms since the epoch). */
   at: number;
   build?: string;
@@ -52,7 +56,7 @@ export function cleanUpload(body: unknown, at: number): ShelfDoc | null {
   if (!(SOLO_ENDS as readonly unknown[]).includes(body.end)) return null;
   const replay = parseReplay(body.replay);
   if (!replay || replay.config.aiBlue === replay.config.aiRed || replay.endTick === 0) return null;
-  const doc: ShelfDoc = { id: `s-${body.id}`, kind: 'solo', end: body.end as string, at, replay };
+  const doc: ShelfDoc = { id: `s-${body.id}`, kind: 'solo', end: body.end as ShelfEnd, at, replay };
   if (short(40)(body.build)) doc.build = body.build;
   if (short(20)(body.platform)) doc.platform = body.platform;
   return doc;

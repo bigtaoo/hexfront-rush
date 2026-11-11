@@ -82,7 +82,7 @@ function claimEvent(e: Engine, team: number, tile: Tile): void {
   const unit = d.troops ? e.pickUnit(d.rarity) : undefined;
   for (let k = 0; k < d.troops; k++) e.spawnUnit(team, unit!, tile.x + (k - 1) * 400, tile.y + 200, 0);
   e.emit('mapEvent', { team, kind: d.key, gold: d.gold, unit, n: d.troops, rarity: d.rarity, x: tile.x, y: tile.y });
-  e.emit('burst', { x: tile.x, y: tile.y, color: '#fde047', n: 18 });
+  e.emit('burst', { x: tile.x, y: tile.y, burst: 'gold', n: 18 });
 }
 
 /** Flip the card on tile ti: pay for it and build (or roll the mystery). Either way the tile is
@@ -113,7 +113,7 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
       roll++;
     }
     const m = MYSTERY[roll];
-    e.emit('burst', { x: tile.x, y: tile.y, color: '#fde047', n: 14 });
+    e.emit('burst', { x: tile.x, y: tile.y, burst: 'gold', n: 14 });
     if (m.squad) {
       const type = e.pickUnit(m.squad.rarity);
       for (let k = 0; k < m.squad.n; k++) e.spawnUnit(team, type, tile.x + (k - 1) * 400, tile.y + 200, 0);
@@ -144,7 +144,7 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
     e.addBuilding(team, off.kind as BuildingType, ti, null);
     e.emit('built', { team, kind: off.kind, x: tile.x, y: tile.y });
   }
-  e.emit('burst', { x: tile.x, y: tile.y, color: team === TEAM_BLUE ? '#93c5fd' : '#fca5a5', n: 12 });
+  e.emit('burst', { x: tile.x, y: tile.y, team, burst: 'claim', n: 12 });
   e.recomputeOffers(TEAM_BLUE);
   e.recomputeOffers(TEAM_RED);
   return true;

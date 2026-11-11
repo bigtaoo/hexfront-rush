@@ -8,7 +8,7 @@ import { Container, Graphics, Sprite, type Text } from 'pixi.js';
 import { T } from '../app/i18n';
 import type { Engine } from '../sim/engine';
 import { FP, TICK_RATE } from '../sim/fixed';
-import { BUILD, EVENT_LIST, GUARD, HIT_FLASH, LUNGE_TICKS, RARITY_COLOR, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
+import { BUILD, EVENT_LIST, GUARD, HIT_FLASH, LUNGE_TICKS, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
 import { TILE } from '../sim/hex';
 import type { Building } from '../sim/types';
 import { artH, artSprite, artW, buildingTex, castSprite, setCast, eventTex, guardTex, obstacleTex, PPU, rubbleTex, TILE_FOOT, unitTex } from './art';
@@ -18,6 +18,7 @@ import { inView, type Frame } from './frame';
 import { label, liveGraphics, Pen, setLabel, sharedCtx } from './pen';
 import { LOOK_B } from './lookB';
 import { DEATH_S, dotCtx, UnitView } from './unitView';
+import { COL, RARITY_COLOR } from './viewConst';
 
 type Live = { g: Graphics; p: Pen };
 
@@ -172,10 +173,10 @@ class BuildingView {
     const p = this.dyn.p.clear();
     switch (b.type) {
       case 'base':
-        badgeRing(p, b.timer / BUILD.base.incomeEvery!, '#fde047');
+        badgeRing(p, b.timer / BUILD.base.incomeEvery!, COL.coin);
         break;
       case 'mine':
-        badgeRing(p, b.timer / BUILD.mine.incomeEvery!, '#fde047');
+        badgeRing(p, b.timer / BUILD.mine.incomeEvery!, COL.coin);
         break;
       case 'barracks': {
         // training; grey while the team is at the troop cap and the next troop waits

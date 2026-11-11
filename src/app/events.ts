@@ -9,6 +9,7 @@ import { $ } from './dom';
 import { haptics } from './haptics';
 import type { Game } from './game';
 import { T } from './i18n';
+import { COL } from '../view/viewConst';
 
 /** full: sound, visuals and flow; visual: the menu's demo; none: a fast-forward, flow only. */
 export type Fx = 'full' | 'visual' | 'none';
@@ -30,7 +31,7 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
     const mine = e.team === me;
     switch (e.type) {
       case 'count':
-        R.banner(String(e.n), { size: 96, life: 0.9, color: '#fde047' });
+        R.banner(String(e.n), { size: 96, life: 0.9, color: COL.coin });
         S.play('beep');
         break;
       case 'fight':
@@ -60,7 +61,7 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
           S.play('build');
           R.card = { unit: e.unit, rarity: e.rarity ?? 0, t: 0, life: 2.2 };
           if (e.rarity === 3) {
-            R.banner(T('legendary'), { size: 58, life: 1.8, color: '#fde047', band: 'rgba(120,53,15,0.6)' });
+            R.banner(T('legendary'), { size: 58, life: 1.8, color: COL.coin, band: 'rgba(120,53,15,0.6)' });
             S.play('legend');
           }
         }
@@ -72,7 +73,7 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
         // a squad that sets off now, or a barracks standing on the tile for good
         if (mine && e.unit) {
           const bar = e.kind === 'barracks';
-          R.banner(T(e.rarity === 3 ? 'legendary' : 'lucky'), { size: e.rarity === 3 ? 58 : 48, life: 1.6, color: '#fde047', y: 0.32, band: e.rarity === 3 ? 'rgba(120,53,15,0.6)' : undefined });
+          R.banner(T(e.rarity === 3 ? 'legendary' : 'lucky'), { size: e.rarity === 3 ? 58 : 48, life: 1.6, color: COL.coin, y: 0.32, band: e.rarity === 3 ? 'rgba(120,53,15,0.6)' : undefined });
           R.card = { unit: e.unit, rarity: e.rarity ?? 0, n: bar ? 0 : e.n, t: 0, life: 2.4 };
           if (bar) S.play('build');
           S.play(e.rarity === 3 ? 'legend' : 'quest');
@@ -105,7 +106,7 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
       case 'mapEvent':
         if (!mine) S.play('destroy');
         else if (e.unit) {
-          R.banner(T(e.kind === 'warband' ? 'ev_warband' : 'ev_camp'), { size: 44, life: 1.4, color: '#fde047', y: 0.32 });
+          R.banner(T(e.kind === 'warband' ? 'ev_warband' : 'ev_camp'), { size: 44, life: 1.4, color: COL.coin, y: 0.32 });
           R.card = { unit: e.unit, rarity: e.rarity ?? 0, n: e.n, t: 0, life: 2.2 };
           S.play('quest');
         } else S.play('coin');

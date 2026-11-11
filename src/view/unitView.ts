@@ -7,12 +7,12 @@
 // drake hovers above its shadow. Used by the field (SpriteLayer) and by the "new troop" card popup.
 
 import { Container, Graphics, type Sprite } from 'pixi.js';
-import { RARITY_COLOR, type UnitKey } from '../sim/rules';
+import type { UnitKey } from '../sim/rules';
 import { artH, artSprite, castSprite, PPU, setCast, unitTex } from './art';
 import { hpBar, shadowCtx } from './bodies';
 import { CAST, LOOK_B, LOOKB_UNIT_K } from './lookB';
 import { liveGraphics, sharedCtx, type Pen } from './pen';
-import { teamCol, teamDark } from './viewConst';
+import { RARITY_COLOR, teamCol, teamDark } from './viewConst';
 
 /** lookB: the troop stands on a team-coloured base, a flat disc with a darker rim and a thin top
  *  highlight, so its side reads on any ground (also on its own team's land). */

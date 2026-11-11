@@ -29,6 +29,5 @@ export function isqrt(n: number): number {
 
 export const dist2 = (dx: number, dy: number): number => dx * dx + dy * dy;
 export const dist = (dx: number, dy: number): number => isqrt(dx * dx + dy * dy);
-export const clampI = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
 /** Render-side only: fixed point back to world units. */
 export const fromFp = (v: number): number => v / FP;

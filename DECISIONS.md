@@ -277,6 +277,19 @@
 - **改法：** 按指针类型分档（`controls.ts`）：鼠标仍是 10 px，触摸放宽到 18 px。
 - **验证：** 浏览器里跑到 215 秒，蓝方完成 5 个任务（列出的只有 3 个），面板显示循环来的"建 2 座箭塔 0/2"；满员时金色数字和金圈在 1024×768 和 812×375 下都正常，没有被木栏切掉。
 
+## D30 颜色全部归 view 层；清掉没人用的导出
+
+- **问题：** sim 里散着视觉信息。`combat.ts`/`economy.ts` 发 `burst` 事件时直接带 CSS 颜色字符串（`'#ffffff'`、`'#a8a29e'`、`'#fde047'`……），`rules.ts` 存着 `RARITY_COLOR` 稀有度色板，`map.ts` 的 `THEMES` 每个主题带 `ground`/`side`/`bg` 三组颜色。sim 是要跑在 worker、跑在 headless 脚本、跑在服务器上的纯逻辑层，它不该知道游戏长什么样；而且 `THEMES` 那套颜色**根本没人画**——view 早就有自己的 `view/ground.ts GROUND`（同样按 `ThemeKey` 索引，调过色，和 sim 那份对不上），sim 里那份是一份过期的影子数据。
+- **改法：**
+  - sim 只说**发生了什么**：`types.ts` 新增 `BurstKind = 'guard' | 'unit' | 'rubble' | 'gold' | 'claim'`，事件里 `color?: string` 换成 `burst?: BurstKind`。颜色由 view 在 `renderer.ts BURST_COL` 一张表里定：卫兵的白甲、小兵按阵营的亮色、建筑的灰渣、金色、占领按新主人的颜色。
+  - `RARITY_COLOR` 从 `sim/rules.ts` 搬到 `view/viewConst.ts`。
+  - `map.ts` 的 `Theme` 接口整个删掉，只留 `THEME_OBST: Record<ThemeKey, readonly Obstacle[]>`——主题对 sim 的全部意义就是"撒哪几种障碍物"。`Engine.theme` 字段也删了（写进去从来没人读）。主题颜色归 `view/ground.ts`，一份。
+  - 调色板按"真有东西在画"重排：`COL` 里加了 `blueSpark`/`redSpark`（配 `teamSpark()`）和两个自带含义的 `coin`（金币、好消息）、`hurt`（掉血、坏消息），没人用的条目删掉；view 各处散落的约 20 处字面色串改走 `COL`。
+  - 顺手删三个没人用的导出：`netClient.ts` 的 `NET_PROTOCOL`、`fixed.ts` 的 `clampI`、`pen.ts` 的 `newPen`。`server/replayShelf.ts` 的 `end` 字段原来是 `string`，改成 `ShelfEnd` 联合类型（由 `SOLO_ENDS`/`ONLINE_ENDS` 两张表加上磁盘直读的 `'file'` 推出来），写错一个拼法就是编译错误。
+- **防回归：** `determinismLint.test.ts` 加一条 lint——**sim 里不许出现任何颜色**（`'#rrggbb'` 或 `rgba(`）。它扫的是"去掉注释但保留字符串"的版本（`strip(src, true)`），所以讲道理的注释不会误伤，真写进代码的颜色一定被抓住。原来的 `strip()` 加了 `keepStrings` 开关，其余 lint 照旧扫两样都抹掉的版本。
+- **不动的部分：** 哈希不受影响（`stateOf()` 本来就不含 `theme`），引擎仍是 v13，golden 不变；`npm run check` 全绿（204 项测试）。
+- **验证：** 浏览器里跑完整局（meadow 和 snow 两个主题各一局）：地面、障碍物（松树/冰）、稀有度边框、掉血红字、金币药丸、HUD 金色满员提示全部照旧，控制台无新错误。
+
 ## D13 收入加成改为精确到 1%（引擎 v11 → v12）
 - **问题：** 引擎按 `trunc(10 × 收入% / 100)` 发金币，余数直接丢掉。对手收入 95% 和 90% 每次都只拿 9 金，难度旋钮实际只有 10% 一档。一档就是 15–20 个点的胜率，没法精调。
 - **改法：** 每个阵营记一个余数（`incomeCarry`，单位是百分之一金），下次发钱时补上。95% 就是真的 9.5 金一跳。

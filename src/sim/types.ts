@@ -127,6 +127,10 @@ export interface MatchResult {
   tick: number;
 }
 
+/** Why a burst of particles happened. The sim names the occasion and the view picks the colour
+ *  (renderer.ts BURST_COL): a sim that knows '#fde047' is a sim deciding how the game looks. */
+export type BurstKind = 'guard' | 'unit' | 'rubble' | 'gold' | 'claim';
+
 export type SimEventType =
   | 'count' | 'fight' | 'wave' | 'siege' | 'end' | 'quest' | 'income' | 'mapEvent'
   | 'needGold' | 'mysteryNothing' | 'mysteryWin' | 'burst' | 'barracks' | 'built' | 'spawn' | 'dmg'
@@ -144,7 +148,7 @@ export interface SimEvent {
   rarity?: number;
   kind?: string;
   amount?: number;
-  color?: string;
+  burst?: BurstKind;
   gold?: number;
   reward?: number;
   winner?: number;

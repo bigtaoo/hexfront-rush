@@ -11,6 +11,7 @@ import type { PackedCmd } from '../sim/input';
 import { ENGINE_VERSION, PHASE_END, TEAM_BLUE } from '../sim/rules';
 import type { SimEvent } from '../sim/types';
 import type { Status } from '../view/hud';
+import { COL } from '../view/viewConst';
 import { $ } from './dom';
 import type { Game } from './game';
 import { T } from './i18n';
@@ -309,7 +310,7 @@ export class Online {
     const now = performance.now();
     if (now - this.leaveArm > LEAVE_ARM_MS) {
       this.leaveArm = now;
-      g.renderer.banner(T('leaveConfirm'), { size: 26, life: 2.4, color: '#fde047', y: 0.3 });
+      g.renderer.banner(T('leaveConfirm'), { size: 26, life: 2.4, color: COL.coin, y: 0.3 });
       g.sound.play('tap');
       return;
     }
@@ -320,9 +321,9 @@ export class Online {
   /** The HUD's link line during an online match. */
   statusLine(): Status {
     if (this.desync) return { text: T('desync'), color: '#fca5a5' };
-    if (!this.client || this.client.state !== 'open') return { text: T('reconnecting'), color: '#fde047' };
+    if (!this.client || this.client.state !== 'open') return { text: T('reconnecting'), color: COL.coin };
     if (!this.peerOnline) return { text: T('rivalOffline'), color: '#fdba74' };
-    if (this.g.backlog() > 30) return { text: T('syncing'), color: '#fde047' };
+    if (this.g.backlog() > 30) return { text: T('syncing'), color: COL.coin };
     return { text: `${Math.round(this.client.rtt)} ms`, color: 'rgba(203,213,225,0.8)' };
   }
 }

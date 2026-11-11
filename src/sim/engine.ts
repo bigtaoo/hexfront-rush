@@ -21,7 +21,7 @@ import { ticks, TICK_RATE } from './fixed';
 import { hashState } from './hash';
 import { idx, inMap, NTILES, worldToHex } from './hex';
 import type { Cmd } from './input';
-import { baseTile, generateMap, type Theme, type ThemeKey, type Tile } from './map';
+import { baseTile, generateMap, type ThemeKey, type Tile } from './map';
 import { Prng, streamSeed } from './prng';
 import { makeConfig, type ConfigInput, type SideSetup } from './setup';
 import {
@@ -64,7 +64,6 @@ export interface EngineState {
 export class Engine {
   readonly config: EngineConfig;
   readonly tiles: Tile[];
-  readonly theme: Theme;
   readonly themeKey: ThemeKey;
   /** Per team, each tile's walking distance to that team's castle (static). */
   readonly flow: (Int16Array | null)[];
@@ -104,7 +103,6 @@ export class Engine {
     const seed = this.config.seed;
     const m = generateMap(seed);
     this.tiles = m.tiles;
-    this.theme = m.theme;
     this.themeKey = m.themeKey;
     this.flow = [null, this.distanceField(baseTile(TEAM_BLUE)), this.distanceField(baseTile(TEAM_RED))];
     this.spots = [null, guardSpots(this.tiles, TEAM_BLUE), guardSpots(this.tiles, TEAM_RED)];

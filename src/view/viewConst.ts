@@ -9,11 +9,19 @@ import { FP } from '../sim/fixed';
 import { COLS, hexY, ROWS } from '../sim/hex';
 import { TEAM_BLUE } from '../sim/rules';
 
+/** The two sides' ramps (500 / 700 / 400 / 300 of the Tailwind hues the art was drawn against),
+ *  and the two colours that carry meaning on their own: `coin` is gold and good news, `hurt` is
+ *  damage and bad news for the local player. Entries nothing draws with were dropped; add one back
+ *  when something uses it. */
 export const COL = {
-  blue: '#3b82f6', blueDark: '#1d4ed8', blueLight: '#93c5fd', blueTile: 'rgba(59,130,246,0.55)', blueSide: '#1e3a8a',
-  red: '#ef4444', redDark: '#b91c1c', redLight: '#fca5a5', redTile: 'rgba(239,68,68,0.55)', redSide: '#7f1d1d',
-  gold: '#fbbf24', ink: '#1f2937', white: '#ffffff',
+  blue: '#3b82f6', blueDark: '#1d4ed8', blueSpark: '#60a5fa', blueLight: '#93c5fd',
+  red: '#ef4444', redDark: '#b91c1c', redSpark: '#f87171', redLight: '#fca5a5',
+  coin: '#fde047', hurt: '#fca5a5',
 } as const;
+
+/** A card's rarity colour: common, rare, epic, legendary. It used to sit in the sim's rules table,
+ *  which has no business naming colours. */
+export const RARITY_COLOR = ['#9aa5b1', '#38bdf8', '#c084fc', '#fbbf24'] as const;
 
 /** The chrome drawn in Pixi (the match HUD, the edge markers, the card pop) in the same carved-wood
  *  palette as the DOM panels (index.html :root, art/STYLE.md UI). It used to be slate blue, which is
@@ -46,6 +54,8 @@ export const fontW = (w: number = 800): Weight => (systemFont() ? (String(w) as 
 export const teamCol = (t: number): string => (t === TEAM_BLUE ? COL.blue : COL.red);
 export const teamDark = (t: number): string => (t === TEAM_BLUE ? COL.blueDark : COL.redDark);
 export const teamLight = (t: number): string => (t === TEAM_BLUE ? COL.blueLight : COL.redLight);
+/** The lighter spark a dying unit throws. */
+export const teamSpark = (t: number): string => (t === TEAM_BLUE ? COL.blueSpark : COL.redSpark);
 
 export const SQRT3 = Math.sqrt(3);
 /** view y = this - world y, for the red side */

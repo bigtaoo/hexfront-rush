@@ -127,7 +127,6 @@ export const EVENT_LAYOUT = {
 };
 
 export const RARITY = ['common', 'rare', 'epic', 'legendary'] as const;
-export const RARITY_COLOR = ['#9aa5b1', '#38bdf8', '#c084fc', '#fbbf24'] as const;
 
 // ---------- units ----------
 // Design table: hp, damage, attack every (s), range (tiles), speed (tiles/s), train every (s),

@@ -105,11 +105,11 @@ function kill(e: Engine, t: Entity, srcTeam: number): void {
     t.aim = 0;
     t.regen = 0;
     t.waitT = 0;
-    e.emit('burst', { x: t.x, y: t.y, color: '#ffffff', n: 14 });
+    e.emit('burst', { x: t.x, y: t.y, burst: 'guard', n: 14 });
     e.emit('guardDown', { team: t.team, x: t.x, y: t.y });
   } else if (t.kind === 'unit') {
     t.alive = 0;
-    e.emit('burst', { x: t.x, y: t.y, color: t.team === TEAM_BLUE ? '#60a5fa' : '#f87171', n: 8 });
+    e.emit('burst', { x: t.x, y: t.y, team: t.team, burst: 'unit', n: 8 });
     e.emit('unitDown', { team: t.team, x: t.x, y: t.y });
   } else {
     t.alive = 0;
@@ -120,7 +120,7 @@ function kill(e: Engine, t: Entity, srcTeam: number): void {
     tile.owner = srcTeam;
     e.blds.splice(e.blds.indexOf(t), 1);
     e.ents.delete(t.id);
-    e.emit('burst', { x: t.x, y: t.y, color: '#a8a29e', n: 22 });
+    e.emit('burst', { x: t.x, y: t.y, burst: 'rubble', n: 22 });
     e.emit('bldDown', { team: t.team, x: t.x, y: t.y, kind: t.type });
     if (t.type === 'base') {
       e.endMatch(srcTeam, 'base');
