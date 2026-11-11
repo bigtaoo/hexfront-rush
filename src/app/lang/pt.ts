@@ -111,6 +111,7 @@ export default {
   hint_mystery: "Uma carta ? custa só 25: pode não dar nada, um esquadrão ou até um quartel, e abre as casas ao redor.",
   hint_siege: "O cerco começa em {t}: as tropas atingem mais os edifícios e mais tropas são permitidas.",
   hint_cap: "Limite de tropas atingido ({n}): os quartéis esperam por espaço. O cerco aumenta o limite.",
+  hint_mine: "Uma mina de ouro aumenta sua renda pelo resto da partida: quanto mais cedo ficar de pé, mais rende.",
   ach_firstWin: "Primeira vitória",
   ach_firstWin_d: "Vença uma partida contra a IA",
   ach_sweep: "Caçador de tesouros",

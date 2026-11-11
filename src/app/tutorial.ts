@@ -14,6 +14,11 @@ import { T } from './i18n';
 
 /** The tutorial's map: a meadow. */
 export const TUTORIAL_SEED = 2;
+/** A step's lesson stays up at least this long, even when the player has already done what the
+ *  next step asks. Without it the barracks lesson could not be read: the hand in step 0 points at
+ *  the nearest card the player can pay for, which on the tutorial's own map is the barracks, so
+ *  building it met step 1 on the frame it opened and its line showed for one frame (16 ms). */
+const MIN_READ = 3;
 
 export interface Tutorial {
   step: number;
@@ -79,7 +84,7 @@ export function updateTutorial(g: Game, dt: number): void {
       break;
     case 1:
       R.hint = T('tip_barracks');
-      if (b.barracks >= 1 || tut.t > 18) Object.assign(tut, { step: 2, t: 0 });
+      if (tut.t > MIN_READ && (b.barracks >= 1 || tut.t > 18)) Object.assign(tut, { step: 2, t: 0 });
       break;
     case 2:
       R.hint = T('tip_event');

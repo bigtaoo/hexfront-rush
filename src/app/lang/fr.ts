@@ -111,6 +111,7 @@ export default {
   hint_mystery: "Une carte ? ne coûte que 25 : elle peut ne rien donner, une escouade ou même une caserne, et elle ouvre les cases autour.",
   hint_siege: "Le siège commence à {t} : les troupes frappent plus fort les bâtiments et davantage de troupes sont permises.",
   hint_cap: "Limite de troupes atteinte ({n}) : les casernes attendent qu'une place se libère. Le siège relève la limite.",
+  hint_mine: "Une mine d'or augmente ton revenu jusqu'à la fin du match : plus elle est construite tôt, plus elle rapporte.",
   ach_firstWin: "Première victoire",
   ach_firstWin_d: "Gagnez une partie contre l'IA",
   ach_sweep: "Chasseur de trésors",

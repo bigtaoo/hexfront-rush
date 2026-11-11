@@ -111,6 +111,7 @@ export default {
   hint_mystery: "？卡只要 25 金：可能什么都没有，也可能是一支小队甚至一座兵营，并且会打开周围的格子。",
   hint_siege: "攻城在 {t} 开始：士兵拆建筑更快，兵力上限提高。",
   hint_cap: "兵力已达上限（{n}）：兵营会等有空位再出兵。攻城会提高上限。",
+  hint_mine: "金矿会在整场比赛里一直加收入：建得越早，赚得越多。",
   ach_firstWin: "首胜",
   ach_firstWin_d: "战胜一次 AI",
   ach_sweep: "寻宝者",

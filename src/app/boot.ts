@@ -156,7 +156,7 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
     tap();
     g.state = 'menu';
     g.show('menu');
-    updateMenu(g.save);
+    updateMenu(g.save, g.online.available());
   };
   $('quickBtn').addEventListener('click', () => {
     tap();
@@ -166,7 +166,7 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
     tap();
     g.save.skirmish = (g.save.skirmish + 1) % SKIRMISH.length;
     g.persist();
-    updateMenu(g.save);
+    updateMenu(g.save, g.online.available());
   });
   $('dailyBtn').addEventListener('click', () => {
     S.unlock();
@@ -264,7 +264,6 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
   });
 
   const O = g.online;
-  $('onlineBtn').classList.toggle('hidden', !O.available());
   $('onlineBtn').addEventListener('click', () => O.open());
   $('createBtn').addEventListener('click', () => O.create());
   $('joinBtn').addEventListener('click', () => O.join());

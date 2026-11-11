@@ -117,8 +117,19 @@ export function goalTrack(m: MatchKind, taken: number): { text: string; color?: 
 
 // ---------------- the screens ----------------
 
+/** Which menu buttons are not there yet. Before the first match the menu is just Play, the gear
+ *  and How to play: a quick match, a difficulty, achievements, the daily challenge and online all
+ *  mean nothing to someone who has not played a match, and seven controls on the first screen is
+ *  the loudest the game ever is. They come with the tutorial being done, in one go. (Online also
+ *  needs a relay to talk to.) */
+export function menuHidden(save: Save, onlineOk: boolean): Record<string, boolean> {
+  const first = !save.tutorialDone;
+  return { quickBtn: first, diffBtn: first, achBtn: first, dailyBtn: first, onlineBtn: first || !onlineOk };
+}
+
 /** The menu's campaign, quick match and daily buttons. */
-export function updateMenu(save: Save): void {
+export function updateMenu(save: Save, onlineOk: boolean): void {
+  for (const [id, hide] of Object.entries(menuHidden(save, onlineOk))) $(id).classList.toggle('hidden', hide);
   const id = nextStage(save.stages);
   $('playBtn').textContent = save.tutorialDone ? `${T('campaign')} · ${stageLabel(id)}` : T('play');
   $('diffBtn').textContent = T(`diff${save.skirmish}`);

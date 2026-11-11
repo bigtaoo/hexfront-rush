@@ -111,6 +111,7 @@ export default {
   hint_mystery: "Una carta ? cuesta solo 25: puede no dar nada, una escuadra o incluso un cuartel, y abre las casillas de alrededor.",
   hint_siege: "El asedio empieza a los {t}: las tropas dañan más los edificios y se permiten más tropas.",
   hint_cap: "Límite de tropas alcanzado ({n}): los cuarteles esperan a que haya sitio. El asedio sube el límite.",
+  hint_mine: "Una mina de oro aumenta tus ingresos durante el resto de la partida: cuanto antes la levantes, más rinde.",
   ach_firstWin: "Primera victoria",
   ach_firstWin_d: "Gana una partida contra la IA",
   ach_sweep: "Cazatesoros",

@@ -145,7 +145,12 @@ function onMatchEnd(g: Game, eng: Engine, e: SimEvent, loud: boolean): void {
   g.pendingResult = loud ? 2.0 : 0.01;
   g.renderer.hint = null;
   g.renderer.guide = null;
-  g.tut = null;
+  if (g.tut) {
+    // the tutorial match is over, however it went: it is not played a second time
+    g.tut = null;
+    g.save.tutorialDone = true;
+    g.persist();
+  }
   if (g.mode === 'watch') return;
   g.lastReplay = makeReplay(eng.config, g.source.log, eng);
   if (g.mode === 'solo') g.uploads?.end();

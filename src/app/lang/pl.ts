@@ -111,6 +111,7 @@ export default {
   hint_mystery: 'Karta ? kosztuje tylko 25: może nie dać nic, dać oddział, a nawet koszary, i otwiera pola wokół siebie.',
   hint_siege: 'Oblężenie zaczyna się o {t}: wojska mocniej biją w budynki, a limit wojsk rośnie.',
   hint_cap: 'Osiągnięto limit wojsk ({n}): koszary czekają na miejsce. Oblężenie podnosi limit.',
+  hint_mine: 'Kopalnia złota zwiększa dochód do końca meczu: im wcześniej stanie, tym więcej przyniesie.',
   ach_firstWin: 'Pierwsze zwycięstwo',
   ach_firstWin_d: 'Wygraj mecz z SI',
   ach_sweep: 'Łowca skarbów',

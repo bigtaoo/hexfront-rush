@@ -111,6 +111,7 @@ export default {
   hint_mystery: 'Kartu ? cuma seharga 25: bisa tidak memberi apa-apa, memberi regu, atau bahkan barak, dan membuka petak di sekitarnya.',
   hint_siege: 'Pengepungan dimulai pada {t}: pasukan menghantam bangunan lebih keras dan batas pasukan naik.',
   hint_cap: 'Batas pasukan tercapai ({n}): barak menunggu ada tempat. Pengepungan menaikkan batasnya.',
+  hint_mine: 'Tambang emas menambah pendapatanmu sampai akhir pertandingan: makin cepat berdiri, makin banyak hasilnya.',
   ach_firstWin: 'Kemenangan Pertama',
   ach_firstWin_d: 'Menangkan satu pertandingan melawan AI',
   ach_sweep: 'Pemburu Harta',

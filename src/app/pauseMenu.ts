@@ -60,7 +60,7 @@ export function wirePause(g: Game, tap: () => void): void {
     tap();
     g.state = 'menu';
     g.show('menu');
-    updateMenu(g.save);
+    updateMenu(g.save, g.online.available());
   });
 }
 

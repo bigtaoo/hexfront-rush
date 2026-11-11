@@ -190,7 +190,7 @@ export class Game {
     this.setupEngine({ seed: randomSeed(), aiBlue: true, aiRed: true }, TEAM_BLUE, new LocalInput());
     this.show('menu');
     updateRecord(this.save);
-    updateMenu(this.save);
+    updateMenu(this.save, this.online.available());
     this.sound.music('lobby');
   }
 

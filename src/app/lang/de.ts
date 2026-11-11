@@ -111,6 +111,7 @@ export default {
   hint_mystery: "Eine ?-Karte kostet nur 25: Sie kann nichts bringen, einen Trupp oder sogar eine Kaserne, und sie öffnet die Felder ringsum.",
   hint_siege: "Die Belagerung beginnt bei {t}: Truppen treffen Gebäude härter, und mehr Truppen sind erlaubt.",
   hint_cap: "Truppenlimit erreicht ({n}): Kasernen warten auf Platz. Die Belagerung hebt das Limit.",
+  hint_mine: "Eine Goldmine erhöht dein Einkommen bis zum Ende des Spiels: je früher sie steht, desto mehr bringt sie.",
   ach_firstWin: "Erster Sieg",
   ach_firstWin_d: "Gewinne ein Match gegen die KI",
   ach_sweep: "Schatzjäger",

@@ -111,6 +111,7 @@ export default {
   hint_mystery: "A ? card costs only 25: it may give nothing, a squad or even a barracks, and it opens the tiles around it.",
   hint_siege: "The siege starts at {t}: troops hit buildings harder and more troops are allowed.",
   hint_cap: "Troop cap reached ({n}): barracks wait for room. The siege raises the cap.",
+  hint_mine: "A gold mine pays into your income for the rest of the match: the earlier one stands, the more it brings in.",
   ach_firstWin: "First Victory",
   ach_firstWin_d: "Win a match against the AI",
   ach_sweep: "Treasure Hunter",

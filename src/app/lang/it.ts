@@ -111,6 +111,7 @@ export default {
   hint_mystery: "Una carta ? costa solo 25: può non dare nulla, una squadra o perfino una caserma, e apre le caselle attorno.",
   hint_siege: "L'assedio inizia a {t}: le truppe colpiscono più forte gli edifici e sono consentite più truppe.",
   hint_cap: "Limite di truppe raggiunto ({n}): le caserme aspettano che si liberi posto. L'assedio alza il limite.",
+  hint_mine: "Una miniera d'oro aumenta le tue entrate per il resto della partita: prima la costruisci, più rende.",
   ach_firstWin: "Prima vittoria",
   ach_firstWin_d: "Vinci una partita contro l'IA",
   ach_sweep: "Cacciatore di tesori",

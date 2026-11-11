@@ -111,6 +111,7 @@ export default {
   hint_mystery: "? kartı yalnızca 25: hiçbir şey, bir manga ya da bir kışla bile verebilir ve çevresindeki kareleri açar.",
   hint_siege: "Kuşatma {t} anında başlar: askerler binalara daha sert vurur ve daha çok askere izin verilir.",
   hint_cap: "Asker sınırına ulaşıldı ({n}): kışlalar yer açılmasını bekler. Kuşatma sınırı yükseltir.",
+  hint_mine: "Altın madeni maçın sonuna kadar gelirini artırır: ne kadar erken dikilirse o kadar çok kazandırır.",
   ach_firstWin: "İlk zafer",
   ach_firstWin_d: "Yapay zekâya karşı bir maç kazan",
   ach_sweep: "Hazine avcısı",
