@@ -15,7 +15,7 @@
 import { cardCost, standingOf, tryBuy } from './economy';
 import type { Engine } from './engine';
 import { ticks } from './fixed';
-import { hexDist, NTILES, ROWS } from './hex';
+import { hexDist, idx, inMap, NTILES, ROWS } from './hex';
 import { EVENT_LIST, OF_BAR1, OF_BAR2, OF_BAR3, OF_MINE, OF_TOWER, OFFER_LIST, TEAM_RED, unitCap } from './rules';
 
 /** One skill level.
@@ -104,33 +104,45 @@ export function aiUpdate(e: Engine, team: number): void {
       default: return capped || T.gold >= 200 ? 70 : 40;
     }
   };
-  // the map events still waiting: a card on one is worth it, a card up to 3 tiles short of one a share
-  const evAt: number[] = [];
-  for (const t of e.tiles) if (t.event) evAt.push(t.i);
-  const lure = (ti: number): number => {
-    if (!evAt.length || !k.lure) return 0;
-    const a = e.tiles[ti];
-    let w = 0;
-    for (const i of evAt) {
-      const b = e.tiles[i];
-      const d = hexDist(a.c, a.r, b.c, b.r);
-      if (d <= 3) w += d === 0 ? eventWorth(b.event) : ((eventWorth(b.event) * (4 - d)) / 6) | 0;
+  // the map events still waiting pull the cards near them: a card on an event is worth the event
+  // too, a card up to 3 tiles short of one a share of it. The worth is spread outwards from each
+  // event, not searched for from each card: a few events reach 37 tiles each, while every card on
+  // the board asking every event cost a few thousand hex distances twice a second, and that was
+  // most of what a match against the built-in opponent spent its time on.
+  const lureAt = new Int32Array(NTILES);
+  if (k.lure) {
+    for (const b of e.tiles) {
+      if (!b.event) continue;
+      const worth = eventWorth(b.event);
+      // every step between two tiles moves a row and a column by at most one, so three hexes out
+      // cannot leave this box
+      for (let c = b.c - 3; c <= b.c + 3; c++) {
+        for (let r = b.r - 3; r <= b.r + 3; r++) {
+          if (!inMap(c, r)) continue;
+          const d = hexDist(c, r, b.c, b.r);
+          if (d <= 3) lureAt[idx(c, r)] += d === 0 ? worth : ((worth * (4 - d)) / 6) | 0;
+        }
+      }
     }
-    return ((w * k.lure) / 100) | 0;
-  };
+  }
+  const lure = (ti: number): number => ((lureAt[ti]! * k.lure) / 100) | 0;
+  // the price of each card, which the same standing gives the same answer for all the way through
+  const cost = OFFER_LIST.map((_, oi) => cardCost(oi, s));
   // the best card that is affordable within a few seconds (a jackpot card: within half a
   // minute or so) is worth saving for, unless the castle is under attack
   let top = 0;
-  for (let ti = 0; ti < NTILES; ti++) {
-    const oi = T.offers[ti];
-    if (oi < 0) continue;
-    const v = valueOf(oi) + lure(ti);
-    if (k.save && cardCost(oi, s) <= T.gold + (v >= 120 && !threat ? 200 : 40)) top = Math.max(top, v);
+  if (k.save) {
+    for (let ti = 0; ti < NTILES; ti++) {
+      const oi = T.offers[ti];
+      if (oi < 0) continue;
+      const v = valueOf(oi) + lure(ti);
+      if (cost[oi]! <= T.gold + (v >= 120 && !threat ? 200 : 40)) top = Math.max(top, v);
+    }
   }
   let best = -1, bestScore = 0;
   for (let ti = 0; ti < NTILES; ti++) {
     const oi = T.offers[ti];
-    if (oi < 0 || cardCost(oi, s) > T.gold) continue;
+    if (oi < 0 || cost[oi]! > T.gold) continue;
     const v = valueOf(oi) + lure(ti);
     // not worth it (unless the gold piles up with nothing better), or save for the better card
     if ((v < 25 && T.gold < 150) || v * 10 < top * 7) continue;

@@ -2,33 +2,15 @@
 // button it zooms out to the whole map (or back), on an edge marker it glides the camera there, and
 // in the overview it zooms back in where it landed. A drag, the wheel and WASD / the arrows pan; a
 // pinch, Ctrl + the wheel (a trackpad pinch) and Space zoom out and in.
+// How far each of those moves the camera is gesture.ts, which is the part that can be tested.
 
 import { idx, inMap, worldToHex } from '../sim/hex';
 import type { Tile } from '../sim/map';
 import { cardCost, standingOf } from '../sim/economy';
 import { $, openPanel } from './dom';
 import { keyboardFocused, noteInput, panelButton, usableButton } from './panelKeys';
+import { DRAG_PX, KEY_PAN, dragSlop, panKey, panVector, pinchStep, wheelPan } from './gesture';
 import type { Game } from './game';
-
-/** A press that moves further than this is a drag, not a tap (CSS px). A finger rolls as it
- *  presses and lifts, far more than a mouse ever slips, so a touch gets more room: a tap meant for
- *  a card used to come out as a pan of a few pixels and the card stayed face down. */
-const DRAG_PX = 10, DRAG_PX_TOUCH = 18;
-/** Keyboard pan speed, CSS px per second. */
-const KEY_PAN = 700;
-/** A pinch that closes (or opens) the fingers' distance by this factor zooms out (or in). */
-const PINCH = 1.25;
-
-const KEYMAP: Record<string, readonly [number, number]> = {
-  KeyW: [0, -1],
-  ArrowUp: [0, -1],
-  KeyS: [0, 1],
-  ArrowDown: [0, 1],
-  KeyA: [-1, 0],
-  ArrowLeft: [-1, 0],
-  KeyD: [1, 0],
-  ArrowRight: [1, 0],
-};
 
 export class Controls {
   private down = false;
@@ -38,7 +20,7 @@ export class Controls {
   private lx = 0;
   private ly = 0;
   private drag = false;
-  /** How far this press may move and still be a tap (DRAG_PX, by pointer kind). */
+  /** How far this press may move and still be a tap (by pointer kind, gesture.ts). */
   private slop = DRAG_PX;
   private readonly keys = new Set<string>();
   /** Every pointer down on the canvas (for pinches), and the pinch in progress. */
@@ -63,7 +45,7 @@ export class Controls {
     cv.addEventListener('wheel', (e) => this.onWheel(e), { passive: false });
     window.addEventListener('keydown', (e) => this.onKeyDown(e));
     window.addEventListener('keyup', (e) => {
-      if (KEYMAP[e.code]) this.keys.delete(e.code);
+      if (panKey(e.code)) this.keys.delete(e.code);
     });
     window.addEventListener('blur', () => this.clear());
     window.addEventListener('pointerdown', () => noteInput(false), true);
@@ -96,7 +78,7 @@ export class Controls {
     if (this.down || this.pinch) return;
     Object.assign(this, {
       down: true, id: ev.pointerId, sx: p.x, sy: p.y, lx: p.x, ly: p.y, drag: false,
-      slop: ev.pointerType === 'touch' ? DRAG_PX_TOUCH : DRAG_PX,
+      slop: dragSlop(ev.pointerType),
     });
     try {
       cv.setPointerCapture(ev.pointerId);
@@ -116,14 +98,13 @@ export class Controls {
     if (this.pinch && this.pts.size >= 2) {
       ev.preventDefault();
       const d = this.spread(), R = this.g.renderer;
-      if (d < this.pinch.d / PINCH && !R.overview) {
-        R.setOverview(true);
-        this.pinch.d = d;
-      } else if (d > this.pinch.d * PINCH && R.overview) {
+      const step = pinchStep(this.pinch.d, d, R.overview);
+      if (step === 'out') R.setOverview(true);
+      else if (step === 'in') {
         const [a, b] = [...this.pts.values()];
         R.setOverview(false, { x: (a!.x + b!.x) / 2, y: (a!.y + b!.y) / 2 });
-        this.pinch.d = d;
       }
+      if (step) this.pinch.d = d;
       return;
     }
     if (!this.down || ev.pointerId !== this.id) return;
@@ -197,21 +178,14 @@ export class Controls {
       }
       return;
     }
-    R.panBy(-ev.deltaX, -ev.deltaY);
+    const pan = wheelPan(ev, R.cam.W, R.cam.H);
+    R.panBy(pan.x, pan.y);
   }
 
   /** Held arrow / WASD keys glide the camera (screen directions; the red side's view is flipped). */
   keyPan(dt: number): void {
     if (!this.keys.size || !this.g.canLook()) return;
-    let x = 0;
-    let y = 0;
-    for (const k of this.keys) {
-      const v = KEYMAP[k];
-      if (v) {
-        x += v[0];
-        y += v[1];
-      }
-    }
+    const { x, y } = panVector(this.keys);
     if (x || y) this.g.renderer.panBy(-x * KEY_PAN * dt, -y * KEY_PAN * dt);
   }
 
@@ -256,7 +230,7 @@ export class Controls {
       }
       return;
     }
-    if (KEYMAP[ev.code]) {
+    if (panKey(ev.code)) {
       ev.preventDefault();
       g.sound.unlock();
       if (g.canLook()) this.keys.add(ev.code);
