@@ -31,9 +31,9 @@ import { chapterOfNext, goalTrack, matchConfig, showBoard, showBrief, showChapte
 import { Controls } from './controls';
 import type { DevSwitches } from './dev';
 import { $, show, updateRecord, type Panel } from './dom';
+import { Ads } from './ads';
 import { handleEvents, type Fx } from './events';
 import { FaultGuard, markRestart, restartedLately } from './faultGuard';
-import { HeadStart } from './headStart';
 import { Hints } from './hints';
 import { T } from './i18n';
 import { MatchStats } from './matchStats';
@@ -106,13 +106,8 @@ export class Game {
   userPause = false;
   private hidden = false;
   private hostPaused = false;
-  private adPause = false;
-  private adBusy = false;
-  private readonly headStart = new HeadStart();
-  /** An ad is on its way or on screen: the buttons that start a match wait. */
-  get adShowing(): boolean {
-    return this.adBusy;
-  }
+  /** The ads and the head start they pay for (ads.ts). */
+  readonly ads = new Ads(this);
   hostMuted = false;
   private readySent = false;
 
@@ -239,7 +234,7 @@ export class Game {
     this.state = 'brief';
     this.match = m;
     showBrief(this.save, m);
-    this.headStart.show(m, this.platform.rewardedReady());
+    this.ads.headStart.show(m, this.platform.rewardedReady());
     this.show('brief');
   }
 
@@ -252,7 +247,7 @@ export class Game {
     const tutorial = !this.save.tutorialDone && !this.dev.autoplay && m.kind === 'stage' && m.id === 0;
     const config = matchConfig(m, this.save, randomSeed());
     if (this.dev.seed !== null) config.seed = this.dev.seed;
-    this.headStart.apply(m, config);
+    this.ads.headStart.apply(m, config);
     const input = new LocalInput();
     this.setupEngine({ ...config, aiBlue: this.dev.autoplay }, TEAM_BLUE, input);
     this.show(null);
@@ -303,48 +298,6 @@ export class Game {
     return this.mode === 'watch' ? this.watching : this.lastReplay;
   }
 
-  /** From the results: the paced interstitial first (the game pauses and mutes while it is on
-   *  screen), then `then`. Taps while one is pending are dropped. */
-  afterAd(then: () => void): void {
-    if (this.adBusy) return;
-    this.adBusy = true;
-    this.platform
-      .midgame(() => {
-        this.adPause = true;
-        this.refreshPause();
-      })
-      .catch(() => {})
-      .then(() => {
-        this.adBusy = false;
-        this.adPause = false;
-        this.refreshPause();
-        then();
-      });
-  }
-
-  /** The brief's offer: a rewarded ad the player asked for (the game pauses and mutes while it is
-   *  on screen); watched through, the next match of this stage starts with the head start. */
-  watchForHeadStart(): void {
-    const hs = this.headStart, m = this.match;
-    if (hs.busy || this.adBusy || m.kind === 'quick') return;
-    this.sound.play('tap');
-    hs.busy = this.adBusy = true;
-    hs.show(m, true);
-    this.platform
-      .rewarded(() => {
-        this.adPause = true;
-        this.refreshPause();
-      })
-      .catch(() => false)
-      .then((ok) => {
-        hs.busy = this.adBusy = false;
-        this.adPause = false;
-        this.refreshPause();
-        if (ok) hs.earned(m);
-        if (this.state === 'brief') hs.show(m, this.platform.rewardedReady());
-      });
-  }
-
   /** The results panel's "play again": the same match again (a solo one after a replay). */
   again(): void {
     if (this.mode === 'online') {
@@ -382,10 +335,11 @@ export class Game {
 
   /** The pauses that silence the game: the player's own keeps the music and the buttons' taps. */
   private sysPaused(): boolean {
-    return this.hidden || this.hostPaused || this.adPause;
+    return this.hidden || this.hostPaused || this.ads.paused;
   }
 
-  private refreshPause(): void {
+  /** Takes the pause state as the flags now stand (ads.ts calls it when an ad comes and goes). */
+  refreshPause(): void {
     const p = this.sysPaused() || this.userPause;
     this.sound.applyMute();
     if (p === this.paused) return;

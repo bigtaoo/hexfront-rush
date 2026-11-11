@@ -50,7 +50,13 @@ export const AI_SKILLS: readonly AiSkill[] = [
 /** Percent weights on what each kind of card is worth: mines, towers, barracks, mysteries.
  *  0 balanced, 1 builder (economy first), 2 warlord (barracks), 3 turtle (towers), 4 gambler
  *  (mysteries). Each wins about half against the balanced one (the builder a little more,
- *  55-58%; `npm run ladder -- styles`): a style changes how the rival plays, not how hard it is. */
+ *  55-58%; `npm run ladder -- styles`): a style changes how the rival plays, not how hard it is.
+ *
+ *  The balanced weights are the peak, not a round number picked for looks: a sweep of the tower
+ *  weight alone against the balanced AI, 120 matches a point with the colours swapped, won 46% at
+ *  0, 48% at 50, 50% at 100, 38% at 200 and 25% at 400. So a tower is worth about what it costs,
+ *  and the balance report's line that the side with more towers wins 2% of matches is the other
+ *  way round: a side builds towers because its castle is already in trouble. */
 export const AI_STYLES: readonly (readonly number[])[] = [
   [100, 100, 100, 100],
   [150, 60, 90, 120],

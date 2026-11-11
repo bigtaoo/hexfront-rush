@@ -196,9 +196,9 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
     tap();
     g.openCampaign(g.chapter);
   });
-  $('boostBtn').addEventListener('click', () => g.watchForHeadStart());
+  $('boostBtn').addEventListener('click', () => g.ads.watchForHeadStart());
   $('briefGo').addEventListener('click', () => {
-    if (g.adShowing) return;
+    if (g.ads.busy) return;
     tap();
     g.beginMatch();
   });
@@ -212,7 +212,7 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
     const m = g.match;
     if (m.kind !== 'stage') return;
     const id = m.id + 1;
-    g.afterAd(() => {
+    g.ads.afterAd(() => {
       g.toMenu();
       g.chapter = Math.floor(id / STAGES_PER_CHAPTER);
       g.openBrief(m.hard ? { kind: 'stage', id, hard: true } : { kind: 'stage', id });
@@ -229,7 +229,7 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
   $('watchBtn').addEventListener('click', () => {
     tap();
     const r = g.replayToWatch();
-    if (r) g.afterAd(() => g.watch(r));
+    if (r) g.ads.afterAd(() => g.watch(r));
   });
   $('speedBtn').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -248,11 +248,11 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
   });
   $('againBtn').addEventListener('click', () => {
     tap();
-    g.afterAd(() => g.again());
+    g.ads.afterAd(() => g.again());
   });
   $('menuBtn').addEventListener('click', () => {
     tap();
-    g.afterAd(() => g.toMenu());
+    g.ads.afterAd(() => g.toMenu());
   });
   $('muteBtn').addEventListener('click', (e) => {
     e.stopPropagation();
