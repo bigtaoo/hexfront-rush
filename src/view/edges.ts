@@ -14,7 +14,7 @@ import { buildingTex, eventTex } from './art';
 import type { Camera } from './camera';
 import type { Frame } from './frame';
 import { liveGraphics } from './pen';
-import type { Pt } from './viewConst';
+import { UI, type Pt } from './viewConst';
 
 /** Marker radius and the margin it keeps from the play area's edge, screen pixels. */
 const MR = 17;
@@ -118,11 +118,11 @@ export class EdgeLayer {
     if (show && cam.canZoom) {
       const x = cam.W - BR - 10, y = cam.hudTop + BR + 10;
       this.btn = { x, y };
-      p.circle(x, y, BR, 'rgba(15,23,42,0.75)', 'rgba(255,255,255,0.75)', 2);
-      p.circle(x - 3, y - 3, 9, null, '#ffffff', 2.6);
-      p.line([x + 3.5, y + 3.5, x + 11, y + 11], '#ffffff', 3.4, 'round');
-      p.line([x - 7.5, y - 3, x + 1.5, y - 3], '#ffffff', 2.4, 'round');
-      if (cam.overview) p.line([x - 3, y - 7.5, x - 3, y + 1.5], '#ffffff', 2.4, 'round');
+      p.circle(x, y, BR, UI.token, UI.tokenRim, 2);
+      p.circle(x - 3, y - 3, 9, null, UI.cream, 2.6);
+      p.line([x + 3.5, y + 3.5, x + 11, y + 11], UI.cream, 3.4, 'round');
+      p.line([x - 7.5, y - 3, x + 1.5, y - 3], UI.cream, 2.4, 'round');
+      if (cam.overview) p.line([x - 3, y - 7.5, x - 3, y + 1.5], UI.cream, 2.4, 'round');
     }
     if (show && !cam.fitAll && cam.zoomK < 0.02) {
       // map events still waiting, then the pings over them
@@ -154,7 +154,7 @@ export class EdgeLayer {
     // the arrow, then the disc
     const ax = Math.cos(a), ay = Math.sin(a), tip = r + 8;
     p.poly([mx + ax * tip, my + ay * tip, mx + ax * (r - 2) - ay * 7, my + ay * (r - 2) + ax * 7, mx + ax * (r - 2) + ay * 7, my + ay * (r - 2) - ax * 7], color);
-    p.circle(mx, my, r, 'rgba(15,23,42,0.82)', color, 2.5);
+    p.circle(mx, my, r, UI.token, color, 2.5);
     p.a = 1;
     let g = this.pool[this.used];
     if (!g) {

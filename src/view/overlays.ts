@@ -13,6 +13,7 @@ import type { Frame, Juice } from './frame';
 import { Num } from './digits';
 import { label, liveGraphics, setLabel } from './pen';
 import { UnitView } from './unitView';
+import { UI } from './viewConst';
 
 export interface BannerOpts {
   size?: number;
@@ -62,7 +63,7 @@ class CardView {
   private fig = new Container();
   private name = label('', { size: 17, color: '#ffffff', weight: 900, align: 'left' });
   private rar = label('', { size: 14, color: '#ffffff', weight: 900, align: 'left' });
-  private what = label('', { size: 13, color: '#cbd5e1', weight: 800, align: 'left' });
+  private what = label('', { size: 13, color: UI.dim, weight: 800, align: 'left' });
   private key = '';
 
   constructor() {
@@ -78,7 +79,7 @@ class CardView {
     if (key !== this.key) {
       this.key = key;
       const rc = RARITY_COLOR[cd.rarity] ?? '#ffffff';
-      this.bg.p.clear().rrect(0, 0, cw, ch, 14, 'rgba(15,23,42,0.92)', rc, 3);
+      this.bg.p.clear().rrect(0, 0, cw, ch, 14, 'rgba(50,30,12,0.94)', rc, 3);
       const def = UNITS[cd.unit];
       this.unit.update({
         type: cd.unit, team, s: def.size / FP, face: 1, lunge: false, bob: 0, flash: 0,
@@ -93,7 +94,7 @@ class CardView {
       this.name.position.set(88, 24);
       setLabel(this.rar, T('r_' + RARITY[cd.rarity]), { size: 14, color: rc, weight: 900, align: 'left' });
       this.rar.position.set(88, 48);
-      setLabel(this.what, cd.n ? T('squad', { n: cd.n }) : T('barracks'), { size: 13, color: '#cbd5e1', weight: 800, align: 'left' });
+      setLabel(this.what, cd.n ? T('squad', { n: cd.n }) : T('barracks'), { size: 13, color: UI.dim, weight: 800, align: 'left' });
       this.what.position.set(88, 70);
     }
   }

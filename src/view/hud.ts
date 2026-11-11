@@ -12,15 +12,16 @@ import { coin } from './bodies';
 import type { Camera } from './camera';
 import { Num } from './digits';
 import type { Frame, Juice } from './frame';
-import { label, liveGraphics, setLabel, type LabelOpts } from './pen';
-import { teamCol } from './viewConst';
+import { label, liveGraphics, setLabel, type LabelOpts, type Pen } from './pen';
+import { teamCol, UI } from './viewConst';
 
 export interface Status {
   text: string;
   color?: string;
 }
 
-const PANEL = 'rgba(15,23,42,0.72)';
+/** Where a rail's grain lines sit across its height, and how heavy each one is. */
+const GRAIN = [0.16, 0.3, 0.52, 0.74, 0.88];
 /** A picture number's height over the font size of the label it replaced (its outline is part of it). */
 const NUM_K = 1.1;
 
@@ -88,14 +89,28 @@ export class Hud {
     this.side = me;
     const pad = 10, av = top * 0.32;
     const p = this.back.p.clear();
-    p.rect(0, 0, W, top, PANEL);
-    p.rect(0, H - cam.hudBot, W, cam.hudBot, PANEL);
-    p.circle(pad + av, top * 0.42, av, teamCol(me), '#ffffff', 2);
-    p.circle(W - pad - av, top * 0.42, av, teamCol(foe), '#ffffff', 2);
+    this.rail(p, 0, top, W, 1);
+    this.rail(p, H - cam.hudBot, cam.hudBot, W, -1);
+    p.circle(pad + av, top * 0.42, av, teamCol(me), UI.tokenRim, 2);
+    p.circle(W - pad - av, top * 0.42, av, teamCol(foe), UI.tokenRim, 2);
     const { bx, by, bw, bh } = this.tugRect(cam);
-    p.rrect(bx, by, bw, bh, bh / 2, null, '#ffffff', 2);
+    p.rrect(bx, by, bw, bh, bh / 2, UI.groove, UI.tokenRim, 2);
     this.tugMask.clear();
     this.tugMask.roundRect(bx, by, bw, bh, bh / 2).fill('#ffffff');
+  }
+  /** One of the two rails: a raised walnut bar across the screen, lit from above, with a dark rim
+   *  along the edge the board is on (`dir` 1 = the board is below it) and its shadow falling on the
+   *  board past that rim. Redrawn only on resize. */
+  private rail(p: Pen, y: number, h: number, W: number, dir: 1 | -1): void {
+    p.rect(0, y, W, h, UI.rail);
+    p.rect(0, y, W, h * 0.4, 'rgba(255,255,255,0.05)');
+    p.rect(0, y + h * 0.74, W, h * 0.26, 'rgba(0,0,0,0.16)');
+    for (const g of GRAIN) p.rect(0, y + h * g, W, 1, UI.grain);
+    const edge = dir > 0 ? y + h : y;
+    p.rect(0, edge - (dir > 0 ? 2.5 : 0), W, 2.5, UI.rim);
+    p.rect(0, edge - (dir > 0 ? 4.5 : -2), W, 2, UI.lip);
+    // the rail stands over the board, so it throws a shadow on it
+    for (let i = 0; i < 6; i++) p.rect(0, edge + (dir > 0 ? i * 2 : -(i + 1) * 2), W, 2, `rgba(22,12,4,${(0.2 - i * 0.033).toFixed(3)})`);
   }
   private tugRect(cam: Camera) {
     const top = cam.hudTop, pad = 10, av = top * 0.32;
@@ -119,7 +134,7 @@ export class Hud {
     this.num('clock', `${mm}:${String(ss).padStart(2, '0')}`, cx, top * 0.3, { size: fs * 1.15, color: '#ffffff', weight: 900 });
     // beside it: the seconds to the next wave (bigger and yellow in its last 3), and the siege once it is on
     const toWave = Math.ceil((WAVE_TICKS - (eng.elapsed() % WAVE_TICKS)) / TICK_RATE);
-    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * (toWave <= 3 ? 0.78 : 0.7), color: toWave <= 3 ? '#fde047' : '#e2e8f0', weight: 800, align: 'left' });
+    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * (toWave <= 3 ? 0.78 : 0.7), color: toWave <= 3 ? '#fde047' : UI.cream, weight: 800, align: 'left' });
     const siege = eng.siegeLevel();
     this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: fs * 0.7, color: '#fca5a5', weight: 800, align: 'right' });
     // the tug bar: tiles held, own side from the left
@@ -144,7 +159,10 @@ export class Hud {
     const gx = W / 2 - gw / 2 + (J.goldShake > 0 ? Math.sin(J.goldShake * 60) * J.goldShake * 22 : 0);
     J.goldAt = { x: W / 2 - gw / 2 + gfs * 0.8, y: gy };
     const p = this.dyn.p.clear();
-    p.rrect(gx, gy - gfs * 0.75, gw, gfs * 1.5, gfs * 0.75, 'rgba(0,0,0,0.45)', (f.ui.goldFlash ?? 0) > 0 ? '#f87171' : null, 3);
+    const gh = gfs * 1.5;
+    p.rrect(gx, gy - gfs * 0.75, gw, gh, gfs * 0.75, UI.groove, (f.ui.goldFlash ?? 0) > 0 ? '#f87171' : UI.lip, 3);
+    // the lit lip along the groove's lower rim
+    p.rrect(gx + 2, gy - gfs * 0.75 + 2, gw - 4, gh - 2, gfs * 0.75, null, 'rgba(0,0,0,0.3)', 2);
     const pk = J.goldPop > 0 ? 1 + 0.35 * J.goldPop : J.goldPop < 0 ? 1 + 0.15 * J.goldPop : 1;
     coin(p, gx + gfs * 0.8, gy, gfs * 0.52 * pk);
     const gt = this.num('gold', String(gold), gx + gfs * 1.55, gy + 1, { size: gfs, color: J.goldShake > 0 ? '#fca5a5' : '#fde047', weight: 900, align: 'left' });
@@ -156,9 +174,9 @@ export class Hud {
     if (qp && qw > 90) {
       const qfs = Math.max(11, Math.min(15, qw / 15));
       const flash = eng.tick - Tme.questT < TICK_RATE * 1.2;
-      p.rrect(qx, gy - qfs * 1.9, qw, qfs * 3.8, 10, flash ? 'rgba(34,197,94,0.6)' : 'rgba(255,255,255,0.12)');
+      p.rrect(qx, gy - qfs * 1.9, qw, qfs * 3.8, 10, flash ? 'rgba(34,197,94,0.6)' : UI.groove, UI.lip, 2);
       const pbw = qw - 20 - qfs * 3.5;
-      p.rrect(qx + 10, gy + qfs * 0.35, pbw, qfs * 0.8, qfs * 0.4, 'rgba(0,0,0,0.4)');
+      p.rrect(qx + 10, gy + qfs * 0.35, pbw, qfs * 0.8, qfs * 0.4, 'rgba(18,10,3,0.55)');
       p.rrect(qx + 10, gy + qfs * 0.35, Math.max(qfs * 0.8, (pbw * qp.prog) / qp.q.need), qfs * 0.8, qfs * 0.4, '#4ade80');
       coin(p, qx + qw - qfs * 2.6, gy + qfs * 0.75, qfs * 0.45);
       const qt = this.text('quest', T('quest_' + qp.q.id, { n: qp.q.need }), qx + 10, gy - qfs * 0.75, { size: qfs, color: '#ffffff', weight: 800, align: 'left' });
@@ -175,7 +193,7 @@ export class Hud {
     // online status, just above the bottom panel on the right
     if (this.status) {
       const sfs = Math.max(11, Math.min(14, W / 40));
-      this.text('status', this.status.text, W - 10, bt - sfs * 0.9, { size: sfs, color: this.status.color || '#cbd5e1', weight: 800, stroke: 'rgba(0,0,0,0.5)', align: 'right' });
+      this.text('status', this.status.text, W - 10, bt - sfs * 0.9, { size: sfs, color: this.status.color || UI.dim, weight: 800, stroke: 'rgba(0,0,0,0.5)', align: 'right' });
     } else this.hide('status');
   }
 

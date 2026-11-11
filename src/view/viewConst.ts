@@ -15,6 +15,27 @@ export const COL = {
   gold: '#fbbf24', ink: '#1f2937', white: '#ffffff',
 } as const;
 
+/** The chrome drawn in Pixi (the match HUD, the edge markers, the card pop) in the same carved-wood
+ *  palette as the DOM panels (index.html :root, art/STYLE.md UI). It used to be slate blue, which is
+ *  the cold chrome of a different game: the board is a wooden toy on a table (view/table.ts), so the
+ *  bars around it are wooden rails and the discs are wooden tokens. */
+export const UI = {
+  /** A rail's wood, its lit top face and its shaded underside come from these. */
+  rail: 'rgba(67,40,15,0.93)',
+  grain: 'rgba(28,15,5,0.22)',
+  /** The dark line along a rail's board-facing edge, and the lip that catches the light. */
+  rim: '#2e1b0b',
+  lip: 'rgba(243,214,164,0.28)',
+  /** A groove cut into the rail (the gold pill, the quest sign, the progress bar). */
+  groove: 'rgba(28,15,5,0.55)',
+  /** A token's wood and the warm rim around it. */
+  token: 'rgba(58,35,14,0.86)',
+  tokenRim: 'rgba(243,214,164,0.75)',
+  /** Text on wood: full strength and quiet. */
+  cream: '#f6e7cf',
+  dim: '#d4bd96',
+} as const;
+
 // Lilita One (SIL OFL 1.1, public/fonts/) has one weight and no CJK or Cyrillic: Latin text uses it
 // as is, the languages it cannot write (i18n.ts systemFont) use the system font at a heavy weight.
 const SYSTEM_STACK = ['Trebuchet MS', 'Segoe UI', 'system-ui', 'sans-serif'];
