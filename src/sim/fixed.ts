@@ -1,7 +1,8 @@
 // Fixed-point integer math for the deterministic simulation (after Holy Kicker's engine/math/fixed).
 // The sim never stores a float: positions are world units x FP, times are ticks of 1/TICK_RATE s.
 // Only IEEE basic arithmetic on safe integers is used, which every JS engine computes identically,
-// so two machines fed the same commands stay bit-identical. fromFp is for the renderer only.
+// so two machines fed the same commands stay bit-identical. Turning one back into a float is the
+// renderer's business, and it does it where it draws (view/camera.ts: `t.x / FP`).
 
 /** Sim ticks per second; equals the relay's frame rate (frame == tick). */
 export const TICK_RATE = 30;
@@ -29,5 +30,3 @@ export function isqrt(n: number): number {
 
 export const dist2 = (dx: number, dy: number): number => dx * dx + dy * dy;
 export const dist = (dx: number, dy: number): number => isqrt(dx * dx + dy * dy);
-/** Render-side only: fixed point back to world units. */
-export const fromFp = (v: number): number => v / FP;

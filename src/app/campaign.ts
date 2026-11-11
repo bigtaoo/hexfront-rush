@@ -43,17 +43,17 @@ export const CHAPTERS: readonly Chapter[] = [
       { seed: 101, rival: R(0, { income: 70 }), par: 165 },
       { seed: 150, rival: R(0, { style: 4, income: 90 }), par: 180 },
       { seed: 185, rival: R(1, { income: 95 }), par: 195 },
-      { seed: 1099, rival: R(1, { style: 1, income: 85 }), par: 195 },
-      { seed: 262, rival: R(1, { income: 80 }), par: 195 },
+      { seed: 1104, rival: R(1, { style: 1, income: 85 }), par: 195 },
+      { seed: 1129, rival: R(1, { income: 80 }), par: 195 },
       { seed: 1144, rival: R(2, { style: 2, income: 85 }), par: 210 },
     ],
   },
   {
     // gold rush: both sides start rich, so the first minute is a race to spend well
     key: 'sunscorch', theme: 'desert', stages: [
-      { seed: 122, rival: R(1, { gold: 200, income: 90 }), you: { gold: 200 }, par: 210 },
-      { seed: 6045, rival: R(1, { gold: 250, style: 4, income: 75 }), you: { gold: 250 }, par: 165 },
-      { seed: 136, rival: R(2, { income: 85 }), par: 225 },
+      { seed: 6008, rival: R(1, { gold: 200, income: 90 }), you: { gold: 200 }, par: 210 },
+      { seed: 6034, rival: R(1, { gold: 250, style: 4, income: 75 }), you: { gold: 250 }, par: 165 },
+      { seed: 6091, rival: R(2, { income: 85 }), par: 225 },
       { seed: 143, rival: R(2, { gold: 300, style: 1, income: 80 }), you: { gold: 300 }, par: 195 },
       { seed: 6171, rival: R(2, { barracks: 1, style: 2, income: 85 }), par: 270 },
       { seed: 6181, rival: R(2, { gold: 300, style: 4, income: 55 }), you: { gold: 150 }, par: 180 },
@@ -64,12 +64,12 @@ export const CHAPTERS: readonly Chapter[] = [
     // blitz: the siege comes early, so buildings fall fast and the troop cap rises soon
     key: 'frostmarch', theme: 'snow', stages: [
       { seed: 11011, rival: R(2, { income: 92 }), siege: 240, par: 270 },
-      { seed: 115, rival: R(2, { style: 2, income: 95 }), siege: 180, par: 255 },
-      { seed: 157, rival: R(2, { barracks: 1, income: 83 }), siege: 240, par: 240 },
-      { seed: 164, rival: R(3, { income: 94 }), siege: 180, par: 240 },
+      { seed: 11039, rival: R(2, { style: 2, income: 95 }), siege: 180, par: 255 },
+      { seed: 11080, rival: R(2, { barracks: 1, income: 83 }), siege: 240, par: 240 },
+      { seed: 11112, rival: R(3, { income: 94 }), siege: 180, par: 240 },
       { seed: 171, rival: R(3, { style: 2, income: 90 }), siege: 150, par: 240 },
       { seed: 11147, rival: R(3, { style: 3, towers: 1, income: 90 }), siege: 120, par: 240 },
-      { seed: 199, rival: R(3, { barracks: 2, style: 1, income: 72 }), siege: 180, par: 255 },
+      { seed: 11190, rival: R(3, { barracks: 2, style: 1, income: 72 }), siege: 180, par: 255 },
     ],
   },
   {
@@ -79,9 +79,9 @@ export const CHAPTERS: readonly Chapter[] = [
       { seed: 297, rival: R(3, { style: 3, towers: 2, castle: 150, income: 95 }), par: 255 },
       { seed: 16083, rival: R(3, { towers: 2, castle: 150 }), par: 270 },
       { seed: 16099, rival: R(3, { style: 3, towers: 3, castle: 200 }), par: 300 },
-      { seed: 353, rival: R(3, { style: 1, towers: 2, castle: 150, income: 97 }), par: 255 },
-      { seed: 367, rival: R(3, { style: 3, towers: 3, castle: 200, income: 105 }), par: 315 },
-      { seed: 381, rival: R(3, { style: 3, towers: 3, castle: 250, barracks: 2, income: 76 }), par: 285 },
+      { seed: 16128, rival: R(3, { style: 1, towers: 2, castle: 150, income: 97 }), par: 255 },
+      { seed: 16149, rival: R(3, { style: 3, towers: 3, castle: 200, income: 105 }), par: 315 },
+      { seed: 16171, rival: R(3, { style: 3, towers: 3, castle: 250, barracks: 2, income: 76 }), par: 285 },
     ],
   },
   {
@@ -89,10 +89,10 @@ export const CHAPTERS: readonly Chapter[] = [
     key: 'warlords', theme: 'desert', stages: [
       { seed: 227, rival: R(3, { style: 2, barracks: 1, income: 90 }), par: 240 },
       { seed: 255, rival: R(3, { style: 2, income: 102 }), par: 240 },
-      { seed: 21108, rival: R(3, { style: 2, barracks: 2, income: 78 }), par: 270 },
-      { seed: 290, rival: R(3, { style: 4, gold: 200, income: 76 }), par: 255 },
+      { seed: 21118, rival: R(3, { style: 2, barracks: 2, income: 78 }), par: 270 },
+      { seed: 21121, rival: R(3, { style: 4, gold: 200, income: 76 }), par: 255 },
       { seed: 21175, rival: R(3, { style: 2, barracks: 2, income: 80 }), par: 285 },
-      { seed: 332, rival: R(3, { style: 1, income: 98 }), par: 255 },
+      { seed: 21219, rival: R(3, { style: 1, income: 98 }), par: 255 },
       { seed: 21226, rival: R(3, { style: 2, barracks: 3, income: 80 }), par: 315 },
     ],
   },
@@ -100,9 +100,9 @@ export const CHAPTERS: readonly Chapter[] = [
     // the last front: everything at once
     key: 'lastfront', theme: 'snow', stages: [
       { seed: 206, rival: R(3, { style: 1, towers: 1 }), par: 270 },
-      { seed: 26049, rival: R(3, { barracks: 1, income: 95 }), siege: 240, par: 300 },
+      { seed: 26047, rival: R(3, { barracks: 1, income: 95 }), siege: 240, par: 300 },
       { seed: 26071, rival: R(3, { style: 4, gold: 200, income: 78 }), par: 255 },
-      { seed: 26098, rival: R(3, { style: 1, barracks: 2, income: 80 }), par: 270 },
+      { seed: 26112, rival: R(3, { style: 1, barracks: 2, income: 80 }), par: 270 },
       { seed: 26149, rival: R(3, { style: 2, barracks: 3, income: 75 }), par: 300 },
       { seed: 26205, rival: R(3, { style: 1, barracks: 2, castle: 150, towers: 2, income: 80 }), par: 285 },
       { seed: 26218, rival: R(3, { style: 1, barracks: 3, castle: 150, towers: 2, income: 75 }), par: 315 },

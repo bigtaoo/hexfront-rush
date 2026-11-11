@@ -22,13 +22,11 @@ const BANNED: readonly { pattern: RegExp; why: string }[] = [
   { pattern: /\bObject\.(?:keys|values|entries)\s*\(/, why: 'walk an explicit list instead' },
   { pattern: /\.sort\(\s*\)/, why: 'sort() without a comparator compares as strings' },
   { pattern: /\btoFixed\b|\bparseFloat\b/, why: 'float formatting/parsing' },
-  { pattern: /\/\s*FP\b/, why: 'division by FP leaves a float: use muldiv' },
-  { pattern: /\bfromFp\s*\(/, why: 'fromFp is for the renderer' },
+  { pattern: /\/\s*FP\b/, why: 'division by FP leaves a float: that is the renderer business, use muldiv' },
 ];
 
 const ALLOWED: readonly { file: string; pattern: RegExp; why: string }[] = [
   { file: 'fixed.ts', pattern: /\bMath\.sqrt\s*\(/, why: 'first guess of isqrt, corrected to the exact integer root' },
-  { file: 'fixed.ts', pattern: /\bfromFp\b.*\/\s*FP\b/, why: 'definition of the render-only helper' },
   { file: 'hash.ts', pattern: /\bObject\.keys\s*\(.*\.sort\(\s*\)/, why: 'the hash fixes key order itself (keys are plain identifiers)' },
 ];
 

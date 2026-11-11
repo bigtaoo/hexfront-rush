@@ -27,7 +27,7 @@ The design follows Holy Kicker (`D:\standing`) and its daydayup lineage, cut dow
 Everything is TypeScript under `strict`. The relay (`server/relay.ts`) runs on Node's own type stripping and imports the same `src/net/frameBroadcast.ts` the client tests use, so there is no second copy of the frame clock.
 
 ## Simulation — `src/sim/`
-- **`fixed.ts`:** fixed point with `FP = 1000`. Provides `muldiv`, `isqrt`, `dist`, `clampI`, and load-time helpers `ticks(seconds)` / `perTick(unitsPerSecond)`.
+- **`fixed.ts`:** fixed point with `FP = 1000`. Provides `muldiv`, `isqrt`, `dist`, `dist2`, and load-time helpers `toFp(units)` / `ticks(seconds)` / `perTick(unitsPerSecond)`.
 - **`prng.ts`:** an LCG step whitened by a murmur3 finaliser, with a single uint32 of state. Each concern gets its own stream (`streamSeed(seed, tag)`): map, offers, loot, units, each AI, quests, each castle guard, the card layout. Adding a random draw in one system therefore never shifts another.
 - **`rules.ts`:** all design numbers, converted to integer ticks / FP once at load. The hex grid is pointy-top, odd rows offset, `hexX = 866·(2c+(r&1)+1)`, `hexY = 1500r+1000`. Also holds `ENGINE_VERSION`.
 - **`setup.ts`:** a match's setup: the seed, which sides the AI plays, and per side the AI's skill and style plus the handicaps a campaign stage gives (starting gold, castle %, income %, a starting barracks and towers), and the siege time. `makeConfig(input)` fills in the standard values. The setup is part of the hashed state and of every replay. Income % pays exactly: each team keeps the hundredths left over (`TeamState.incomeCarry`) for its next payout (engine v12).

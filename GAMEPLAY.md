@@ -127,7 +127,7 @@ Events stand on the map from the start, face up for both players: the one thing 
   - Units alive for each side.
 - **Bottom:**
   - Gold.
-  - Current mini quest. Completing it pays bonus gold; there are up to 3 quests per match.
+  - Current mini quest. Completing it pays bonus gold and the next one comes at once: three listed ones first (shuffled out of four), then mines, barracks and watchtowers in turn for the rest of the match, each counting from the moment it was handed out. Claiming tiles is only ever one of the listed three — a side that is behind could never finish it, and the panel would sit there for the rest of the match.
 - **Always on screen:** the sound button (effects). On the menus and boards a music button sits beside it (music alone); in a solo match a pause button takes its place.
 - **Pause** (solo matches: campaign, daily, quick match; Esc or P): the match stops and a board offers Resume, Restart (this stage again, counted as quit) and Menu. Esc, P, Enter or Space resume. The music keeps playing. Online and replays have no pause.
 - **Keyboard on the boards** (`src/app/panelKeys.ts`): Esc goes back on every board but the menu (the results go to the menu). Enter or Space press the board's main button: Play on the menu, the newest open stage on the campaign map, Fight on the brief, Next stage (else Play again) on the results, Got it on How to play. ← / → turn the campaign's chapters and the leaderboard's tabs. A key presses the button, so it does what a tap does. A control reached with Tab keeps its own Enter / Space (and a slider its arrows) and shows an ink ring (never blue). A board opened by a key puts focus on its main button; one opened by a tap keeps no focus.
