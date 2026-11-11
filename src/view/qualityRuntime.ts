@@ -55,8 +55,6 @@ export class QualityRuntime {
   private wasCalm = true;
   /** A frame threw; must not throw itself. */
   onFault: (err: unknown) => void = (err) => console.error(err);
-  /** Stops the loop for good (a newer tab took the game over, game/tabLock.ts). */
-  stopped = false;
 
   constructor(
     private readonly app: Application,
@@ -76,8 +74,9 @@ export class QualityRuntime {
     app.ticker.autoStart = false;
     app.ticker.stop();
     this.apply();
+    // the loop runs for the page's life: a fault restarts the page (app/faultGuard.ts) rather than
+    // stopping the frames, so the density watch above is never unhooked either
     const loop = (now: number) => {
-      if (this.stopped) return;
       requestAnimationFrame(loop);
       const calm = this.calm();
       this.gate.fps = targetFps(this.settings, calm);

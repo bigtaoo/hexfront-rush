@@ -18,6 +18,9 @@ const DEMO_ZOOM = LOOK_B ? 0.45 : 1;
 const COVER_W = 0.8;
 const COVER_H = 0.92;
 const COVER_MAX = 1.8;
+/** The two HUD bars are sized for a phone or bigger. On a screen too short for them they shrink
+ *  together to this share of it, so there is always a play area left between them. */
+const BAR_SHARE = 0.45;
 
 /** Something that moves in the sim: its position now and a tick ago (FP). */
 export interface Mobile {
@@ -98,12 +101,20 @@ export class Camera {
   resize(W: number, H: number): void {
     this.W = W;
     this.H = H;
-    this.hudTop = Math.max(58, Math.min(78, H * 0.085));
-    this.hudBot = Math.max(64, Math.min(92, H * 0.1));
-    const availH = H - this.hudTop - this.hudBot - 8;
-    const fit = Math.min((W - 12) / (MAP_X1 - MAP_X0), availH / (MAP_Y1 - MAP_Y0));
+    const top = Math.max(58, Math.min(78, H * 0.085)), bot = Math.max(64, Math.min(92, H * 0.1));
+    // A thumbnail-sized frame (a portal's preview panel, a window dragged nearly shut) is shorter
+    // than the two bars together. Taken as they are, the play area between them comes out negative
+    // and so does every scale drawn from it: the board would be drawn mirrored and inside out, and
+    // the camera clamp would collapse. The bars give way instead. Above about 270 px tall they
+    // never do, so this changes nothing on a phone or a monitor.
+    const squeeze = Math.min(1, (H * BAR_SHARE) / (top + bot));
+    this.hudTop = top * squeeze;
+    this.hudBot = bot * squeeze;
+    const availH = Math.max(1, H - this.hudTop - this.hudBot - 8);
+    const availW = Math.max(1, W - 12);
+    const fit = Math.min(availW / (MAP_X1 - MAP_X0), availH / (MAP_Y1 - MAP_Y0));
     const vh = LOOK_B ? LOOKB_VIEW.hexes : VIEW_HEXES, vr = LOOK_B ? LOOKB_VIEW.rows : VIEW_ROWS;
-    const zoom = Math.min((W - 12) / (SQRT3 * vh), availH / (1.5 * vr + 1.5));
+    const zoom = Math.min(availW / (SQRT3 * vh), availH / (1.5 * vr + 1.5));
     this.fitScale = fit;
     this.playScale = Math.max(fit, zoom);
     this.availH = availH;
