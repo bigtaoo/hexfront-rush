@@ -15,11 +15,12 @@ const SPAN = 240;
 /** The board's cast shadow, down and to the right of the light (lookB CAST): a tight contact edge
  *  and passes that spread and fade, which is what a blur would do at a fraction of its cost. */
 const SHADOW = [
-  { dx: 0.05, dy: 0.06, r: 1.02, a: 0.17 },
-  { dx: 0.17, dy: 0.19, r: 1.04, a: 0.12 },
-  { dx: 0.33, dy: 0.37, r: 1.06, a: 0.1 },
-  { dx: 0.53, dy: 0.59, r: 1.09, a: 0.08 },
-  { dx: 0.77, dy: 0.85, r: 1.12, a: 0.06 },
+  { dx: 0.02, dy: 0.03, r: 1.0, a: 0.34 },
+  { dx: 0.09, dy: 0.11, r: 1.02, a: 0.2 },
+  { dx: 0.22, dy: 0.26, r: 1.05, a: 0.14 },
+  { dx: 0.44, dy: 0.5, r: 1.09, a: 0.1 },
+  { dx: 0.75, dy: 0.84, r: 1.13, a: 0.07 },
+  { dx: 1.15, dy: 1.28, r: 1.18, a: 0.05 },
 ];
 
 function rng(seed: number): () => number {
