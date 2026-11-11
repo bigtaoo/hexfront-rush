@@ -121,8 +121,11 @@ export function hexPts(x: number, y: number, r: number): number[] {
   return pts;
 }
 
+/** A Graphics redrawn through a pen (what liveGraphics makes). */
+export type Live = { g: Graphics; p: Pen };
+
 /** A Graphics redrawn through a pen: the Graphics owns the context, so destroying it frees both. */
-export function liveGraphics(): { g: Graphics; p: Pen } {
+export function liveGraphics(): Live {
   const g = new Graphics();
   return { g, p: new Pen(g.context) };
 }

@@ -31,10 +31,10 @@ the painted ref reads cleaner at 50 px than the render, and Tripo's free plan ex
 models (guard, ogre, mine, all spent). A new subject goes through steps 1-5.
 
 Scale on the board (lookB): troops are drawn 1.3x their hit size (LOOKB_UNIT_K); a building fills
-most of its tile (sprites.ts BLD_W 1.45 / BLD_H 1.75 view units, a tile is 1.73 wide), so the
+most of its tile (buildingView.ts BLD_W 1.45 / BLD_H 1.75 view units, a tile is 1.73 wide), so the
 castle never reads smaller than the soldiers standing next to it.
 
-## Motion (src/view/unitView.ts, sprites.ts)
+## Motion (src/view/unitView.ts, sprites.ts, buildingView.ts)
 
 The pictures are single still frames; every movement is a transform of the whole picture, the way a
 painted wooden piece moves on a board. That suits the toy look better than frame animation would
@@ -94,9 +94,9 @@ brown planks): a ruin should read as "something stood here", not as a dark hole 
   full-strength fill swallowed the blue roofs, a pale pastel left the white symbols nothing to
   stand out against, and mixing the hue into the ground turned blue on sand grey. Play zoom
   shows about 8.5 hexes across (viewConst.ts): at 11 the symbols were too small to tell apart.
-- A building is drawn inside its own tile (sprites.ts, BLD_W/BLD_H); one that spilled onto its
+- A building is drawn inside its own tile (buildingView.ts, BLD_W/BLD_H); one that spilled onto its
   neighbours covered their cards.
-- (old look) A built tile is ringed by a low stone wall; lookB paves one yard under the group instead (sprites.ts, WallLayer), and the shared edge of
+- (old look) A built tile is ringed by a low stone wall; lookB paves one yard under the group instead (buildingView.ts, WallLayer), and the shared edge of
   two built tiles has none, so a group of buildings reads as one walled compound.
 - Numbers (prices, gold, counts, the clock, damage, gold taken) are pictures, not live text
   (`python tools/art/digits.py` -> src/assets/digits.png, drawn by src/view/digits.ts): Lilita One
