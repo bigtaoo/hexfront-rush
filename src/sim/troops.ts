@@ -2,6 +2,7 @@
 // apart, capturing tiles; and the missiles in flight.
 
 import { claimTile, damage, enemiesOf, fire, moveToward, nearestEnemyBuilding, nearestEnemyMobile } from './combat';
+import { bfsPath } from './path';
 import type { Engine } from './engine';
 import { dist, dist2, isqrt, muldiv } from './fixed';
 import { enemyOf, PROJ, UNITS } from './rules';
@@ -125,7 +126,7 @@ function unitStepToward(e: Engine, u: Unit, tg: Entity, speed: number): void {
     return;
   }
   if (u.step < 0 || u.step === cur.i) {
-    const p = e.bfsPath(cur.i, tt.i);
+    const p = bfsPath(e.tiles, cur.i, tt.i);
     u.step = p && p.length ? p[0] : -1;
   }
   if (u.step >= 0) {

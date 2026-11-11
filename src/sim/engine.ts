@@ -20,6 +20,7 @@ import { tryBuy, updateEconomy, updateQuests } from './economy';
 import { ticks, TICK_RATE } from './fixed';
 import { hashState } from './hash';
 import { idx, inMap, NTILES, worldToHex } from './hex';
+import { distanceField } from './path';
 import type { Cmd } from './input';
 import { baseTile, generateMap, type ThemeKey, type Tile } from './map';
 import { Prng, streamSeed } from './prng';
@@ -104,7 +105,7 @@ export class Engine {
     const m = generateMap(seed);
     this.tiles = m.tiles;
     this.themeKey = m.themeKey;
-    this.flow = [null, this.distanceField(baseTile(TEAM_BLUE)), this.distanceField(baseTile(TEAM_RED))];
+    this.flow = [null, distanceField(this.tiles, baseTile(TEAM_BLUE)), distanceField(this.tiles, baseTile(TEAM_RED))];
     this.spots = [null, guardSpots(this.tiles, TEAM_BLUE), guardSpots(this.tiles, TEAM_RED)];
     this.layout = cardLayout(this.tiles, seed);
     for (const t of this.tiles) t.event = this.layout.event[t.i];
@@ -246,45 +247,6 @@ export class Engine {
   }
   rngGuard(team: number): Prng {
     return team === TEAM_BLUE ? this.rng.guard1 : this.rng.guard2;
-  }
-
-  distanceField(start: number): Int16Array {
-    const d = new Int16Array(NTILES).fill(9999);
-    d[start] = 0;
-    const q = [start];
-    for (let h = 0; h < q.length; h++) {
-      const i = q[h];
-      for (const n of this.tiles[i].nb) {
-        if (d[n] === 9999 && !this.tiles[n].obst) {
-          d[n] = d[i] + 1;
-          q.push(n);
-        }
-      }
-    }
-    return d;
-  }
-
-  bfsPath(from: number, to: number): number[] | null {
-    if (from === to) return [];
-    if (!this.passable(to)) return null;
-    const prev = new Int16Array(NTILES).fill(-1);
-    prev[from] = from;
-    const q = [from];
-    for (let h = 0; h < q.length; h++) {
-      const i = q[h];
-      if (i === to) break;
-      for (const n of this.tiles[i].nb) {
-        if (prev[n] === -1 && !this.tiles[n].obst) {
-          prev[n] = i;
-          q.push(n);
-        }
-      }
-    }
-    if (prev[to] === -1) return null;
-    const path: number[] = [];
-    for (let i = to; i !== from; i = prev[i]) path.push(i);
-    path.reverse();
-    return path;
   }
 
   makeGuard(team: number): Guard {

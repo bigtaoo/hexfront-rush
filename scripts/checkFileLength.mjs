@@ -42,5 +42,5 @@ console.log(`file length ok (<= ${MAX_LINES} lines${left ? `; ${left} older file
 // Files close to the wall, named while there is still room to plan a split rather than having to
 // make one in the middle of something else. Not an error: the limit is still MAX_LINES.
 const CROWDED = MAX_LINES - 20;
-const near = [...counts()].filter(([, n]) => n > CROWDED && n <= MAX_LINES).sort((a, b) => b[1] - a[1]);
-if (near.length) console.log(`  crowded (over ${CROWDED}): ${near.map(([f, n]) => `${f} ${n}`).join(', ')}`);
+const near = [...counts()].filter(([, n]) => n >= CROWDED && n <= MAX_LINES).sort((a, b) => b[1] - a[1]);
+if (near.length) console.log(`  crowded (${CROWDED}+): ${near.map(([f, n]) => `${f} ${n}`).join(', ')}`);
