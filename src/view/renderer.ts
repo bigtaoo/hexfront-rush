@@ -27,12 +27,14 @@ import { OfferLayer } from './offers';
 import { Overlays, type BannerOpts, type CardPop } from './overlays';
 import { setDigitDensity } from './digits';
 import { SpriteLayer } from './sprites';
+import { TableLayer } from './table';
 import type { Pt } from './viewConst';
 
 export class Renderer {
   readonly cam = new Camera();
   readonly juice = new Juice();
   private world = new Container();
+  private table = LOOK_B ? new TableLayer() : null;
   private ground = new GroundLayer();
   private offers = new OfferLayer();
   private effects = new EffectLayer();
@@ -46,10 +48,12 @@ export class Renderer {
   private time = 0;
 
   constructor(private readonly app: Application) {
+    if (this.table) this.world.addChild(this.table.root);
     this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.root, this.effects.root);
     app.stage.addChild(this.world, this.edges.root, this.hud.root, this.overlays.root);
     if (this.light) {
-      this.world.addChildAt(this.light.grain, 1);
+      // the sand's grain lies on the ground, over it and under everything that stands on it
+      this.world.addChildAt(this.light.grain, this.world.getChildIndex(this.ground.root) + 1);
       app.stage.addChildAt(this.light.screen, 1);
     }
     this.resize();
@@ -91,6 +95,7 @@ export class Renderer {
     this.cam.setView(eng, this.local);
     this.app.renderer.background.color = GROUND[eng.themeKey].bg;
     this.ground.build(eng, this.cam);
+    this.table?.build(this.cam.tv);
     this.sprites.build(eng, this.cam);
     this.offers.reset();
     this.effects.reset();
@@ -258,6 +263,7 @@ export class Renderer {
     this.effects.destroy();
     this.sprites.destroy();
     this.ground.destroy();
+    this.table?.destroy();
     this.world.destroy({ children: true });
   }
 }

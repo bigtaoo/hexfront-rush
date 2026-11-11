@@ -13,6 +13,11 @@ import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, SQRT3, VIEW_FLIP_Y, VIEW_HEXES, VIEW_RO
 
 /** The menu's match: between play zoom (0) and the whole map (1); lookB's toys want a closer look. */
 const DEMO_ZOOM = LOOK_B ? 0.45 : 1;
+/** The menu backdrop: the board covers this much of the screen, the table frames the rest, and the
+ *  zoom never goes further than COVER_MAX times the play zoom (very wide screens keep more table). */
+const COVER_W = 0.8;
+const COVER_H = 0.92;
+const COVER_MAX = 1.8;
 
 /** Something that moves in the sim: its position now and a tick ago (FP). */
 export interface Mobile {
@@ -42,6 +47,8 @@ export class Camera {
   overview = false;
   /** 0 = play zoom .. 1 = overview, gliding towards `overview`. */
   zoomK = 0;
+  /** The scale at which the board fills the menu's screen, table.ts framing it (COVER_W / COVER_H). */
+  coverScale = 1;
   /** Camera centre in view units; null = snap on the next frame. */
   cam: Pt | null = null;
   /** Where the player dragged or jumped to; null = follow the own castle. */
@@ -101,12 +108,16 @@ export class Camera {
     this.playScale = Math.max(fit, zoom);
     this.availH = availH;
     this.viewCY = this.hudTop + 4 + availH / 2;
+    this.coverScale = Math.max((W * COVER_W) / (MAP_X1 - MAP_X0), (H * COVER_H) / (MAP_Y1 - MAP_Y0));
     this.setScale(this.zoomScale());
   }
-  /** The scale for the current zoomK (eased, geometric between the two zooms). */
+  /** The scale for the current zoomK (eased, geometric between the two zooms). The menu's backdrop
+   *  also fills its screen: the map is a tall column, so at the demo zoom alone the table took half
+   *  of a 16:9 opening frame. */
   private zoomScale(): number {
     const k = this.zoomK, e = k * k * (3 - 2 * k);
-    return this.playScale * Math.pow(this.fitScale / this.playScale, e);
+    const s = this.playScale * Math.pow(this.fitScale / this.playScale, e);
+    return this.demo ? Math.max(s, Math.min(this.coverScale, this.playScale * COVER_MAX)) : s;
   }
   private setScale(sc: number): void {
     this.scale = sc;
@@ -116,17 +127,25 @@ export class Camera {
 
   /** A camera centre kept on the map at a given scale. */
   private clamp(scale: number, x: number, y: number): Pt {
-    const hw = this.W / 2 / scale, hh = this.availH / 2 / scale;
+    const hw = this.W / 2 / scale, hh = this.bandH / 2 / scale;
     x = MAP_X1 - MAP_X0 <= 2 * hw ? (MAP_X0 + MAP_X1) / 2 : Math.max(MAP_X0 + hw, Math.min(MAP_X1 - hw, x));
     y = MAP_Y1 - MAP_Y0 <= 2 * hh ? (MAP_Y0 + MAP_Y1) / 2 : Math.max(MAP_Y0 + hh, Math.min(MAP_Y1 - hh, y));
     return { x, y };
+  }
+  /** The band the map is drawn in: a match keeps it between the HUD bars, the menu's backdrop has
+   *  the whole screen (the menu draws its own buttons over it). */
+  private get bandH(): number {
+    return this.demo ? this.H : this.availH;
+  }
+  private get bandCY(): number {
+    return this.demo ? this.H / 2 : this.viewCY;
   }
   /** Clamp a camera centre to the map and derive the screen offsets from it. */
   placeCamera(x: number, y: number): void {
     ({ x, y } = this.clamp(this.scale, x, y));
     this.cam = { x, y };
     this.ox = this.W / 2 - x * this.scale;
-    this.oy = this.viewCY - y * this.scale;
+    this.oy = this.bandCY - y * this.scale;
   }
   /** The enemy castle for the first beat of the intro, then a little ahead of the own castle
    *  (forward is always up), then wherever the player dragged it or jumped to (an edge marker, a
