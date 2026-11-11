@@ -27,8 +27,13 @@ export class Prng {
   peek(): number {
     return this.state >>> 0;
   }
-  /** Integer in [0, max). */
+  /** Integer in [0, max). An empty range is 0 and spends no randomness: the design tables feed
+   *  this (a skill's `noise`, a guard's `pauseSpan`, a list's length), and a table that says "none"
+   *  must mean none. Without the guard `% 0` is NaN, which would spread silently — a NaN score is
+   *  never the best, so an AI would just stop choosing — and the state hash could not see it,
+   *  because the value never reaches the state. */
   int(max: number): number {
+    if (max <= 0) return 0;
     this.state = (Math.imul(1664525, this.state) + 1013904223) >>> 0;
     return mix32(this.state) % max;
   }

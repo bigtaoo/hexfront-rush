@@ -2,7 +2,7 @@
 // Object keys are visited sorted, so insertion order never matters. A non-integer number throws
 // with its path: a float that sneaks into the sim state is a determinism bug and must be loud.
 
-export function hashState(root: unknown, skip?: ReadonlySet<string>): number {
+export function hashState(root: unknown): number {
   let h = 0x811c9dc5;
   const word = (w: number) => {
     for (let k = 0; k < 4; k++) {
@@ -45,15 +45,9 @@ export function hashState(root: unknown, skip?: ReadonlySet<string>): number {
       for (let i = 0; i < list.length; i++) walk(list[i], `${path}[${i}]`);
       return;
     }
-    const o = v as Record<string, unknown> & { peek?: () => number };
-    if (typeof o.peek === 'function') {
-      num(o.peek(), path);
-      return;
-    }
+    const o = v as Record<string, unknown>;
     // keys are sorted right here, the one place the order is fixed
-    const keys = Object.keys(o).sort();
-    for (const k of keys) {
-      if (skip && skip.has(k)) continue;
+    for (const k of Object.keys(o).sort()) {
       str(k);
       walk(o[k], `${path}.${k}`);
     }

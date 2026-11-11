@@ -52,7 +52,7 @@ The Playgama build sends none for now. Built with `VITE_REPLAY_URL=https://hf.ga
 
 ```
 npm run check            # typecheck + tests + file length; run before every commit
-npm test                 # vitest: golden hashes, replay, loopback netcode, determinism lint, the rules themselves (map, paths, economy, setup, quests, combat), replay pipeline, app/platform units
+npm test                 # vitest: golden hashes, replay, loopback netcode, determinism lint, the foundations (fixed point, hex grid, prng, state hash, design tables), the rules themselves (map, paths, economy, setup, quests, combat), replay pipeline, app/platform units
 npm run typecheck        # also checks that what Node runs (relay, scripts) is erasable TypeScript
 npm run check:filelength # no file under src/, scripts/ or server/ over 500 lines
 ```
