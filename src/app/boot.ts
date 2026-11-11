@@ -16,7 +16,7 @@ import { devSwitches, LOCAL_HOST } from './dev';
 import { $, applyTexts, updateMuteIcon, updateShare } from './dom';
 import { wirePause } from './pauseMenu';
 import { Game, WATCH_SPEEDS } from './game';
-import { LANG, setLang } from './i18n';
+import { LANG, loadLang, setLang } from './i18n';
 import { readReplayFile, replayFromJson } from './replayFile';
 import { privacyUrl, ReplayUpload, replayUrl } from './replayUpload';
 import { loadSave } from './save';
@@ -75,6 +75,7 @@ export async function boot(platform: Platform): Promise<void> {
     fontReady(),
     loadArt(),
     loadDigits(),
+    loadLang(),
   ]);
   app.canvas.id = 'game';
   document.body.prepend(app.canvas);

@@ -1,4 +1,4 @@
-"""Draws the game's number glyphs: src/assets/digits.png + digits.json (Pixi spritesheet format).
+"""Draws the game's number glyphs: src/assets/digits.webp + digits.json (Pixi spritesheet format).
 usage: python tools/art/digits.py
 
 Numbers on the board and the HUD are pictures, not live text: a live Text drawn at 10-20 px and
@@ -87,12 +87,13 @@ def main() -> None:
                         "trimmed": False, "spriteSourceSize": {"x": 0, "y": 0, "w": im.width, "h": im.height},
                         "sourceSize": {"w": im.width, "h": im.height}}
     out = ROOT / "src" / "assets"
-    sheet.save(out / "digits.png", optimize=True)
-    meta = {"frames": frames, "meta": {"image": "digits.png", "format": "RGBA8888",
+    # lossless webp: the same pixels as a png, about 40% of the bytes (the art atlas is webp too)
+    sheet.save(out / "digits.webp", lossless=True, quality=100, method=6)
+    meta = {"frames": frames, "meta": {"image": "digits.webp", "format": "RGBA8888",
                                        "size": {"w": WIDTH, "h": height}, "scale": "1"}}
     (out / "digits.json").write_text(json.dumps(meta, separators=(",", ":")), encoding="utf-8")
-    kb = (out / "digits.png").stat().st_size // 1024
-    print(f"{len(items)} glyphs, {WIDTH}x{height}, digits.png {kb} KB")
+    kb = (out / "digits.webp").stat().st_size // 1024
+    print(f"{len(items)} glyphs, {WIDTH}x{height}, digits.webp {kb} KB")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-// Numbers drawn from pictures (src/assets/digits.png, tools/art/digits.py): a live Text drawn
+// Numbers drawn from pictures (src/assets/digits.webp, tools/art/digits.py): a live Text drawn
 // small and scaled with the board came out soft, and these match the art's sticker style (a white
 // face with a hard cel shadow, a thick dark outline and a drop shadow). The face is white, so a
 // sprite tint colours a number (gold, red) and its outline stays dark.
@@ -8,7 +8,7 @@
 
 import { Assets, Container, Sprite, Spritesheet, Texture, type SpritesheetData } from 'pixi.js';
 import digitsJson from '../assets/digits.json';
-import digitsUrl from '../assets/digits.png?url';
+import digitsUrl from '../assets/digits.webp?url';
 
 /** Glyph heights in the sheet, texture pixels (tools/art/digits.py SIZES). */
 const SIZES = [28, 40, 56, 80, 112] as const;
