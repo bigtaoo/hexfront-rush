@@ -11,6 +11,14 @@
 import { packCmd, unpackCmd, type Cmd, type InputSource, type PackedCmd } from '../sim/input';
 import type { FrameBatch, PackedFrame } from './frameBroadcast';
 
+/** An own command still unconfirmed after this long is given up on. The relay can drop one (it
+ *  arrived after the room was over) and a dying link can swallow one; keeping its send time would
+ *  pair every later command with a stale one and park delayMs at a wrong, high value for the rest
+ *  of the match. */
+const SENT_TTL = 5000;
+/** And a hard cap, so a long run of dropped commands cannot grow the list without end. */
+const SENT_MAX = 64;
+
 export interface NetInputOptions {
   startFrame?: number;
   bufferFrames?: number;
@@ -45,7 +53,16 @@ export class NetInput implements InputSource {
 
   /** Remember that an own command left now (call right after sending it). */
   noteSent(): void {
+    if (this.sent.length >= SENT_MAX) this.sent.shift();
     this.sent.push(this.now());
+  }
+
+  /** The send time to pair with an own command that has just landed: the oldest one still
+   *  plausible. Anything older than that never came back and is dropped, not paired. */
+  private takeSent(): number | undefined {
+    const cut = this.now() - SENT_TTL;
+    while (this.sent.length && this.sent[0]! < cut) this.sent.shift();
+    return this.sent.shift();
   }
 
   private addFrames(frames: readonly PackedFrame[], to: number): void {
@@ -58,7 +75,12 @@ export class NetInput implements InputSource {
         if (!c) continue;
         list.push(c);
         this.log.push(packCmd(c));
-        if (c.owner === this.seat && this.sent.length) this.ownAt.set(f, this.sent.shift()!);
+        if (c.owner === this.seat) {
+          const t = this.takeSent();
+          // two own commands in one frame: both are confirmed, and the delay the player felt is
+          // the first one's, so the frame keeps the time it already has
+          if (t !== undefined && !this.ownAt.has(f)) this.ownAt.set(f, t);
+        }
       }
       this.frames.set(f, list);
     }
@@ -85,7 +107,10 @@ export class NetInput implements InputSource {
     const frames: PackedFrame[] = [];
     for (const [f, l] of by) frames.push([f, l]);
     frames.sort((a, b) => a[0] - b[0]);
+    // the stream is being rebuilt: neither the commands in flight nor the frames they were
+    // waiting on survive it, so no delay is measured across the gap
     this.sent.length = 0;
+    this.ownAt.clear();
     this.addFrames(frames, msg.curFrame);
   }
 
@@ -93,7 +118,7 @@ export class NetInput implements InputSource {
   target(): number {
     return Math.max(this.startFrame, this.confirmedTo - this.bufferFrames);
   }
-  backlog(tick = 0): number {
+  backlog(tick: number): number {
     return this.target() - tick;
   }
   ready(tick: number): boolean {

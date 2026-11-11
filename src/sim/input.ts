@@ -37,8 +37,8 @@ export function unpackCmd(a: unknown): Cmd | null {
 export interface InputSource {
   /** The commands for `tick`, or null when they are not known yet. */
   take(tick: number): Cmd[] | null;
-  /** Confirmed frames waiting to be stepped. */
-  backlog(): number;
+  /** Confirmed frames waiting to be stepped, from where the loop stands. */
+  backlog(tick: number): number;
 }
 
 /** Collects one local player's taps between ticks and turns them into commands. Every tap is a

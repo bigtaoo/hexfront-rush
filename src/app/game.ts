@@ -14,7 +14,7 @@
 // any replay again with a ReplayInput in place of the player.
 
 import type { Application, Ticker } from 'pixi.js';
-import { NetInput, catchUpRate } from '../net/netInput';
+import { catchUpRate } from '../net/netInput';
 import type { Platform } from '../platform/types';
 import { Engine } from '../sim/engine';
 import { TICK_RATE } from '../sim/fixed';
@@ -173,7 +173,7 @@ export class Game {
 
   /** Confirmed frames waiting to be stepped (always 0 offline). */
   backlog(): number {
-    return this.source instanceof NetInput ? this.source.backlog(this.eng.tick) : 0;
+    return this.source.backlog(this.eng.tick);
   }
 
   // ---------------- flow ----------------
