@@ -133,6 +133,7 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
     if (document.hidden) platform.flush();
   });
   g.setHidden(document.hidden);
+  S.preload();
   S.installUnlock();
   applyTexts(g.save);
   updateMuteIcon(g.save);
