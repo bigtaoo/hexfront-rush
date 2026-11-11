@@ -199,9 +199,9 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
   });
   $('boostBtn').addEventListener('click', () => g.ads.watchForHeadStart());
   $('briefGo').addEventListener('click', () => {
-    if (g.ads.busy) return;
     tap();
-    g.beginMatch();
+    // a rewarded ad may still be on its way: the match starts when it is over, with its gold
+    g.ads.whenFree(() => g.beginMatch());
   });
   $('briefBack').addEventListener('click', () => {
     if (g.match.kind !== 'stage') return toMenuPanel();

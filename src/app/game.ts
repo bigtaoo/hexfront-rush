@@ -57,6 +57,8 @@ export const WATCH_SPEEDS = [1, 2, 4, 8] as const;
 /** Online state checkpoint interval, ticks. */
 const HASH_EVERY = TICK_RATE;
 /** Online, this far behind (a reload, a long background), the sim jumps without effects. */
+/** The menu's demo match holds this long once it is over, so its last blow reads. */
+const DEMO_HOLD = 2.5;
 const JUMP_BACKLOG = 150;
 
 const randomSeed = (): number => (Math.random() * 1e9) | 0;
@@ -110,6 +112,8 @@ export class Game {
   readonly ads = new Ads(this);
   hostMuted = false;
   private readySent = false;
+  /** How long the menu's demo match has stood finished (seconds). */
+  private demoEnd = 0;
 
   constructor(
     readonly app: Application,
@@ -172,6 +176,12 @@ export class Game {
   }
 
   /** Confirmed frames waiting to be stepped (always 0 offline). */
+  /** A fresh AI-vs-AI match behind the menu. */
+  private newDemo(): void {
+    this.demoEnd = 0;
+    this.setupEngine({ seed: randomSeed(), aiBlue: true, aiRed: true }, TEAM_BLUE, new LocalInput());
+  }
+
   backlog(): number {
     return this.source.backlog(this.eng.tick);
   }
@@ -187,7 +197,7 @@ export class Game {
     this.mode = 'demo';
     this.tut = null;
     // the menu shows a live AI-vs-AI match behind the panel
-    this.setupEngine({ seed: randomSeed(), aiBlue: true, aiRed: true }, TEAM_BLUE, new LocalInput());
+    this.newDemo();
     this.show('menu');
     updateRecord(this.save);
     updateMenu(this.save, this.online.available());
@@ -413,7 +423,10 @@ export class Game {
     let alpha = 1;
     if (run) {
       if (this.mode === 'demo' && this.eng.phase === PHASE_END) {
-        this.setupEngine({ seed: randomSeed(), aiBlue: true, aiRed: true }, TEAM_BLUE, new LocalInput());
+        // the castle has just fallen: let the blow land and the smoke clear before the next map,
+        // instead of cutting to a different field in the middle of the explosion
+        this.demoEnd += dt;
+        if (this.demoEnd >= DEMO_HOLD) this.newDemo();
       }
       alpha = this.advance(online ? realDt : dt);
       if (this.state === 'match' && this.eng.phase === PHASE_PLAY) this.platform.played(dt * 1000);
