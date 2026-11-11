@@ -121,7 +121,7 @@ export class Engine {
     for (let k = 0; k < TEAMS.length; k++) {
       this.team.push({
         gold: this.setupOf(TEAMS[k]!).gold, tiles: 0, units: 0, built: { mine: 0, tower: 0, barracks: 0, mystery: 0 },
-        offers: new Array<number>(NTILES).fill(-1), open: new Array<number>(NTILES).fill(0), questIdx: 0, questT: -1000, incomeCarry: 0,
+        offers: new Array<number>(NTILES).fill(-1), open: new Array<number>(NTILES).fill(0), questIdx: 0, questBase: 0, questT: -1000, incomeCarry: 0,
       });
     }
     for (const t of TEAMS) {

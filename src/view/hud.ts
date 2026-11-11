@@ -7,7 +7,7 @@ import { Container, Graphics, type Text } from 'pixi.js';
 import { T } from '../app/i18n';
 import { questOf } from '../sim/economy';
 import { TICK_RATE } from '../sim/fixed';
-import { enemyOf, siegePct, WAVE_TICKS } from '../sim/rules';
+import { enemyOf, siegePct, unitCap, WAVE_TICKS } from '../sim/rules';
 import { coin } from './bodies';
 import type { Camera } from './camera';
 import { Num } from './digits';
@@ -24,6 +24,8 @@ export interface Status {
 const GRAIN = [0.16, 0.3, 0.52, 0.74, 0.88];
 /** A picture number's height over the font size of the label it replaced (its outline is part of it). */
 const NUM_K = 1.1;
+/** A side whose army is at the troop cap: its count and a ring round its avatar in this. */
+const CAP_COL = '#fde047';
 
 export class Hud {
   readonly root = new Container();
@@ -126,8 +128,12 @@ export class Hud {
     const pad = 10, av = top * 0.32, cx = W / 2;
     const fs = Math.max(13, top * 0.26);
     const Tme = eng.team[me]!, Tfoe = eng.team[foe]!;
-    this.num('me', String(Tme.units), pad + av, top * 0.42, { size: fs * 0.95, color: '#fff', weight: 900 });
-    this.num('foe', String(Tfoe.units), W - pad - av, top * 0.42, { size: fs * 0.95, color: '#fff', weight: 900 });
+    // an army at the cap trains nothing more, so a barracks bought now is gold thrown away: the
+    // count and the ring go gold while a side is full (the rule itself is said once, hints.ts)
+    const cap = unitCap(eng.elapsed(), eng.siegeAt);
+    const full = (n: number) => n >= cap;
+    this.num('me', String(Tme.units), pad + av, top * 0.42, { size: fs * 0.95, color: full(Tme.units) ? CAP_COL : '#fff', weight: 900 });
+    this.num('foe', String(Tfoe.units), W - pad - av, top * 0.42, { size: fs * 0.95, color: full(Tfoe.units) ? CAP_COL : '#fff', weight: 900 });
     // the clock: time played (no limit, the match ends when a castle falls)
     const tPlayed = Math.floor(eng.elapsed() / TICK_RATE);
     const mm = Math.floor(tPlayed / 60), ss = tPlayed % 60;
@@ -159,6 +165,8 @@ export class Hud {
     const gx = W / 2 - gw / 2 + (J.goldShake > 0 ? Math.sin(J.goldShake * 60) * J.goldShake * 22 : 0);
     J.goldAt = { x: W / 2 - gw / 2 + gfs * 0.8, y: gy };
     const p = this.dyn.p.clear();
+    if (full(Tme.units)) p.circle(pad + av, top * 0.42, av + 3, null, CAP_COL, 2.5);
+    if (full(Tfoe.units)) p.circle(W - pad - av, top * 0.42, av + 3, null, CAP_COL, 2.5);
     const gh = gfs * 1.5;
     p.rrect(gx, gy - gfs * 0.75, gw, gh, gfs * 0.75, UI.groove, (f.ui.goldFlash ?? 0) > 0 ? '#f87171' : UI.lip, 3);
     // the lit lip along the groove's lower rim
@@ -171,7 +179,7 @@ export class Hud {
     // the quest (left of the pill)
     const qp = questOf(eng, me);
     const qx = 8, qw = Math.min(W / 2 - gw / 2 - 16, 240);
-    if (qp && qw > 90) {
+    if (qw > 90) {
       const qfs = Math.max(11, Math.min(15, qw / 15));
       const flash = eng.tick - Tme.questT < TICK_RATE * 1.2;
       p.rrect(qx, gy - qfs * 1.9, qw, qfs * 3.8, 10, flash ? 'rgba(34,197,94,0.6)' : UI.groove, UI.lip, 2);

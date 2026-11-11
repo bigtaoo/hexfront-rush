@@ -10,8 +10,10 @@ import { $, openPanel } from './dom';
 import { keyboardFocused, noteInput, panelButton, usableButton } from './panelKeys';
 import type { Game } from './game';
 
-/** A press that moves further than this is a drag, not a tap (CSS px). */
-const DRAG_PX = 10;
+/** A press that moves further than this is a drag, not a tap (CSS px). A finger rolls as it
+ *  presses and lifts, far more than a mouse ever slips, so a touch gets more room: a tap meant for
+ *  a card used to come out as a pan of a few pixels and the card stayed face down. */
+const DRAG_PX = 10, DRAG_PX_TOUCH = 18;
 /** Keyboard pan speed, CSS px per second. */
 const KEY_PAN = 700;
 /** A pinch that closes (or opens) the fingers' distance by this factor zooms out (or in). */
@@ -36,6 +38,8 @@ export class Controls {
   private lx = 0;
   private ly = 0;
   private drag = false;
+  /** How far this press may move and still be a tap (DRAG_PX, by pointer kind). */
+  private slop = DRAG_PX;
   private readonly keys = new Set<string>();
   /** Every pointer down on the canvas (for pinches), and the pinch in progress. */
   private readonly pts = new Map<number, { x: number; y: number }>();
@@ -90,7 +94,10 @@ export class Controls {
       return;
     }
     if (this.down || this.pinch) return;
-    Object.assign(this, { down: true, id: ev.pointerId, sx: p.x, sy: p.y, lx: p.x, ly: p.y, drag: false });
+    Object.assign(this, {
+      down: true, id: ev.pointerId, sx: p.x, sy: p.y, lx: p.x, ly: p.y, drag: false,
+      slop: ev.pointerType === 'touch' ? DRAG_PX_TOUCH : DRAG_PX,
+    });
     try {
       cv.setPointerCapture(ev.pointerId);
     } catch {
@@ -123,7 +130,7 @@ export class Controls {
     ev.preventDefault();
     const p = this.xy(cv, ev);
     const R = this.g.renderer;
-    if (!this.drag && Math.hypot(p.x - this.sx, p.y - this.sy) > DRAG_PX) this.drag = true;
+    if (!this.drag && Math.hypot(p.x - this.sx, p.y - this.sy) > this.slop) this.drag = true;
     if (this.drag) R.panBy(p.x - this.lx, p.y - this.ly);
     this.lx = p.x;
     this.ly = p.y;

@@ -106,6 +106,9 @@ export interface TeamState {
    *  the tiles next to these. A building that falls closes its tile again. */
   open: number[];
   questIdx: number;
+  /** What `built` held for the current quest's kind when it was handed out, so a looped quest
+   *  (rules.ts QUEST_LOOP) counts from there. 0 while the match's listed quests run. */
+  questBase: number;
   questT: number;
   /** Hundredths of a gold piece an income handicap left over, paid with the next income. */
   incomeCarry: number;

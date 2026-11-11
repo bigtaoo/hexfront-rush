@@ -6,7 +6,7 @@ import { perTick, TICK_RATE, ticks, toFp } from './fixed';
 import { TILE } from './hex';
 
 /** Bump when a rules change alters the outcome of a replay. */
-export const ENGINE_VERSION = 12;
+export const ENGINE_VERSION = 13;
 
 /** No clock: a match ends when a castle falls (or a player leaves). This is only a safety valve
  *  for a stalemate, far past any real match; then the tiles decide. */
@@ -281,3 +281,10 @@ export const QUESTS: readonly Quest[] = [
   { id: 'towers', kind: 'tower', need: 2, reward: 60 },
   { id: 'tiles', kind: 'tiles', need: 55, reward: 60 },
 ];
+/** Once a match's three listed quests are done, the quests keep coming: these three, round after
+ *  round, each counted from what the team had when it was handed out (TeamState.questBase), so
+ *  "build 3 barracks" means three more, whether the team is ahead or behind. Half a match used to
+ *  run with no quest at all and an empty panel; the board keeps asking now. Tiles is not in the
+ *  loop: a team losing ground could never finish it, and would sit on it for the rest of the
+ *  match. */
+export const QUEST_LOOP: readonly number[] = [0, 1, 2];

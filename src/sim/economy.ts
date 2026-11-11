@@ -4,7 +4,7 @@ import { fillerRarity } from './cardLayout';
 import type { Engine } from './engine';
 import { baseTile, type Tile } from './map';
 import {
-  BUILD, EVENT_LIST, MYSTERY, MYSTERY_W_TOTAL, OFFER_LIST, QUESTS, TEAM_BLUE, TEAM_RED, TEAMS, type BuildingType, type OfferKind, type Quest,
+  BUILD, EVENT_LIST, MYSTERY, MYSTERY_W_TOTAL, OFFER_LIST, QUEST_LOOP, QUESTS, TEAM_BLUE, TEAM_RED, TEAMS, type BuildingType, type OfferKind, type Quest,
 } from './rules';
 
 /** How many buildings of each card kind a team has standing (what card prices go up with). */
@@ -23,22 +23,31 @@ export function cardCost(oi: number, s: Standing): number {
   return off.cost + off.step * s[off.kind];
 }
 
-/** The team's current quest and its progress (capped at the goal), or null when all are done. */
-export function questOf(e: Engine, team: number): { q: Quest; prog: number } | null {
+/** The quest the team is on and how far it has come (capped at the goal). The match's listed
+ *  quests come first; after them the loop (rules.ts QUEST_LOOP) goes round for as long as the
+ *  match lasts, so there is always one. */
+export function questOf(e: Engine, team: number): { q: Quest; prog: number } {
   const T = e.team[team];
-  if (T.questIdx >= e.questList.length) return null;
-  const q = QUESTS[e.questList[T.questIdx]];
-  const prog = q.kind === 'tiles' ? T.tiles : T.built[q.kind];
-  return { q, prog: Math.min(prog, q.need) };
+  const q = QUESTS[questAt(e, T.questIdx)];
+  const prog = q.kind === 'tiles' ? T.tiles : T.built[q.kind] - T.questBase;
+  return { q, prog: Math.max(0, Math.min(prog, q.need)) };
+}
+/** Which QUESTS entry the team's n-th quest is. */
+function questAt(e: Engine, n: number): number {
+  const listed = e.questList.length;
+  return n < listed ? e.questList[n] : QUEST_LOOP[(n - listed) % QUEST_LOOP.length];
 }
 
 export function updateQuests(e: Engine): void {
   for (const team of TEAMS) {
-    const qp = questOf(e, team);
-    if (!qp || qp.prog < qp.q.need) continue;
     const T = e.team[team];
+    const qp = questOf(e, team);
+    if (qp.prog < qp.q.need) continue;
     T.gold += qp.q.reward;
     T.questIdx++;
+    // a looped quest asks for so many more, counted from here
+    const next = QUESTS[questAt(e, T.questIdx)];
+    T.questBase = T.questIdx >= e.questList.length && next.kind !== 'tiles' ? T.built[next.kind] : 0;
     T.questT = e.tick;
     const home = e.tiles[baseTile(team)];
     e.emit('quest', { team, reward: qp.q.reward, x: home.x, y: home.y });
