@@ -152,4 +152,6 @@ export default {
   qAuto: "Auto",
   qHigh: "Élevée",
   qSaver: "Économie",
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "Son", aPause: "Pause", aLeave: "Quitter la partie", aSpeed: "Vitesse du replay", aPrevCh: "Chapitre précédent", aNextCh: "Chapitre suivant",
 } as Record<string, string>;

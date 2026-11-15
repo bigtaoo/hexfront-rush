@@ -453,8 +453,8 @@
   </div>
   <div class="row tools">
     <div class="seg" id="diffBtn" role="radiogroup"><button data-d="0" data-t="diff0" role="radio"></button><button data-d="1" data-t="diff1" role="radio"></button><button data-d="2" data-t="diff2" role="radio"></button><button data-d="3" data-t="diff3" role="radio"></button></div>
-    <button class="btn wood" id="achBtn" aria-label="Achievements"><img class="medal" src="ui/icons/medal.webp" alt=""><span id="achN"></span></button>
-    <button class="btn wood icon" id="setBtn" aria-label="Settings"><img class="gear" src="ui/icons/gear.webp" alt=""></button>
+    <button class="btn wood" id="achBtn" aria-label="Achievements" data-ta="achievements"><img class="medal" src="ui/icons/medal.webp" alt=""><span id="achN"></span></button>
+    <button class="btn wood icon" id="setBtn" aria-label="Settings" data-ta="settings"><img class="gear" src="ui/icons/gear.webp" alt=""></button>
   </div>
 </div>
 
@@ -462,9 +462,9 @@
   <div class="card">
     <div class="tabs hidden" id="modeTabs"><button class="tab on" id="modeNormal" data-t="diff1"></button><button class="tab" id="modeHard" data-t="diff2"></button></div>
     <div class="chapRow">
-      <button class="arrow" id="chPrev" aria-label="Previous chapter">◀</button>
+      <button class="arrow" id="chPrev" aria-label="Previous chapter" data-ta="aPrevCh">◀</button>
       <div><h2 id="chName"></h2><div class="sub st" id="chStars"></div></div>
-      <button class="arrow" id="chNext" aria-label="Next chapter">▶</button>
+      <button class="arrow" id="chNext" aria-label="Next chapter" data-ta="aNextCh">▶</button>
     </div>
     <div class="stages" id="stageGrid"></div>
     <div class="row">
@@ -594,7 +594,7 @@
   </div>
 </div>
 
-<button id="muteBtn" aria-label="Sound">
+<button id="muteBtn" aria-label="Sound" data-ta="aSound">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/>
     <path class="w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/>
@@ -602,24 +602,24 @@
   </svg>
 </button>
 
-<button id="musicBtn" class="hidden" aria-label="Music">
+<button id="musicBtn" class="hidden" aria-label="Music" data-ta="optMusic">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <g class="n"><path d="M9 17V5l10-2v12"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="16.5" cy="15.5" r="2.8" fill="currentColor"/></g>
     <path class="x" d="M3 3l18 18"/>
   </svg>
 </button>
 
-<button id="pauseBtn" class="hidden" aria-label="Pause">
+<button id="pauseBtn" class="hidden" aria-label="Pause" data-ta="aPause">
   <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/></svg>
 </button>
 
-<button id="leaveBtn" class="hidden" aria-label="Leave">
+<button id="leaveBtn" class="hidden" aria-label="Leave" data-ta="aLeave">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M5 21V4"/><path d="M5 4h12l-2.5 4L17 12H5" fill="#ef5a3c"/>
   </svg>
 </button>
 
-<button id="speedBtn" class="hidden" aria-label="Replay speed">1×</button>
+<button id="speedBtn" class="hidden" aria-label="Replay speed" data-ta="aSpeed">1×</button>
 
 <div id="loading"><img class="logo" src="ui/logo.webp" alt="Hexfront Rush"><div class="bar"><i></i></div></div>
 

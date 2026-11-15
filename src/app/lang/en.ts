@@ -142,4 +142,6 @@ export default {
   quote: "“{q}”",
   settings: "Settings", optSound: "Sound effects", optMusic: "Music", optVibrate: "Vibration",
   optGraphics: "Graphics", qAuto: "Auto", qHigh: "High", qSaver: "Battery saver",
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "Sound", aPause: "Pause", aLeave: "Leave match", aSpeed: "Replay speed", aPrevCh: "Previous chapter", aNextCh: "Next chapter",
 } as Record<string, string>;

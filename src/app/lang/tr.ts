@@ -152,4 +152,6 @@ export default {
   qAuto: "Otomatik",
   qHigh: "Yüksek",
   qSaver: "Tasarruf",
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "Ses", aPause: "Duraklat", aLeave: "Maçtan çık", aSpeed: "Tekrar hızı", aPrevCh: "Önceki bölüm", aNextCh: "Sonraki bölüm",
 } as Record<string, string>;

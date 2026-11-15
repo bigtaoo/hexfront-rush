@@ -142,4 +142,6 @@ export default {
   quote: '“{q}”',
   settings: 'Pengaturan', optSound: 'Efek suara', optMusic: 'Musik', optVibrate: 'Getaran',
   optGraphics: 'Grafis', qAuto: 'Otomatis', qHigh: 'Tinggi', qSaver: 'Hemat baterai',
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "Suara", aPause: "Jeda", aLeave: "Keluar dari laga", aSpeed: "Kecepatan tayangan ulang", aPrevCh: "Bab sebelumnya", aNextCh: "Bab berikutnya",
 } as Record<string, string>;

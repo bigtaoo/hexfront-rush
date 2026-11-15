@@ -152,4 +152,6 @@ export default {
   qAuto: "自动",
   qHigh: "高",
   qSaver: "省电",
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "声音", aPause: "暂停", aLeave: "离开对局", aSpeed: "回放速度", aPrevCh: "上一章", aNextCh: "下一章",
 } as Record<string, string>;

@@ -142,4 +142,6 @@ export default {
   quote: "«{q}»",
   settings: "Impostazioni", optSound: "Effetti sonori", optMusic: "Musica", optVibrate: "Vibrazione",
   optGraphics: "Grafica", qAuto: "Auto", qHigh: "Alta", qSaver: "Risparmio batteria",
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "Audio", aPause: "Pausa", aLeave: "Esci dalla partita", aSpeed: "Velocità replay", aPrevCh: "Capitolo precedente", aNextCh: "Capitolo successivo",
 } as Record<string, string>;

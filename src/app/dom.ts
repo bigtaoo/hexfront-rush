@@ -1,5 +1,5 @@
 // The HTML panels over the canvas (index.html): menu, how-to, online lobby, campaign, brief, leaderboard, results, the
-// pause menu, the achievements and the settings, and the corner buttons (sound, music, pause, leave, replay speed). Every text comes from i18n through data-t attributes.
+// pause menu, the achievements and the settings, and the corner buttons (sound, music, pause, leave, replay speed). Every text comes from i18n through data-t attributes, and the icon buttons' aria-labels through data-ta.
 
 import { T } from './i18n';
 import { settleFocus } from './panelKeys';
@@ -43,6 +43,8 @@ export function show(id: Panel | null, leave: boolean, watch: boolean, pause: bo
 export function applyTexts(save: Save): void {
   document.title = T('title');
   for (const el of document.querySelectorAll<HTMLElement>('[data-t]')) el.textContent = T(el.getAttribute('data-t') ?? '');
+  // the icon buttons' screen-reader names: index.html holds the English ones until the table is in
+  for (const el of document.querySelectorAll<HTMLElement>('[data-ta]')) el.setAttribute('aria-label', T(el.getAttribute('data-ta') ?? ''));
   $<HTMLInputElement>('codeIn').placeholder = T('codeHint');
   updateRecord(save);
   updateShare(save);

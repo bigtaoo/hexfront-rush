@@ -142,4 +142,6 @@ export default {
   quote: '“{q}”',
   settings: '설정', optSound: '효과음', optMusic: '음악', optVibrate: '진동',
   optGraphics: '그래픽', qAuto: '자동', qHigh: '높음', qSaver: '배터리 절약',
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "소리", aPause: "일시정지", aLeave: "대전 나가기", aSpeed: "리플레이 속도", aPrevCh: "이전 챕터", aNextCh: "다음 챕터",
 } as Record<string, string>;

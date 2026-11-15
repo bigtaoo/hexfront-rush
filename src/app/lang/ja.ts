@@ -142,4 +142,6 @@ export default {
   quote: '「{q}」',
   settings: '設定', optSound: '効果音', optMusic: '音楽', optVibrate: '振動',
   optGraphics: 'グラフィック', qAuto: '自動', qHigh: '高', qSaver: '省電力',
+  // screen-reader names of the icon buttons (aria-label)
+  aSound: "サウンド", aPause: "一時停止", aLeave: "対戦を抜ける", aSpeed: "リプレイ速度", aPrevCh: "前の章", aNextCh: "次の章",
 } as Record<string, string>;
