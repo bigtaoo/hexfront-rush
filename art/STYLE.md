@@ -158,6 +158,9 @@ the in-match HUD read as one set:
   opening (the castle, its guard and its first six priced cards), cropped from the canvas at
   495x360. It shows what the first rule describes; re-take it when the offers or tiles change.
   Hidden in the short landscape layout, where the rules go to two columns.
+- An icon button's picture is decoration (`alt=""`); the button's own name is its `aria-label`,
+  which index.html holds in English and `data-ta="<key>"` replaces from the player's language
+  (dom.ts applyTexts). A new icon button needs both, and its key in every lang/ table.
 
 ## Store covers (art/covers/)
 - Three covers for the Playgama form, uploaded 2026-11-10: `cover_landscape.jpg` 1920×1080,
