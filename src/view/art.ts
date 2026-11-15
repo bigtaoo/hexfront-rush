@@ -13,8 +13,9 @@ import type { Obstacle } from '../sim/map';
 import { TEAM_BLUE, type BuildingType, type UnitKey } from '../sim/rules';
 import { CAST, ONLY3 } from './lookB';
 
-/** Texture pixels per view unit: tools/art/sprites.py draws at TEX_K = 2 over a 38 px hex radius. */
-export const PPU = 76;
+/** Texture pixels per view unit: tools/art3d/sprite.py draws at TEX_K = 3 over a 38 px hex radius. At
+ *  2 (76) a sprite was stretched 1.2x on a 3x phone and 1.6x on a 1080p desktop, and looked soft. */
+export const PPU = 114;
 /** Where a building, prop or map event stands its foot, below its tile's centre (view units). */
 export const TILE_FOOT = 0.42;
 
@@ -41,8 +42,22 @@ const side = (team: number) => (team === TEAM_BLUE ? 'blue' : 'red');
 
 /** ?only3: the big troops are the ogre, every other one the guard (lookB.ts). */
 const only3Unit = (type: UnitKey): string => (type === 'ogre' || type === 'colossus' || type === 'drake' ? 'ogre' : 'guard');
-export const unitTex = (type: UnitKey, team: number): Texture => tex(`${ONLY3 ? only3Unit(type) : type}_${side(team)}`);
-export const guardTex = (team: number): Texture => tex(`guard_${side(team)}`);
+/** A troop's picture. `frame` is an animation suffix (`_w3` of the walk cycle, `_a1` of the
+ *  strike); with none in the atlas - no cycle rendered for this troop, or ?only3's stand-ins - it
+ *  falls back to the still, so a caller never has to know which troops are animated. */
+export const unitTex = (type: UnitKey, team: number, frame = ''): Texture => {
+  const base = `${ONLY3 ? only3Unit(type) : type}_${side(team)}`;
+  return (frame && frames?.[base + frame]) || tex(base);
+};
+/** Whether the atlas carries a walk cycle for this troop: its view then shows rendered frames and
+ *  drops the foot-to-foot rock that stands in for them. */
+export const unitAnim = (type: UnitKey, team: number): boolean =>
+  !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_w0`];
+/** Whether the atlas carries the two views a troop turns through (tools/art3d/pose.py TURN). */
+export const unitTurn = (type: UnitKey, team: number): boolean =>
+  !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_t0`];
+export const guardTex = (team: number, frame = ''): Texture =>
+  (frame && frames?.[`guard_${side(team)}${frame}`]) || tex(`guard_${side(team)}`);
 
 /** Barracks by rarity: a wooden hut, a timber hall, a stone fort, a golden hall. */
 export function buildingTex(type: BuildingType, team: number, rarity = 0): Texture {

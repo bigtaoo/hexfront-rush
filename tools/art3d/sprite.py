@@ -14,9 +14,10 @@ and depth): ink where a part stands in front of another (an arm across the chest
 the face) and a lighter ink on sharp creases. They are drawn on the full-size render, LINE[w] sprite
 pixels wide, before the downscale, so they come out anti-aliased and as thick on every model.
 
-usage: python tools/art3d/sprite.py <render dir> <out root> [outline px] [--line k=v,...] [--no-lines]
+usage: python tools/art3d/sprite.py <render dir> <out root> [outline px] [--line k=v,...] [--no-lines] [--from-k K]
 """
 import io
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -26,7 +27,10 @@ import numpy as np
 from PIL import Image, ImageFilter
 from scipy import ndimage
 
-TEX_K = 2
+# texture px per CSS px: 3 since 2026-11-15 (a 3x phone draws a sprite 1:1; at 2 it was stretched
+# 1.2-1.6x on phones and desktops and looked soft). The outline grows with it (OUTLINE_PX).
+TEX_K = 3
+OUTLINE_PX = 2 * TEX_K
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
 from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's sizes and groups
 
@@ -79,7 +83,7 @@ def inner_lines(im: Image.Image, geo, per_px: float) -> Image.Image:
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
-def outline(im: Image.Image, px: int) -> Image.Image:
+def outline(im: Image.Image, px: int, trim=True) -> Image.Image:
     if px <= 0:
         return im
     pad = px + 2
@@ -90,7 +94,7 @@ def outline(im: Image.Image, px: int) -> Image.Image:
     ink = Image.new('RGBA', big.size, (*INK, 255))
     ink.putalpha(grown)
     ink.alpha_composite(big)
-    return ink.crop(ink.getbbox())
+    return ink.crop(ink.getbbox()) if trim else ink
 
 
 def area(im: Image.Image) -> int:
@@ -103,28 +107,85 @@ def old_area(rel: str):
     return area(Image.open(io.BytesIO(r.stdout)).convert('RGBA')) if r.returncode == 0 else None
 
 
-def sized(im: Image.Image, inner: int, px: int) -> Image.Image:
+def sized(im: Image.Image, inner: int, px: int, trim=True) -> Image.Image:
     w = max(1, round(im.width * inner / im.height))
-    return outline(im.resize((w, inner), Image.LANCZOS), px)
+    return outline(im.resize((w, inner), Image.LANCZOS), px, trim)
 
 
-def make(src: Path, height: int, px: int, want=None, geo=None) -> Image.Image:
-    im = Image.open(src).convert('RGBA')
-    box = im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
-    im = im.crop(box)
+def union_box(ims):
+    """One box around every frame of a cycle: a per-frame box makes the piece jump and resize."""
+    bs = [im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox() for im in ims]
+    return (min(b[0] for b in bs), min(b[1] for b in bs),
+            max(b[2] for b in bs), max(b[3] for b in bs))
+
+
+def centred(ims, geos):
+    """One canvas for a group whose renders differ in size.
+
+    toys.py widens the film for a pose that reaches past the still (the turn frames), keeping the
+    centre and the scale. So the frames line up about their centres, not their corners.
+    """
+    w, h = max(i.width for i in ims), max(i.height for i in ims)
+    if all(i.size == (w, h) for i in ims):
+        return ims, geos
+    out, gout = [], []
+    for im, geo in zip(ims, geos or [None] * len(ims)):
+        dx, dy = round((w - im.width) / 2), round((h - im.height) / 2)
+        c = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+        c.paste(im, (dx, dy))
+        out.append(c)
+        pad = ((dy, h - im.height - dy), (dx, w - im.width - dx))
+        gout.append(None if geo is None else
+                    tuple(np.pad(g, pad + ((0, 0),) * (g.ndim - 2)) for g in geo))
+    return out, (gout if geos else None)
+
+
+def sym(im, b):
+    """Widen a shared box so it stays centred on the still.
+
+    The board hangs a piece on the middle of its canvas, over a shadow drawn there. A frame that
+    reaches further one way than the still (a drake swinging its wingspan round to face us) would
+    otherwise drag the whole cycle sideways; it buys empty pixels on both sides instead.
+    """
+    b0 = im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+    c = (b0[0] + b0[2]) / 2
+    half = max(c - b[0], b[2] - c)
+    return (int(c - half), b[1], int(round(c + half)), b[3])
+
+
+def make(paths, height: int, px: int, want=None, geos=None):
+    """Size one group of frames together: shared crop box, one scale solved on the first frame."""
+    ims = [Image.open(f).convert('RGBA') for f in paths]
+    ims, geos = centred(ims, geos)
+    box = union_box(ims)
+    crop = [im.crop(box) for im in ims]
     lo = height - 2 * (px + 1)
     if want is not None:
         lo, hi = lo // 2, round(height * MAX_GROW) - 2 * (px + 1)
         while lo < hi:  # the smallest height whose outlined area reaches the old sprite's
             mid = (lo + hi) // 2
-            if area(sized(im, mid, px)) < want:
+            if area(sized(crop[0], mid, px)) < want:
                 lo = mid + 1
             else:
                 hi = mid
-    if geo is not None:  # lines change colour only, so the size found above still holds
-        x0, y0, x1, y1 = box
-        im = inner_lines(im, tuple(g[y0:y1, x0:x1] for g in geo), im.height / lo)
-    return sized(im, lo, px)
+    out = []
+    one = len(crop) == 1
+    for im, geo in zip(crop, geos or [None] * len(crop)):
+        if geo is not None:  # lines change colour only, so the size found above still holds
+            x0, y0, x1, y1 = box
+            im = inner_lines(im, tuple(g[y0:y1, x0:x1] for g in geo), im.height / lo)
+        out.append(sized(im, lo, px, one))
+    if not one:          # one canvas for the whole cycle: trimmed per frame, the piece would slide
+        out = [im.crop(sym(out[0], union_box(out))) for im in out]
+    return out
+
+
+def frame_key(stem: str):
+    """(model name, the still it belongs to): "militia_blue_w0" is a frame of "militia_blue"."""
+    if stem in TEAMLESS:
+        return stem, stem
+    m = re.fullmatch(r'(?P<name>.+)_(?P<team>blue|red)(?:_[a-z]\d+)?', stem)
+    return (m['name'], f"{m['name']}_{m['team']}") if m else (stem, stem)
 
 
 def main():
@@ -137,21 +198,37 @@ def main():
             k, v = kv.split('=')
             LINE[k] = float(v)
         del args[i:i + 2]
+    # --from-k K: the committed sprites the sizes are matched to were made at TEX_K = K, so their
+    # opaque area is scaled by (TEX_K / K)^2 (the sizes on the board stay the same)
+    from_k = TEX_K
+    if '--from-k' in args:
+        i = args.index('--from-k')
+        from_k = float(args[i + 1])
+        del args[i:i + 2]
     src, root = Path(args[0]), Path(args[1])
-    px = int(args[2]) if len(args) > 2 else 4
-    for f in sorted(src.glob('*.png')):
-        name = f.stem if f.stem in TEAMLESS else f.stem.rsplit('_', 1)[0]
+    px = int(args[2]) if len(args) > 2 else OUTLINE_PX
+    groups: dict = {}
+    for f in sorted(src.glob('*.png')):      # "militia_bluew0" is a frame of the blue walk cycle
+        groups.setdefault(frame_key(f.stem), []).append(f)
+    for (name, base), paths in groups.items():
         if name not in TARGET:
             continue
         kind = KIND[name]
         out = root / kind / 'out'
         out.mkdir(parents=True, exist_ok=True)
-        want = old_area(f'art/{kind}/out/{f.name}')
-        gp = src / 'passes' / f.name
-        geo = read_pass(gp) if lines and gp.exists() else None
-        im = make(f, TARGET[name] * TEX_K, px, want, geo)
-        im.save(out / f.name)
-        print(f.name, im.size, 'area', area(im), 'old', want)
+        want = old_area(f'art/{kind}/out/{base}.png')
+        if want is not None:
+            want = round(want * (TEX_K / from_k) ** 2)
+        geos = []
+        for f in paths:
+            gp = src / 'passes' / f.name
+            geos.append(read_pass(gp) if lines and gp.exists() else None)
+        if not any(g is not None for g in geos):
+            geos = None
+        ims = make(paths, TARGET[name] * TEX_K, px, want, geos)
+        for f, im in zip(paths, ims):
+            im.save(out / f.name)
+        print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)
 
 
 main()
