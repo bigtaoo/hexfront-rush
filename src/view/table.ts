@@ -12,6 +12,19 @@ import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, type Pt } from './viewConst';
 const PLANK = 9;
 /** How far the table reaches around the map, view units: past the widest screen at full zoom-out. */
 const SPAN = 240;
+/** The lit lip along the board's far rim: the light stands upper left (lookB.ts), so the top edge
+ *  of a thick board catches it. Drawn above the shadow and below the slab, offset up, so all that
+ *  shows is a bright sliver along the top — the far side of a block, not a line. */
+const LIP = { dy: -0.07, c: 0x9a7044 };
+/** The board's own thickness: its silhouette extruded down, darkest at the bottom, under the tiles
+ *  and over the shadow. Without it the map was a decal printed on the table. */
+const SLAB = [
+  { dy: 0.34, c: 0x241708 },
+  { dy: 0.24, c: 0x332110 },
+  { dy: 0.14, c: 0x432c18 },
+  // the groove floor: with the tiles cut back (ground.ts TILE_R) this is what shows between them
+  { dy: 0.0, c: 0x4e351d },
+];
 /** The board's cast shadow, down and to the right of the light (lookB CAST): a tight contact edge
  *  and passes that spread and fade, which is what a blur would do at a fraction of its cost. */
 const SHADOW = [
@@ -92,6 +105,14 @@ export class TableLayer {
       ctx.beginPath();
       for (const v of tv) ctx.poly(hexPts(v.x + s.dx, v.y + s.dy, s.r), true);
       ctx.fill({ color: 0x26180c, alpha: s.a });
+    }
+    ctx.beginPath();
+    for (const v of tv) ctx.poly(hexPts(v.x, v.y + LIP.dy, 1.01), true);
+    ctx.fill({ color: LIP.c });
+    for (const s of SLAB) {
+      ctx.beginPath();
+      for (const v of tv) ctx.poly(hexPts(v.x, v.y + s.dy, 1.01), true);
+      ctx.fill({ color: s.c });
     }
   }
 

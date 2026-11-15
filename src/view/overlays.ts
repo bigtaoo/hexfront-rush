@@ -10,7 +10,7 @@ import { FP } from '../sim/fixed';
 import { PHASE_PLAY, RARITY, UNITS, type UnitKey } from '../sim/rules';
 import { coin } from './bodies';
 import type { Frame, Juice } from './frame';
-import { Num } from './digits';
+import { Num, snapPx } from './digits';
 import { label, liveGraphics, setLabel } from './pen';
 import { UnitView } from './unitView';
 import { RARITY_COLOR, UI } from './viewConst';
@@ -193,7 +193,7 @@ export class Overlays {
       d.view.visible = p.y > cam.hudTop + dsize * 0.6 && p.y < H - cam.hudBot - dsize * 0.6;
       if (!d.view.visible) continue;
       d.view.set(String(Math.round(d.v)), { h: dsize * 1.1, tint: d.color });
-      d.view.position.set(p.x, p.y);
+      d.view.position.set(snapPx(p.x), snapPx(p.y));
       d.view.scale.set(1 + 0.4 * d.pop);
       d.view.alpha = d.t > 0.6 ? (0.9 - d.t) / 0.3 : 1;
     }

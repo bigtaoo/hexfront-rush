@@ -4,7 +4,8 @@ import { fillerRarity } from './cardLayout';
 import type { Engine } from './engine';
 import { baseTile, type Tile } from './map';
 import {
-  BUILD, EVENT_LIST, MYSTERY, MYSTERY_W_TOTAL, OFFER_LIST, QUEST_LOOP, QUESTS, TEAM_BLUE, TEAM_RED, TEAMS, type BuildingType, type OfferKind, type Quest,
+  BEHIND_SLACK, BUILD, comebackPct, enemyOf, EVENT_LIST, MYSTERY, MYSTERY_W_TOTAL, OFFER_LIST, QUEST_LOOP, QUESTS, REBATE_MAX, REBATE_PER_TILE, SURGE_MAX, SURGE_PER_TILE,
+  TEAM_BLUE, TEAM_RED, TEAMS, type BuildingType, type OfferKind, type Quest,
 } from './rules';
 
 /** How many buildings of each card kind a team has standing (what card prices go up with). */
@@ -17,10 +18,44 @@ export function standingOf(e: Engine, team: number): Standing {
 }
 
 /** What card oi costs a team with `s` standing: its base price, plus its step for each building
- *  of its kind standing, so the tenth mine pays back far slower than the first. */
-export function cardCost(oi: number, s: Standing): number {
+ *  of its kind standing, so the tenth mine pays back far slower than the first. `rebate` is the
+ *  trailing side's 退路价 in percent (§13 P1.5), taken off the whole price. */
+export function cardCost(oi: number, s: Standing, rebate = 0): number {
   const off = OFFER_LIST[oi];
-  return off.cost + off.step * s[off.kind];
+  const full = off.cost + off.step * s[off.kind];
+  // a tower never goes on sale. The rebate buys a way back into the match — mines, barracks, the
+  // mystery — not a cheaper wall: a discounted wall is what turns a lost match into a long one.
+  if (rebate <= 0 || off.kind === 'tower') return full;
+  return Math.max(1, Math.trunc((full * (100 - rebate)) / 100));
+}
+
+/** How many tiles a team is behind on, past the slack where a lead is still noise. 0 when level
+ *  or ahead. Ground is the one measure both players can read straight off the map, which is why
+ *  the trailing side's two outlets hang on it rather than on gold or army. */
+export function behindBy(e: Engine, team: number): number {
+  const d = e.team[enemyOf(team)].tiles - e.team[team].tiles - BEHIND_SLACK;
+  return d > 0 ? d : 0;
+}
+
+/** 矿脉涌动: percent on top of what this team's mines pay, while it is behind on ground. It is
+ *  something to act on, not a hidden hand — being behind makes a mine the best card on the board. */
+export function surgePct(e: Engine, team: number): number {
+  return taper(e, Math.min(behindBy(e, team) * SURGE_PER_TILE, SURGE_MAX));
+}
+/** What is left of an outlet at this point in the match (§13 P1.5's comeback window). */
+function taper(e: Engine, pct: number): number {
+  return Math.trunc((pct * comebackPct(e.playT)) / 100);
+}
+
+/** 退路价: percent off every card, while behind. §1.2's catch-up path only exists if the cards
+ *  that rebuild a board are reachable on a trailing side's income. */
+export function rebatePct(e: Engine, team: number): number {
+  return taper(e, Math.min(behindBy(e, team) * REBATE_PER_TILE, REBATE_MAX));
+}
+
+/** What card oi actually costs this team right now, rebate and all. */
+export function costFor(e: Engine, team: number, oi: number): number {
+  return cardCost(oi, standingOf(e, team), rebatePct(e, team));
 }
 
 /** The quest the team is on and how far it has come (capped at the goal). The match's listed
@@ -60,13 +95,15 @@ export function updateEconomy(e: Engine): void {
     if (!def.income) continue;
     if (++b.timer >= def.incomeEvery!) {
       b.timer = 0;
-      // an income handicap in hundredths: 95 % of 10 is 9 now and the half carried to the next
+      // the handicap and the surge both in hundredths, so the pair is ten-thousandths: what the
+      // rounding drops is carried to the next payout rather than lost
       const T = e.team[b.team];
-      const due = def.income * e.setupOf(b.team).income + T.incomeCarry;
-      const amount = Math.trunc(due / 100);
-      T.incomeCarry = due - amount * 100;
+      const surge = b.type === 'mine' ? surgePct(e, b.team) : 0;
+      const due = def.income * e.setupOf(b.team).income * (100 + surge) + T.incomeCarry;
+      const amount = Math.trunc(due / 10000);
+      T.incomeCarry = due - amount * 10000;
       T.gold += amount;
-      e.emit('income', { team: b.team, kind: b.type, amount, x: b.x, y: b.y });
+      e.emit('income', { team: b.team, kind: b.type, amount, surge, x: b.x, y: b.y });
     }
   }
 }
@@ -94,7 +131,7 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
   const tile = e.tiles[ti];
   if (tile.bld || tile.obst) return false;
   const off = OFFER_LIST[oi];
-  const cost = cardCost(oi, standingOf(e, team));
+  const cost = costFor(e, team, oi);
   if (T.gold < cost) {
     e.emit('needGold', { team, x: tile.x, y: tile.y });
     return false;

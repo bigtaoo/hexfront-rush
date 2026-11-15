@@ -54,7 +54,7 @@ export default {
   ev_camp: 'Bir kamp sana katıldı!',
   ev_warband: 'Bir savaş çetesi sana katıldı!',
   ev_taken: 'Rakip önce davrandı',
-  online: 'Çevrimiçi 1v1', createRoom: 'Oda kur', join: 'Katıl', codeHint: 'Oda kodu',
+  online: 'Çevrimiçi 1v1', createRoom: 'Oda kur', join: 'Katıl', codeHint: 'Kod',
   shareCode: 'Bu kodu bir arkadaşına gönder', waitingRival: 'Rakip bekleniyor...',
   connecting: 'Bağlanıyor...', reconnecting: 'Yeniden bağlanıyor...', noRoom: 'Oda bulunamadı ya da dolu', otherVersion: 'O odada oyunun başka bir sürümü çalışıyor: sayfayı yenileyip tekrar dene',
   noServer: 'Oyun sunucusuna ulaşılamıyor', cancel: 'İptal', rivalOffline: 'Rakibin bağlantısı koptu',
@@ -152,6 +152,7 @@ export default {
   qAuto: "Otomatik",
   qHigh: "Yüksek",
   qSaver: "Tasarruf",
+  sureTap: "Onaylamak için tekrar dokun", briefTwists: "Bu bölüm", briefGoals: "Yıldız hedefleri",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Ses", aPause: "Duraklat", aLeave: "Maçtan çık", aSpeed: "Tekrar hızı", aPrevCh: "Önceki bölüm", aNextCh: "Sonraki bölüm",
 } as Record<string, string>;

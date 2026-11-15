@@ -154,6 +154,9 @@ export class Room {
     }
   }
   onOver(seat: number, m: Msg): void {
+    // only a started match can be over: without this a seat that reports one before the room
+    // starts leaves `over` behind, and the match closes on its first beat
+    if (!this.fb) return;
     if (!this.over) this.over = { at: this.host.now(), reports: [null, null, null] };
     this.over.reports[seat] = { winner: int(m.winner), h: int(m.h), tick: int(m.tick) };
     const r = this.over.reports;

@@ -54,7 +54,7 @@ export default {
   ev_camp: 'Um acampamento se junta a você!',
   ev_warband: 'Um bando de guerra se junta a você!',
   ev_taken: 'O rival chegou primeiro',
-  online: 'Online 1v1', createRoom: 'Criar sala', join: 'Entrar', codeHint: 'Código da sala',
+  online: 'Online 1v1', createRoom: 'Criar sala', join: 'Entrar', codeHint: 'Código',
   shareCode: 'Mande este código para um amigo', waitingRival: 'Esperando um rival...',
   connecting: 'Conectando...', reconnecting: 'Reconectando...', noRoom: 'Sala não encontrada ou já cheia', otherVersion: 'Essa sala roda outra versão do jogo: recarregue a página e tente de novo',
   noServer: 'Não foi possível conectar ao servidor', cancel: 'Cancelar', rivalOffline: 'Rival desconectado',
@@ -152,6 +152,7 @@ export default {
   qAuto: "Auto",
   qHigh: "Alta",
   qSaver: "Economia",
+  sureTap: "Toque de novo para confirmar", briefTwists: "Esta fase", briefGoals: "Estrelas",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Som", aPause: "Pausar", aLeave: "Sair da partida", aSpeed: "Velocidade do replay", aPrevCh: "Capítulo anterior", aNextCh: "Próximo capítulo",
 } as Record<string, string>;

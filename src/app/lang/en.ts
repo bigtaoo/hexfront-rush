@@ -54,7 +54,7 @@ export default {
   ev_camp: 'A camp joins you!',
   ev_warband: 'A warband joins you!',
   ev_taken: 'Rival got there first',
-  online: 'Online 1v1', createRoom: 'Create room', join: 'Join', codeHint: 'Room code',
+  online: 'Online 1v1', createRoom: 'Create room', join: 'Join', codeHint: 'Code',
   shareCode: 'Send this code to a friend', waitingRival: 'Waiting for a rival...',
   connecting: 'Connecting...', reconnecting: 'Reconnecting...', noRoom: 'Room not found, or already full', otherVersion: 'That room runs another version of the game: reload the page and try again',
   noServer: 'Cannot reach the game server', cancel: 'Cancel', rivalOffline: 'Rival disconnected',
@@ -141,7 +141,8 @@ export default {
   rv_q4: "Let's roll the dice!",
   quote: "“{q}”",
   settings: "Settings", optSound: "Sound effects", optMusic: "Music", optVibrate: "Vibration",
-  optGraphics: "Graphics", qAuto: "Auto", qHigh: "High", qSaver: "Battery saver",
+  optGraphics: "Graphics", qAuto: "Auto", qHigh: "High", qSaver: "Saver",
+  sureTap: "Tap again to confirm", briefTwists: "This stage", briefGoals: "Stars to win",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Sound", aPause: "Pause", aLeave: "Leave match", aSpeed: "Replay speed", aPrevCh: "Previous chapter", aNextCh: "Next chapter",
 } as Record<string, string>;

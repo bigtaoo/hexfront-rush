@@ -60,7 +60,11 @@ function badgeRing(p: Pen, k: number, color: string): void {
 export class WallLayer {
   readonly g = new Graphics();
   private p = new Pen(this.g.context);
-  private key = '';
+  /** The built tiles the walls were drawn for, and how many: compared in place every frame.
+   *  The joined string this used to be was an allocation per frame, for all the frames where
+   *  nothing was built at all. */
+  private built: number[] = [];
+  private builtN = -1;
   /** Per tile, each side's neighbour (-1 on the map's rim) and the side's two corners. */
   private sides: { j: number; ax: number; ay: number; bx: number; by: number }[][] = [];
 
@@ -68,7 +72,7 @@ export class WallLayer {
   private cv: { x: number; y: number }[] = [];
 
   build(eng: Engine, cam: Camera): void {
-    this.key = '';
+    this.builtN = -1;
     this.p.clear();
     this.cv = cam.tv;
     const R = 0.97;
@@ -91,10 +95,14 @@ export class WallLayer {
   }
 
   update(eng: Engine): void {
-    let key = '';
-    for (const t of eng.tiles) if (t.bld) key += t.i + ',';
-    if (key === this.key) return;
-    this.key = key;
+    let n = 0, same = this.builtN >= 0;
+    for (const t of eng.tiles) {
+      if (!t.bld) continue;
+      if (same && this.built[n] !== t.i) same = false;
+      this.built[n++] = t.i;
+    }
+    if (same && n === this.builtN) return;
+    this.builtN = n;
     const segs: number[][] = [];
     for (const t of eng.tiles) {
       if (!t.bld) continue;
@@ -127,7 +135,9 @@ export class BuildingView {
   private flash: Sprite;
   private dyn: Live = liveGraphics();
   private hp: Live = liveGraphics();
-  private hpKey = '';
+  /** The hp bar's last reading: hp quantised to 1/1000, -1 while it is whole. */
+  private hpQ = -1;
+  private hpOwn = false;
   /** Picture top, view units from the tile centre (negative: above). */
   private top: number;
   seen = 0;
@@ -184,9 +194,10 @@ export class BuildingView {
     }
     const k = b.hp / b.maxhp;
     const own = b.team === f.local;
-    const hk = b.hp < b.maxhp ? `${k.toFixed(3)}|${own ? 1 : 0}` : '';
-    if (hk !== this.hpKey) {
-      this.hpKey = hk;
+    const hq = b.hp < b.maxhp ? Math.round(k * 1000) : -1;
+    if (hq !== this.hpQ || own !== this.hpOwn) {
+      this.hpQ = hq;
+      this.hpOwn = own;
       const q = this.hp.p.clear();
       if (b.hp < b.maxhp) hpBar(q, 0, this.top - 0.1, b.type === 'base' ? 1.3 : 0.9, Math.max(0, k), own);
     }

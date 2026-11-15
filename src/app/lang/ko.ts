@@ -54,7 +54,7 @@ export default {
   ev_camp: '야영지가 합류했습니다!',
   ev_warband: '전투단이 합류했습니다!',
   ev_taken: '상대가 먼저 차지했습니다',
-  online: '온라인 1대1', createRoom: '방 만들기', join: '참가', codeHint: '방 코드',
+  online: '온라인 1대1', createRoom: '방 만들기', join: '참가', codeHint: '코드',
   shareCode: '이 코드를 친구에게 보내세요', waitingRival: '상대를 기다리는 중...',
   connecting: '연결 중...', reconnecting: '재연결 중...', noRoom: '방을 찾을 수 없거나 이미 가득 찼습니다', otherVersion: '그 방은 다른 버전의 게임을 실행 중입니다: 페이지를 새로고침한 뒤 다시 시도하세요',
   noServer: '게임 서버에 연결할 수 없습니다', cancel: '취소', rivalOffline: '상대 연결 끊김',
@@ -141,7 +141,8 @@ export default {
   rv_q4: '주사위를 굴려 보자고!',
   quote: '“{q}”',
   settings: '설정', optSound: '효과음', optMusic: '음악', optVibrate: '진동',
-  optGraphics: '그래픽', qAuto: '자동', qHigh: '높음', qSaver: '배터리 절약',
+  optGraphics: '그래픽', qAuto: '자동', qHigh: '높음', qSaver: '절전',
+  sureTap: "한 번 더 탭하여 확인", briefTwists: "이번 스테이지", briefGoals: "별 목표",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "소리", aPause: "일시정지", aLeave: "대전 나가기", aSpeed: "리플레이 속도", aPrevCh: "이전 챕터", aNextCh: "다음 챕터",
 } as Record<string, string>;

@@ -54,7 +54,7 @@ export default {
   ev_camp: '野営地が味方に！',
   ev_warband: '戦闘団が味方に！',
   ev_taken: 'ライバルに先を越された',
-  online: 'オンライン対戦', createRoom: 'ルーム作成', join: '参加', codeHint: 'ルームコード',
+  online: 'オンライン対戦', createRoom: 'ルーム作成', join: '参加', codeHint: 'コード',
   shareCode: 'このコードを友達に送ろう', waitingRival: '対戦相手を待っています…',
   connecting: '接続中…', reconnecting: '再接続中…', noRoom: 'ルームが見つからないか、満員です', otherVersion: 'そのルームは別のバージョンです。ページを再読み込みして、もう一度試してください',
   noServer: 'ゲームサーバーに接続できません', cancel: 'キャンセル', rivalOffline: '相手の接続が切れました',
@@ -142,6 +142,7 @@ export default {
   quote: '「{q}」',
   settings: '設定', optSound: '効果音', optMusic: '音楽', optVibrate: '振動',
   optGraphics: 'グラフィック', qAuto: '自動', qHigh: '高', qSaver: '省電力',
+  sureTap: "もう一度タップで確定", briefTwists: "このステージ", briefGoals: "スター条件",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "サウンド", aPause: "一時停止", aLeave: "対戦を抜ける", aSpeed: "リプレイ速度", aPrevCh: "前の章", aNextCh: "次の章",
 } as Record<string, string>;

@@ -4,7 +4,7 @@
 // It is always played on TUTORIAL_SEED: the same map and the same cards (cardLayout.ts), with a
 // mine, a barracks and a mystery among the six cards around the castle, as on every map.
 
-import { cardCost, standingOf } from '../sim/economy';
+import { cardCost, rebatePct, standingOf } from '../sim/economy';
 import type { Engine } from '../sim/engine';
 import { NTILES } from '../sim/hex';
 import { baseTile, type Tile } from '../sim/map';
@@ -31,7 +31,7 @@ export interface Tutorial {
 export function guideTarget(eng: Engine, me: number, step: number): Tile | null {
   const home = eng.tiles[baseTile(me)]!;
   const tm = eng.team[me]!;
-  const standing = standingOf(eng, me);
+  const standing = standingOf(eng, me), reb = rebatePct(eng, me);
   const near = (pred: (o: Offer) => boolean): Tile | null => {
     let best: Tile | null = null;
     let bd = Infinity;
@@ -42,7 +42,7 @@ export function guideTarget(eng: Engine, me: number, step: number): Tile | null 
       const o = OFFER_LIST[oi]!;
       if (t.bld || !pred(o)) continue;
       // affordable first, then by distance
-      const d = (t.x - home.x) ** 2 + (t.y - home.y) ** 2 + (cardCost(oi, standing) > tm.gold ? 1e15 : 0);
+      const d = (t.x - home.x) ** 2 + (t.y - home.y) ** 2 + (cardCost(oi, standing, reb) > tm.gold ? 1e15 : 0);
       if (d < bd) {
         bd = d;
         best = t;

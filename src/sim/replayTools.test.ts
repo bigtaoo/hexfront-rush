@@ -121,11 +121,33 @@ describe('replay statistics', () => {
     expect(text).toContain('ai: 1 matches');
   });
 
-  it('counts a match cut short as not ended', () => {
+  it('counts a match cut short as not ended, and takes no 1:30 snapshot', () => {
     const s = newStats();
     const at = runReplay(soloReplay, 900).engine;
     expect(addReplay(s, makeReplay(solo.config, solo.log.filter((c) => c[0] < 900), at))).toBe('ok');
     expect(s.kinds.get('solo')!.ended).toBe(0);
+    // 900 ticks is 0:30 of play, short of the 1:30 the snapshot is taken at
+    expect(s.kinds.get('solo')!.player.snapSeats).toBe(0);
+  });
+
+  // COUNTERPLAY.md §15.4: the 1:30 snapshot and the two fields §10's targets are measured from
+  it('snapshots both seats at 1:30, and tracks the castle and the troop cap', () => {
+    const s = newStats();
+    expect(addReplay(s, soloReplay)).toBe('ok');
+    const k = s.kinds.get('solo')!;
+    for (const side of [k.player, k.ai]) {
+      expect(side.snapSeats).toBe(side.seats);
+      expect(side.snapTiles).toBeGreaterThan(0);
+      expect(side.snapFlips).toBeGreaterThanOrEqual(0);
+      expect(side.snapBar.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(0);
+      expect(side.snapGold).toBeGreaterThanOrEqual(0);
+      // the loser's castle fell, so at least one side is under 100; neither can be over it
+      expect(side.minBaseHp).toBeLessThanOrEqual(100 * side.seats);
+      expect(side.minBaseHp).toBeGreaterThanOrEqual(0);
+      expect(side.fullPopSecs).toBeGreaterThanOrEqual(0);
+    }
+    expect(Math.min(k.player.minBaseHp, k.ai.minBaseHp)).toBeLessThan(100);
+    expect(formatReport(s)).toContain('at 1:30');
   });
 });
 

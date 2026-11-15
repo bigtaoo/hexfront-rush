@@ -50,16 +50,41 @@ const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }>
       [TEAM_RED]: { top: ['#eaa292', '#e69a89'], line: '#b13a2a' },
     };
 
-/** Tiles touch (no gaps: a gap per tile drew a heavy honeycomb over the whole map); a faint line
- *  just inside each top keeps the grid readable, and the side shows only along the map's rim. */
+/** How thick a tile is: what shows below it along the map's rim (view units). The old 0.16 read as
+ *  a drawn outline rather than as a board with a side to it. */
+const SIDE_H = LOOK_B ? 0.26 : 0.16;
+/** A tile's bevel, the one thing that makes it a block and not a fill: the light stands upper left
+ *  (lookB.ts), so the three edges facing it catch it and the three facing away fall into shade.
+ *  Corner k sits at 60k - 30 degrees, so 5 is the top and 2 the bottom: 3-4-5-0 faces the light. */
+const TILE_R = LOOK_B ? 0.975 : 1.01;
+const BEVEL_R = LOOK_B ? 0.915 : 0.945;
+function bevel(ks: readonly number[]): number[] {
+  const c = hexPts(0, 0, BEVEL_R), out: number[] = [];
+  for (const k of ks) out.push(c[k * 2]!, c[k * 2 + 1]!);
+  return out;
+}
+const LIT_EDGE = bevel([3, 4, 5, 0]), SHADE_EDGE = bevel([0, 1, 2, 3]);
+
+/** Each tile is its own block set into the board: cut back to TILE_R, so the slab's groove floor
+ *  (table.ts SLAB) shows between them. A gap filled with a drawn *line* once made a heavy honeycomb
+ *  over the map; a gap that shows a lit side and a shaded groove reads as carved instead. */
 function tileCtx(side: string, top: string, obst: boolean, variant: number) {
   return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${variant}`, (p) => {
-    p.hex(0, 0.16, 1.01, side);
-    p.hex(0, 0, 1.01, top);
-    // lookB: the wood under the paint (grain.ts), stretched over the top's bounds
-    if (LOOK_B) p.g.poly(hexPts(0, 0, 1.01), true).fill({ texture: grain(variant), color: 0xffffff });
-    p.hex(0, 0, 0.955, null, 'rgba(60,45,25,0.09)', 0.035);
-    if (obst) p.hex(0, 0, 0.95, 'rgba(60,40,20,0.05)');
+    p.hex(0, SIDE_H, TILE_R, side);
+    p.hex(0, 0, TILE_R, top);
+    if (LOOK_B) {
+      // the wood under the paint (grain.ts), stretched over the top's bounds
+      p.g.poly(hexPts(0, 0, TILE_R), true).fill({ texture: grain(variant), color: 0xffffff });
+      // the top is not flat: two translucent passes toward the light stand in for a gradient the
+      // Pen cannot fill, so each block reads as slightly domed rather than as a cut-out colour
+      p.hex(-0.05, -0.07, TILE_R * 0.78, 'rgba(255,250,232,0.09)');
+      p.hex(-0.09, -0.12, TILE_R * 0.5, 'rgba(255,250,232,0.08)');
+      // the bevel a step stronger than at first (0.3 / 0.22): with the grain on the top, a faint
+      // edge left the blocks soft-cornered, more cushion than carved wood
+      p.line(LIT_EDGE, 'rgba(255,250,234,0.42)', 0.075, 'round');
+      p.line(SHADE_EDGE, 'rgba(48,32,14,0.3)', 0.09, 'round');
+    } else p.hex(0, 0, 0.955, null, 'rgba(60,45,25,0.09)', 0.035);
+    if (obst) p.hex(0, 0, TILE_R * 0.94, 'rgba(60,40,20,0.05)');
   });
 }
 

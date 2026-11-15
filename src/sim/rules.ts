@@ -6,7 +6,7 @@ import { perTick, TICK_RATE, ticks, toFp } from './fixed';
 import { TILE } from './hex';
 
 /** Bump when a rules change alters the outcome of a replay. */
-export const ENGINE_VERSION = 13;
+export const ENGINE_VERSION = 14;
 
 /** No clock: a match ends when a castle falls (or a player leaves). This is only a safety valve
  *  for a stalemate, far past any real match; then the tiles decide. */
@@ -15,7 +15,7 @@ export const MAX_PLAY_TICKS = ticks(25 * 60);
  *  buildings `dmgStep` percent harder and the troop cap rises by `capStep`. The same for both: the
  *  side with more and better barracks fills the new room first and breaks through. A normal match
  *  is over long before. */
-export const SIEGE = { after: ticks(8 * 60), every: ticks(60), dmgStep: 25, capStep: 10 };
+export const SIEGE = { after: ticks(6 * 60), every: ticks(60), dmgStep: 45, capStep: 10 };
 /** How many siege steps have come after `playT` ticks of play (0 before the siege). */
 export const siegeLevel = (playT: number, after: number = SIEGE.after): number =>
   playT < after ? 0 : 1 + Math.trunc((playT - after) / SIEGE.every);
@@ -39,6 +39,21 @@ export interface BuildingDef {
   rate?: number;
   range?: number;
 }
+// --- the trailing side's two outlets (P1.5) ------------------------------------------------
+// Ground, not gold, is what both players read off the board, so both outlets hang on tiles. The
+// slack keeps an ordinary lead from paying anybody: only a real gap opens them.
+export const BEHIND_SLACK = 3;
+/** 矿脉涌动: percent added to a mine's payout per tile behind, and its ceiling. */
+export const SURGE_PER_TILE = 5, SURGE_MAX = 60;
+/** 退路价: percent off every card per tile behind, and its ceiling. */
+export const REBATE_PER_TILE = 3, REBATE_MAX = 40;
+/** Both outlets fade out linearly and are gone when the siege starts: the comeback window is the
+ *  part of a match that is still being played for, and after it the match is being closed. A
+ *  subsidy that never ends is what turns an even fight into a 17-minute one. */
+export const COMEBACK_END = ticks(4 * 60);
+export const comebackPct = (playT: number, after: number = COMEBACK_END): number =>
+  playT >= after ? 0 : 100 - Math.trunc((100 * playT) / after);
+
 export const BUILD: Record<BuildingType, BuildingDef> = {
   // a gold mine with a castle on top; its guard defends it
   base: { hp: 3000, income: 10, incomeEvery: ticks(3) },
@@ -140,6 +155,18 @@ export const RARITY = ['common', 'rare', 'epic', 'legendary'] as const;
 export const UNIT_KEYS = ['militia', 'slinger', 'shield', 'bowman', 'ogre', 'adept', 'colossus', 'drake'] as const;
 export type UnitKey = (typeof UNIT_KEYS)[number];
 export type Missile = '' | 'stone' | 'arrow' | 'orb' | 'fire' | 'bolt' | 'tower';
+/** What a troop hunts before it settles for whatever is nearest. The counter web is built out of
+ *  this and not out of hp/damage: every stat axis is monotone (one unit is simply stronger than
+ *  another), so stats alone can only ever produce a total order, never a cycle. A preference is
+ *  conditional — it is a strength against one composition and, because the hunter walks past
+ *  closer enemies to reach its prey, a weakness against another. That is what makes a cycle.
+ *    ranged  skirmishers dive the missile line
+ *    big     tank-hunters walk past chaff to reach the heavy
+ *    bld     siege ignores the field and goes for what is standing
+ *    ''      hit whatever is nearest (the honest, weakness-free default) */
+export type Prefer = '' | 'ranged' | 'big' | 'bld';
+/** A troop counts as `big` prey at or above this much hp (ogre, colossus, drake). */
+export const BIG_HP = 300;
 
 interface UnitDesign {
   rarity: number;
@@ -153,16 +180,20 @@ interface UnitDesign {
   ranged?: Missile;
   splash?: number;
   bldMult?: number;
+  prefer?: Prefer;
+  /** Tiles within which the preferred prey is hunted; it is wider than the ordinary aggro radius,
+   *  which is the whole point — the hunter leaves the lane to go and get it. */
+  seek?: number;
 }
 const UNIT_DESIGN: Record<UnitKey, UnitDesign> = {
-  militia: { rarity: 0, hp: 70, dmg: 9, rate: 0.9, range: 0.9, speed: 0.75, spawn: 7, size: 0.3 },
-  slinger: { rarity: 0, hp: 45, dmg: 7, rate: 1.0, range: 1.8, speed: 0.75, spawn: 7, size: 0.28, ranged: 'stone' },
-  shield: { rarity: 1, hp: 170, dmg: 11, rate: 1.0, range: 0.9, speed: 0.6, spawn: 9, size: 0.34 },
-  bowman: { rarity: 1, hp: 70, dmg: 12, rate: 1.1, range: 2.5, speed: 0.7, spawn: 9, size: 0.3, ranged: 'arrow' },
-  ogre: { rarity: 2, hp: 360, dmg: 26, rate: 1.3, range: 1.0, speed: 0.55, spawn: 12, size: 0.44 },
-  adept: { rarity: 2, hp: 110, dmg: 20, rate: 1.4, range: 3.0, speed: 0.65, spawn: 12, size: 0.32, ranged: 'orb', splash: 0.8 },
-  colossus: { rarity: 3, hp: 900, dmg: 45, rate: 1.6, range: 1.1, speed: 0.45, spawn: 18, size: 0.56, bldMult: 2 },
-  drake: { rarity: 3, hp: 380, dmg: 22, rate: 0.9, range: 2.2, speed: 1.0, spawn: 18, size: 0.46, ranged: 'fire', splash: 1.0 },
+  militia: { rarity: 0, hp: 80, dmg: 10, rate: 0.9, range: 0.9, speed: 0.75, spawn: 6, size: 0.3 },
+  slinger: { rarity: 0, hp: 57, dmg: 8, rate: 1, range: 1.8, speed: 0.75, spawn: 5, size: 0.28, ranged: 'stone' },
+  shield: { rarity: 1, hp: 186, dmg: 11, rate: 1, range: 0.9, speed: 0.6, spawn: 9, size: 0.34 },
+  bowman: { rarity: 1, hp: 72, dmg: 13, rate: 1.1, range: 2.5, speed: 0.7, spawn: 8, size: 0.3, ranged: 'arrow' },
+  ogre: { rarity: 2, hp: 294, dmg: 21, rate: 1.3, range: 1.0, speed: 0.55, spawn: 14, size: 0.44 },
+  adept: { rarity: 2, hp: 99, dmg: 18, rate: 1.4, range: 3.0, speed: 0.65, spawn: 13, size: 0.32, ranged: 'orb', splash: 0.5 },
+  colossus: { rarity: 3, hp: 632, dmg: 31, rate: 1.6, range: 1.1, speed: 0.45, spawn: 25, size: 0.56, bldMult: 2 },
+  drake: { rarity: 3, hp: 272, dmg: 16, rate: 0.9, range: 2.2, speed: 1.0, spawn: 24, size: 0.46, ranged: 'fire', splash: 0.6 },
 };
 
 export interface UnitDef {
@@ -180,6 +211,8 @@ export interface UnitDef {
   bldMult: number;
   aggroMobile: number;
   aggroBuilding: number;
+  prefer: Prefer;
+  seek: number;
 }
 
 /** Barracks troops gather where they were trained (fighting whatever comes near) and set off
@@ -209,6 +242,8 @@ for (const k of UNIT_KEYS) {
     // marching troops only turn aside for what is close: they head for the enemy castle
     aggroMobile: Math.round(Math.max(2.4, d.range + 0.5) * TILE),
     aggroBuilding: Math.round(Math.max(1.6, d.range + 0.4) * TILE),
+    prefer: d.prefer || '',
+    seek: Math.round((d.seek || 4) * TILE),
   };
   UNITS_BY_RARITY[d.rarity].push(k);
 }

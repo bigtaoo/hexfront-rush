@@ -117,6 +117,9 @@ function onMessage(ws: Client, m: Msg): void {
       return;
     }
     case 'resume': {
+      // a socket resumes into one room only: resuming out of a room it already sits in would
+      // leave that seat holding this socket, online for ever, and the room would never be reaped
+      if (room) return;
       const r = rooms.get(String(m.code || '').toUpperCase());
       const seat = int(m.seat);
       if (!r || !r.started() || (seat !== 1 && seat !== 2) || !r.seats[seat] || r.seats[seat]!.token !== m.token) {

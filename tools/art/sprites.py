@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from sticker_pass import sticker  # noqa: E402
 from team_recolor import recolor  # noqa: E402
 
-TEX_K = 2  # texture pixels per CSS pixel (phones are 2-3x)
+TEX_K = 3  # texture pixels per CSS pixel: a 3x phone draws a sprite 1:1 (art.ts PPU = 38 x TEX_K)
 TARGET = {
     "units": {"militia": 48, "slinger": 42, "shield": 48, "bowman": 46, "ogre": 72, "adept": 50,
               "colossus": 76, "drake": 58, "guard": 52},

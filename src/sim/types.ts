@@ -148,6 +148,8 @@ export interface SimEvent {
   rarity?: number;
   kind?: string;
   amount?: number;
+  /** 矿脉涌动's percent on an income event: 0 unless the side is behind on ground. */
+  surge?: number;
   burst?: BurstKind;
   gold?: number;
   reward?: number;

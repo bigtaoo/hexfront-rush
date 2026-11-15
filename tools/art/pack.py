@@ -34,10 +34,11 @@ def pack(quality: int) -> None:
         x += w
         shelf = max(shelf, h)
     height = y + shelf
-    # power of two keeps mipmaps available on WebGL1
-    ph = 1
-    while ph < height:
-        ph *= 2
+    # The height is rounded to a multiple of four, not to a power of two. Pixi 8 is WebGL2 (and
+    # WebGPU) only, where mipmaps work on any size; with the cast animated the sheet runs past
+    # 4096 rows, and the old power-of-two rule would have paid for 8192 - half of it empty, and
+    # ~85 MB of texture memory on a phone instead of ~47.
+    ph = (height + 3) // 4 * 4
     sheet = Image.new("RGBA", (WIDTH, ph), (0, 0, 0, 0))
     frames = {}
     for name, im in items:

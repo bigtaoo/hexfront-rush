@@ -256,11 +256,12 @@ export class Sound {
 
   /** Once a frame: the gate. Each cue sounds at most once, louder (capped) when asked for many times. */
   private flush(): void {
-    if (this.queue.size === 0) return;
     const q = this.queue;
-    this.queue = new Map();
+    if (q.size === 0) return;
     const c = this.ctx;
-    if (!c || this.st.paused() || this.st.sfxOff()) return;
+    // emptied in place, whether or not the cues sound: a new Map every frame was an allocation
+    // for nothing on the frames where they do not
+    if (!c || this.st.paused() || this.st.sfxOff()) return void q.clear();
     const now = c.currentTime;
     for (const [name, { n, vol }] of q) {
       const cue = cueDef(name);
@@ -284,6 +285,7 @@ export class Sound {
       };
       src.start();
     }
+    q.clear();
   }
 
   /** A free voice for priority `pri`: when all are taken, the lowest (oldest first) is stolen if lower. */

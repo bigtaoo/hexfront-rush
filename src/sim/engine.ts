@@ -19,7 +19,7 @@ import { spawnUnit, updateBuildings } from './combat';
 import { tryBuy, updateEconomy, updateQuests } from './economy';
 import { ticks, TICK_RATE } from './fixed';
 import { hashState } from './hash';
-import { idx, inMap, NTILES, worldToHex } from './hex';
+import { NTILES, worldToTile } from './hex';
 import { distanceField } from './path';
 import type { Cmd } from './input';
 import { baseTile, generateMap, type ThemeKey, type Tile } from './map';
@@ -213,8 +213,8 @@ export class Engine {
     this.events.push(ev);
   }
   tileAt(x: number, y: number): Tile | null {
-    const h = worldToHex(x, y);
-    return inMap(h.c, h.r) ? this.tiles[idx(h.c, h.r)] : null;
+    const i = worldToTile(x, y);
+    return i < 0 ? null : this.tiles[i];
   }
   passable(i: number): boolean {
     return i >= 0 && !this.tiles[i].obst;

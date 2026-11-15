@@ -4,7 +4,7 @@
 import type { Engine } from './engine';
 import { dist, dist2, muldiv } from './fixed';
 import type { Tile } from './map';
-import { BUILD, enemyOf, GUARD, PROJ, siegePct, TEAM_BLUE, TEAM_RED, unitCap, UNITS, type Missile, type UnitKey } from './rules';
+import { BIG_HP, BUILD, enemyOf, GUARD, PROJ, siegePct, TEAM_BLUE, TEAM_RED, unitCap, UNITS, type Missile, type Prefer, type UnitKey } from './rules';
 import { isDown, type Building, type Entity, type Guard, type Unit } from './types';
 
 export function spawnUnit(e: Engine, team: number, type: UnitKey, x: number, y: number, barId: number): Unit {
@@ -22,15 +22,6 @@ export function spawnUnit(e: Engine, team: number, type: UnitKey, x: number, y: 
   return u;
 }
 
-/** Enemy guard (if up) and live enemy troops: what splash damage can reach. */
-export function enemiesOf(e: Engine, team: number): (Guard | Unit)[] {
-  const out: (Guard | Unit)[] = [];
-  const g = e.guards[enemyOf(team)];
-  if (!g.dead) out.push(g);
-  for (const u of e.units) if (u.alive && u.team !== team) out.push(u);
-  return out;
-}
-
 export function nearestEnemyMobile(e: Engine, team: number, x: number, y: number, maxDist: number): Guard | Unit | null {
   let best: Guard | Unit | null = null, bd = maxDist * maxDist;
   const g = e.guards[enemyOf(team)];
@@ -43,6 +34,32 @@ export function nearestEnemyMobile(e: Engine, team: number, x: number, y: number
   }
   for (const u of e.units) {
     if (!u.alive || u.team === team) continue;
+    const d = dist2(u.x - x, u.y - y);
+    if (d < bd) {
+      bd = d;
+      best = u;
+    }
+  }
+  return best;
+}
+
+/** Is this enemy the kind `p` hunts? The guard is nobody's prey: it is a fixture of the castle,
+ *  not part of an army's composition, so hunting it would just be "walk at the castle". */
+function isPrey(ent: Guard | Unit, p: Prefer): boolean {
+  if (ent.kind !== 'unit') return false;
+  const d = UNITS[ent.type];
+  if (p === 'ranged') return d.ranged !== '';
+  if (p === 'big') return d.hp >= BIG_HP;
+  return false;
+}
+
+/** The nearest enemy troop of the hunted kind within `seek`, or null to fall back to the nearest
+ *  enemy of any kind. The hunter walks past everything in between to get there — that exposure is
+ *  the price of the preference, and the reason a preference can lose a matchup as well as win one. */
+export function nearestPrey(e: Engine, team: number, x: number, y: number, seek: number, p: Prefer): Unit | null {
+  let best: Unit | null = null, bd = seek * seek;
+  for (const u of e.units) {
+    if (!u.alive || u.team === team || !isPrey(u, p)) continue;
     const d = dist2(u.x - x, u.y - y);
     if (d < bd) {
       bd = d;

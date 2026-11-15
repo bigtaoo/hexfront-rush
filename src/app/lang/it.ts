@@ -54,7 +54,7 @@ export default {
   ev_camp: "Un accampamento si unisce a te!",
   ev_warband: "Una banda di guerrieri si unisce a te!",
   ev_taken: "Il rivale è arrivato prima",
-  online: "Online 1v1", createRoom: "Crea stanza", join: "Entra", codeHint: "Codice stanza",
+  online: "Online 1v1", createRoom: "Crea stanza", join: "Entra", codeHint: "Codice",
   shareCode: "Invia questo codice a un amico", waitingRival: "In attesa di un rivale...",
   connecting: "Connessione...", reconnecting: "Riconnessione...", noRoom: "Stanza non trovata o già piena", otherVersion: "Quella stanza usa un'altra versione del gioco: ricarica la pagina e riprova",
   noServer: "Impossibile raggiungere il server di gioco", cancel: "Annulla", rivalOffline: "Rivale disconnesso",
@@ -141,7 +141,8 @@ export default {
   rv_q4: "Tiriamo i dadi!",
   quote: "«{q}»",
   settings: "Impostazioni", optSound: "Effetti sonori", optMusic: "Musica", optVibrate: "Vibrazione",
-  optGraphics: "Grafica", qAuto: "Auto", qHigh: "Alta", qSaver: "Risparmio batteria",
+  optGraphics: "Grafica", qAuto: "Auto", qHigh: "Alta", qSaver: "Risparmio",
+  sureTap: "Tocca di nuovo per confermare", briefTwists: "Questo livello", briefGoals: "Stelle da vincere",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Audio", aPause: "Pausa", aLeave: "Esci dalla partita", aSpeed: "Velocità replay", aPrevCh: "Capitolo precedente", aNextCh: "Capitolo successivo",
 } as Record<string, string>;

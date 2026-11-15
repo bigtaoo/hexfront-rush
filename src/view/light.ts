@@ -54,9 +54,9 @@ function falloffTex(): Texture {
   const N = 256;
   return canvasTex(N, N, (c) => {
     const g = c.createRadialGradient(N * 0.3, N * 0.25, N * 0.08, N * 0.3, N * 0.25, N * 1.15);
-    g.addColorStop(0, '#ffffff');
-    g.addColorStop(0.45, '#f3ece2');
-    g.addColorStop(1, '#a8957f');
+    g.addColorStop(0, '#fffdf6');
+    g.addColorStop(0.45, '#ece2d3');
+    g.addColorStop(1, '#8d7a64');
     c.fillStyle = g;
     c.fillRect(0, 0, N, N);
   });

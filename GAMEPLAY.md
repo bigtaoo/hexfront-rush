@@ -4,8 +4,8 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 
 ## Match flow
 1. **Intro:** show a map overview, count down 3-2-1, then "FIGHT!".
-2. **No clock:** a match runs until a castle falls; the player whose castle falls loses. The HUD clock counts up. AI-vs-AI matches last about 3½ minutes (median; 90 % are over by 5:00).
-3. **Siege:** from 8:00 on, every minute both sides' troops hit buildings 25 % harder and the troop cap rises by 10 ("SIEGE!" banner, a "siege +N%" tag by the clock). It is the same for both: the side with more and better barracks fills the new room first and breaks through.
+2. **No clock:** a match runs until a castle falls; the player whose castle falls loses. The HUD clock counts up. AI-vs-AI matches last about 4¼ minutes (median; 90 % are over by 7:45, and every one of them ends on a castle).
+3. **Siege:** from 6:00 on, every minute both sides' troops hit buildings 45 % harder and the troop cap rises by 10 ("SIEGE!" banner, a "siege +N%" tag by the clock). It is the same for both: the side with more and better barracks fills the new room first and breaks through.
 4. **Stalemate valve:** only past 25:00 does the match end on tiles (more tiles wins, equal is a draw). Balance runs never get there.
 5. **Results screen:** shows the outcome and both tile counts. "Play again" leads to an interstitial ad. "Watch replay" plays the match back (speed button 1×/2×/4×/8× beside the exit flag; the flag goes back to the menu).
 6. **Replays:** solo matches are sent anonymously to the relay so the game can be tuned from real play. A menu switch turns this off, and online matches are recorded by the relay itself. See ENGINE.md, **Replays**.
@@ -50,6 +50,7 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
   - Each gold mine gives +10 every 5 s.
   - Map events (below) pay gold or troops to whoever flips their card first.
 - **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a type and price. Tapping a card you can afford builds it. The price fades when you can't afford it.
+- **Falling behind pays (the first four minutes):** count the tiles. Past a slack of 3 tiles behind, each further tile makes your mines pay **+5 % more** (up to +60 %, shown as a green `+N +X%` over the mine) and takes **3 % off every card** (up to −40 %, the price drawn green). A watchtower never goes on sale: the discount buys a way back into the match, not a cheaper wall. Both fade out linearly and are gone by 4:00 — the comeback window is the part of a match still being played for.
 - **Network:** every flip, a building or a mystery, extends your network and reveals the offers around it.
 - **Rising prices:** each card costs its base price plus a step for every building of its kind the team has standing (a mystery stays 25). Losing a building makes the next one cheaper again.
 
@@ -62,7 +63,7 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 | Barracks III | 200 | +5 | Always epic or legendary |
 | Mystery "?" | 25 | — | 60 % nothing. A squad that sets off at once: 10 % three common units, 12 % two epic, 4 % two legendary. A barracks on the tile that trains for good: 9 % rare, 4 % epic, 1 % legendary |
 
-- **Barracks:** a barracks trains one unit type on a fixed timer for the rest of the match (common 7 s, rare 9 s, epic 12 s, legendary 18 s). Its troops gather by it and set off together on the **wave**: every 15 s both teams' troops march at once (the HUD counts down to it), so armies meet armies, not a trickle. A team can have at most 50 troops alive; at the cap a barracks waits with its timer full (grey), and a freed slot goes to the rarest troop waiting. Mystery troops come on top of the cap and set off at once. A barracks from a mystery is a barracks like any other: it claims the ground around it, counts toward the barracks price and the barracks quest, and the rival's epic or legendary one pings an edge marker. A card shows what you rolled (the unit, its rarity, and whether it is a squad marching now or a barracks); a legendary roll gets a full banner.
+- **Barracks:** a barracks trains one unit type on a fixed timer for the rest of the match (each unit its own: 5–9 s common and rare, 13–14 s epic, 24–25 s legendary). Its troops gather by it and set off together on the **wave**: every 15 s both teams' troops march at once (the HUD counts down to it), so armies meet armies, not a trickle. A team can have at most 50 troops alive; at the cap a barracks waits with its timer full (grey), and a freed slot goes to the rarest troop waiting. Mystery troops come on top of the cap and set off at once. A barracks from a mystery is a barracks like any other: it claims the ground around it, counts toward the barracks price and the barracks quest, and the rival's epic or legendary one pings an edge marker. A card shows what you rolled (the unit, its rarity, and whether it is a squad marching now or a barracks); a legendary roll gets a full banner.
 
 ## Card layout (cardLayout.ts)
 Every card on the map is laid out when the match starts, from the match seed: the same seed is the same map, card for card (the tutorial always plays seed 2). The layout is made for blue and mirrored for red, so both find the same cards at the same distance from their own castle. Cards stay face-down until they are next to a tile you have flipped, so finding the good ones is luck and the way you spread is the plan.

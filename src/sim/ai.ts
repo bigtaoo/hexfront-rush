@@ -12,7 +12,7 @@
 // best) is the one above (AI_SKILLS). Its style leans its taste toward one kind of card
 // (AI_STYLES): a rival with a character, for the campaign.
 
-import { cardCost, standingOf, tryBuy } from './economy';
+import { cardCost, rebatePct, standingOf, tryBuy } from './economy';
 import type { Engine } from './engine';
 import { ticks } from './fixed';
 import { hexDist, idx, inMap, NTILES, ROWS } from './hex';
@@ -127,7 +127,8 @@ export function aiUpdate(e: Engine, team: number): void {
   }
   const lure = (ti: number): number => ((lureAt[ti]! * k.lure) / 100) | 0;
   // the price of each card, which the same standing gives the same answer for all the way through
-  const cost = OFFER_LIST.map((_, oi) => cardCost(oi, s));
+  const reb = rebatePct(e, team);
+  const cost = OFFER_LIST.map((_, oi) => cardCost(oi, s, reb));
   // the best card that is affordable within a few seconds (a jackpot card: within half a
   // minute or so) is worth saving for, unless the castle is under attack
   let top = 0;

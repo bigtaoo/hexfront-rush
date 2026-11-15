@@ -5,8 +5,12 @@
 import type { GraphicsContext } from 'pixi.js';
 import { Pen, sharedCtx } from './pen';
 
+/** Three passes: a wide soft halo, the body of the shadow, and a tight dark core right under the
+ *  foot. One flat ellipse let everything hover a few millimetres above the board. */
 export function shadow(p: Pen, x: number, y: number, rx: number): void {
+  p.ellipse(x, y + rx * 0.05, rx * 1.2, rx * 0.44, 'rgba(40,24,8,0.11)');
   p.ellipse(x, y, rx, rx * 0.36, 'rgba(40,24,8,0.26)');
+  p.ellipse(x, y - rx * 0.03, rx * 0.56, rx * 0.19, 'rgba(26,14,2,0.22)');
 }
 
 export function shadowCtx(rx: number): GraphicsContext {

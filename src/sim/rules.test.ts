@@ -112,7 +112,7 @@ describe('the siege clock', () => {
       expect(R.siegePct(t)).toBe(100);
       expect(R.unitCap(t)).toBe(R.UNIT_CAP);
     }
-    expect(R.SIEGE.after).toBe(ticks(8 * 60));
+    expect(R.SIEGE.after).toBe(ticks(6 * 60));
     expect(R.SIEGE.after).toBeLessThan(R.MAX_PLAY_TICKS);
   });
 

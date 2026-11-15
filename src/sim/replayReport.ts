@@ -29,6 +29,8 @@ function sideLines(name: string, s: SideStats): string[] {
     `    barracks by rarity: ${RARITY.map((r, i) => `${r} ${pct(s.rarity[i]!, rarity)}`).join(', ')}`,
     `    trained ${avg(trained, s.seats)}/match: ${sorted(s.trained).map(([u, n]) => `${u} ${pct(n, trained)}`).join(', ') || '-'}`,
     `    map events ${avg(s.events, s.seats)}, quests ${avg(s.quests, s.seats)}, tiles at the end ${avg(s.tiles, s.seats, 0)}, gold left ${avg(s.goldLeft, s.seats, 0)}, most troops ${avg(s.peakUnits, s.seats)}`,
+    `    at 1:30 (${s.snapSeats} seats): flips ${avg(s.snapFlips, s.snapSeats)}, tiles ${avg(s.snapTiles, s.snapSeats, 0)}, troops ${avg(s.snapUnits, s.snapSeats)}, gold ${avg(s.snapGold, s.snapSeats, 0)}, barracks ${s.snapBar.map((n, i) => `${RARITY[i]} ${avg(n, s.snapSeats)}`).join(', ')}`,
+    `    castle at its lowest ${avg(s.minBaseHp, s.seats, 0)}%, ${avg(s.fullPopSecs, s.seats, 0)} s at the troop cap`,
   ];
 }
 

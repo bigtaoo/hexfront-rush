@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { dist } from './fixed';
-import { COLS, hexDist, hexX, hexY, idx, inMap, MID_ROW, neighbors, NTILES, ROW_H, ROWS, TILE, toCube, worldToHex } from './hex';
+import { COLS, hexDist, hexX, hexY, idx, inMap, MID_ROW, neighbors, NTILES, ROW_H, ROWS, TILE, toCube, worldToHex, worldToTile } from './hex';
 
 const tiles: { c: number; r: number }[] = [];
 for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) tiles.push({ c, r });
@@ -144,6 +144,16 @@ describe('worldToHex', () => {
           }
         }
         if (got !== best) bad.push(x + ',' + y + ' -> ' + h.c + ',' + h.r);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it('gives the same answer as worldToTile, and -1 off the board', () => {
+    for (let y = -3000; y < ROWS * ROW_H + 3000; y += 397) {
+      for (let x = -3000; x < COLS * TILE + 3000; x += 389) {
+        const h = worldToHex(x, y);
+        expect(worldToTile(x, y)).toBe(inMap(h.c, h.r) ? idx(h.c, h.r) : -1);
       }
     }
   });

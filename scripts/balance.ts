@@ -111,6 +111,43 @@ const edge = (label: string, f: (S: SideStats) => number) => {
   }
   return `${label} ${pct(won, more)} (${more})`;
 };
+// Conditioned at 1:30, before the match is decided. A whole-match total counts the winner's
+// extra flips, so it partly reads back its own result; flips and tiles are the tempo control —
+// what a rarity line means is how far above them it sits.
+out.push(
+  `early    the side with more at 1:30 … won: ${[
+    edge('cards flipped', (S) => S.at90.flips),
+    edge('tiles', (S) => S.at90.tiles),
+    edge('mines', (S) => S.minesAt90),
+    edge('barracks', (S) => sum(S.at90.bar)),
+    edge('rarity points', (S) => sum(S.at90.bar.map((n, r) => n * r))),
+    edge('epic+ barracks', (S) => S.at90.bar[2]! + S.at90.bar[3]!),
+  ].join(' | ')}`,
+);
+// Step 1 of the two-step method: hold the luck equal, and see what is left. The card layout is
+// already mirrored tile for tile (cardLayout.ts), so both sides are OFFERED the same thing; what
+// still differs by 1:30 is what each side chose to flip and what the flip-time rolls gave it.
+// Among the matches where the two sides stand equal at 1:30, a fair game is 50% — anything else
+// is structural (the position, or who moves first), not luck.
+const eqOn = (m: MatchStats, f: (S: SideStats) => number) => f(m.side[TEAM_BLUE]!) === f(m.side[TEAM_RED]!);
+const rpOf = (S: SideStats) => sum(S.at90.bar.map((k, r) => k * r));
+const nearOn = (m: MatchStats, f: (S: SideStats) => number, tol: number) =>
+  Math.abs(f(m.side[TEAM_BLUE]!) - f(m.side[TEAM_RED]!)) <= tol;
+/** The same barracks standing at 1:30, tier for tier — not just the same points. */
+const sameBar = (m: MatchStats) =>
+  m.side[TEAM_BLUE]!.at90.bar.every((k, r) => k === m.side[TEAM_RED]!.at90.bar[r]);
+const fairCut = (name: string, keep: (m: MatchStats) => boolean) => {
+  const g = decided.filter(keep);
+  return `${name} ${g.length ? pct(g.filter((m) => m.winner === TEAM_BLUE).length, g.length) : '-'} (n=${g.length})`;
+};
+out.push(
+  `fair     with luck held equal at 1:30, blue won: ${[
+    fairCut('same rarity points', (m) => eqOn(m, rpOf)),
+    fairCut('same barracks, tier for tier', sameBar),
+    fairCut('+ same mines', (m) => sameBar(m) && eqOn(m, (S) => S.minesAt90)),
+    fairCut('+ tiles within 2', (m) => sameBar(m) && eqOn(m, (S) => S.minesAt90) && nearOn(m, (S) => S.at90.tiles, 2)),
+  ].join(' | ')}`,
+);
 out.push(
   `luck     the side with more … won: ${[
     edge('epic+legendary barracks', (S) => S.barracks[2]! + S.barracks[3]!),

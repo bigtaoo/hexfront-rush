@@ -7,13 +7,14 @@
 // context per offer; the price is a picture number (digits.ts).
 
 import { Container, Graphics } from 'pixi.js';
-import { cardCost, standingOf } from '../sim/economy';
+import { cardCost, rebatePct, standingOf } from '../sim/economy';
 import { OFFER_LIST } from '../sim/rules';
 import { coin } from './bodies';
 import { Num } from './digits';
 import { inView, type Frame } from './frame';
 import { LOOK_B } from './lookB';
 import { sharedCtx, type Pen } from './pen';
+import { COL } from './viewConst';
 
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
@@ -113,6 +114,20 @@ function glyphCtx(key: string) {
 
 const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
 
+/** lookB: the card is a carved plaque lying on its tile, not a symbol printed on it. A flat cream
+ *  glyph on flat ground was the one thing on the board with no thickness at all, and thirty of
+ *  them at once were what made the field read as paper. Shared by every card: one context. */
+const PLQ = { w: 1.0, h: 1.08, cy: -0.07, r: 0.15 };
+const plaqueCtx = () =>
+  sharedCtx('offer|plaque', (p) => {
+    const x = -PLQ.w / 2, t = PLQ.cy - PLQ.h / 2;
+    p.rrect(x + 0.045, t + 0.075, PLQ.w, PLQ.h, PLQ.r, 'rgba(30,19,7,0.26)');
+    p.rrect(x, t + 0.055, PLQ.w, PLQ.h, PLQ.r, '#6d5637');
+    p.rrect(x, t, PLQ.w, PLQ.h, PLQ.r, '#cbb086', '#5e4727', 0.05);
+    // the lip along the top edge, where the light stands
+    p.line([x + 0.13, t + 0.055, x + PLQ.w - 0.13, t + 0.055], 'rgba(255,247,228,0.5)', 0.045, 'round');
+  });
+
 interface CardView {
   root: Container;
   /** The coin and the price, in a layer over the troops (renderer.ts): one walking across a card
@@ -152,7 +167,7 @@ export class OfferLayer {
   draw(f: Frame): void {
     const eng = f.eng, cam = f.cam;
     const Tm = eng.team[f.local]!;
-    const standing = standingOf(eng, f.local);
+    const standing = standingOf(eng, f.local), reb = rebatePct(eng, f.local);
     for (const [ti, t] of this.flips) {
       const nt = t + f.dt;
       if (nt > 0.7 || eng.tiles[ti]!.bld) {
@@ -181,7 +196,7 @@ export class OfferLayer {
       const v = cam.tv[i]!;
       if (!inView(f.vis, v.x, v.y)) continue;
       const off = OFFER_LIST[oi]!;
-      const cost = cardCost(oi, standing);
+      const cost = cardCost(oi, standing, reb);
       const afford = Tm.gold >= cost;
       const c = this.card(i);
       c.seen = n;
@@ -209,12 +224,11 @@ export class OfferLayer {
         c.key = off.key;
         c.glyph.context = glyphCtx(off.key);
       }
-      // what the player cannot pay for keeps its symbol (a faded one was unreadable); its price and
-      // coin fade instead (a red price on every card early on read as an alarm)
       // what the player cannot pay for keeps its symbol and its price at full strength; the price
-      // turns clay instead of white (a faded one could not be read) and the coin greys a little
+      // turns clay instead of white (a faded one could not be read) and the coin greys a little.
+      // a cut price is green, so the trailing side can see the 退路价 on the board itself
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
-      c.cost.set(String(cost), { h: ph, tint: afford ? '#ffffff' : POOR_TINT, align: 'left', screen: zoom });
+      c.cost.set(String(cost), { h: ph, tint: !afford ? POOR_TINT : reb > 0 ? COL.rebate : '#ffffff', align: 'left', screen: zoom });
       c.coin.alpha = afford ? 1 : POOR_ALPHA;
     }
     for (const [i, c] of this.cards) {
@@ -233,6 +247,7 @@ export class OfferLayer {
     let c = this.cards.get(i);
     if (c) return c;
     const root = new Container();
+    if (LOOK_B) root.addChild(new Graphics(plaqueCtx()));
     const glyph = new Graphics();
     glyph.position.set(0, GLYPH_Y);
     glyph.scale.set(GLYPH_K);

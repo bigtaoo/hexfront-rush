@@ -5,11 +5,14 @@
 
 import type { Engine } from './engine';
 import { runReplay, type Replay } from './replay';
-import { ENGINE_VERSION, TEAMS, type OfferKind, type UnitKey } from './rules';
+import { ENGINE_VERSION, TEAMS, UNIT_CAP, WAVE_TICKS, type OfferKind, type UnitKey } from './rules';
 import type { EndReason } from './types';
 import { TICK_RATE } from './fixed';
 
 const OFFER_KINDS: readonly OfferKind[] = ['mine', 'tower', 'barracks', 'mystery'];
+
+/** COUNTERPLAY.md §15.4's 1:30 snapshot: six waves in, the moment the opening is over. */
+const SNAP_TICKS = WAVE_TICKS * 6;
 
 /** One kind of seat (a player or the AI) over all the matches. */
 export interface SideStats {
@@ -35,6 +38,18 @@ export interface SideStats {
   /** Seats that flipped at all, and the sum of the seconds of play before their first flip. */
   firstFlips: number;
   firstFlipSecs: number;
+  /** The 1:30 snapshot: seats that were still playing then, and their sums at that moment. */
+  snapSeats: number;
+  snapTiles: number;
+  snapFlips: number;
+  /** Barracks standing at 1:30 by rarity 0..3 — §0′.3's conditioning feature. */
+  snapBar: number[];
+  snapUnits: number;
+  snapGold: number;
+  /** Sum over the seats of the lowest the castle's hp ever fell to, in percent of its own maximum. */
+  minBaseHp: number;
+  /** Sum over the seats of the seconds spent at the troop cap. */
+  fullPopSecs: number;
 }
 
 /** One kind of match: solo (a player against the AI), online (two players) or ai (AI against AI). */
@@ -65,6 +80,7 @@ export const newStats = (): ReplayStats => ({ played: 0, oldVersion: 0, desynced
 const newSide = (): SideStats => ({
   seats: 0, won: 0, lost: 0, flips: 0, needGold: 0, built: new Map(), mysteryWin: 0, mysteryNothing: 0, rarity: [0, 0, 0, 0],
   trained: new Map(), events: 0, quests: 0, tiles: 0, goldLeft: 0, peakUnits: 0, firstFlips: 0, firstFlipSecs: 0,
+  snapSeats: 0, snapTiles: 0, snapFlips: 0, snapBar: [0, 0, 0, 0], snapUnits: 0, snapGold: 0, minBaseHp: 0, fullPopSecs: 0,
 });
 
 const add = <K>(m: Map<K, number>, k: K, n = 1) => m.set(k, (m.get(k) ?? 0) + n);
@@ -93,8 +109,22 @@ interface Seat {
   quests: number;
   peakUnits: number;
   firstFlip: number;
+  /** The 1:30 snapshot, -1 until the match reaches it. */
+  snapTiles: number;
+  snapFlips: number;
+  snapBar: number[];
+  snapUnits: number;
+  snapGold: number;
+  /** The lowest the castle's hp fell to, in percent, and the ticks spent at the troop cap. */
+  minBaseHp: number;
+  fullPopTicks: number;
+  /** The castle's entity id, looked up once. */
+  baseId: number;
 }
-const newSeat = (): Seat => ({ flips: 0, needGold: 0, mysteryWin: 0, mysteryNothing: 0, rarity: [0, 0, 0, 0], trained: new Map(), events: 0, quests: 0, peakUnits: 0, firstFlip: -1 });
+const newSeat = (): Seat => ({
+  flips: 0, needGold: 0, mysteryWin: 0, mysteryNothing: 0, rarity: [0, 0, 0, 0], trained: new Map(), events: 0, quests: 0, peakUnits: 0, firstFlip: -1,
+  snapTiles: -1, snapFlips: 0, snapBar: [0, 0, 0, 0], snapUnits: -1, snapGold: -1, minBaseHp: 100, fullPopTicks: 0, baseId: 0,
+});
 
 /** The engine's events of one tick, into the seats. */
 function onTick(e: Engine, seats: Seat[]): void {
@@ -128,7 +158,25 @@ function onTick(e: Engine, seats: Seat[]): void {
         break;
     }
   }
-  for (const t of TEAMS) seats[t]!.peakUnits = Math.max(seats[t]!.peakUnits, e.team[t]!.units);
+  for (const t of TEAMS) {
+    const st = seats[t]!;
+    const team = e.team[t]!;
+    st.peakUnits = Math.max(st.peakUnits, team.units);
+    if (team.units >= UNIT_CAP) st.fullPopTicks++;
+    if (!st.baseId) st.baseId = e.blds.find((b) => b.type === 'base' && b.team === t)?.id ?? 0;
+    const b = st.baseId ? e.ent(st.baseId) : null;
+    if (b && b.kind === 'bld' && b.maxhp > 0) st.minBaseHp = Math.min(st.minBaseHp, Math.round((100 * Math.max(0, b.hp)) / b.maxhp));
+    // a castle that fell is gone from e.ents on the very tick it died, so its last reading would
+    // otherwise be whatever it had a tick earlier: the one castle that reached 0 must read 0
+    else if (st.baseId) st.minBaseHp = 0;
+    if (st.snapTiles < 0 && e.elapsed() >= SNAP_TICKS) {
+      st.snapTiles = team.tiles;
+      st.snapFlips = st.flips;
+      st.snapBar = st.rarity.slice();
+      st.snapUnits = team.units;
+      st.snapGold = team.gold;
+    }
+  }
 }
 
 /** Plays `r` again into `s`. 'old': another engine version; 'desync': it did not play back to
@@ -191,6 +239,16 @@ export function addReplay(s: ReplayStats, r: Replay): 'ok' | 'old' | 'desync' {
       side.firstFlips++;
       side.firstFlipSecs += seat.firstFlip / TICK_RATE;
     }
+    if (seat.snapTiles >= 0) {
+      side.snapSeats++;
+      side.snapTiles += seat.snapTiles;
+      side.snapFlips += seat.snapFlips;
+      for (let i = 0; i < 4; i++) side.snapBar[i]! += seat.snapBar[i]!;
+      side.snapUnits += seat.snapUnits;
+      side.snapGold += seat.snapGold;
+    }
+    side.minBaseHp += seat.minBaseHp;
+    side.fullPopSecs += seat.fullPopTicks / TICK_RATE;
   }
   return 'ok';
 }

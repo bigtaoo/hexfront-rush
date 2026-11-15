@@ -201,7 +201,9 @@ export class Renderer {
         break;
       case 'income':
         if (mine && p) {
-          fx.floater(p.x, p.y - 0.9, '+' + e.amount, COL.coin);
+          // 矿脉涌动 pays in green and says by how much: the outlet has to be visible to be used
+          const sg = e.surge ?? 0;
+          fx.floater(p.x, p.y - 0.9, sg > 0 ? `+${e.amount} +${sg}%` : '+' + e.amount, sg > 0 ? COL.surge : COL.coin);
           this.coinFly(p.x, p.y, 1);
         }
         break;

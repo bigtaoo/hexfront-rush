@@ -54,7 +54,7 @@ export default {
   ev_camp: 'Ein Lager schließt sich dir an!',
   ev_warband: 'Eine Kriegsschar schließt sich dir an!',
   ev_taken: 'Der Gegner war schneller',
-  online: 'Online 1v1', createRoom: 'Raum erstellen', join: 'Beitreten', codeHint: 'Raumcode',
+  online: 'Online 1v1', createRoom: 'Raum erstellen', join: 'Beitreten', codeHint: 'Code',
   shareCode: 'Schick diesen Code einem Freund', waitingRival: 'Warte auf einen Gegner...',
   connecting: 'Verbinde...', reconnecting: 'Verbinde neu...', noRoom: 'Raum nicht gefunden oder schon voll', otherVersion: 'In diesem Raum läuft eine andere Spielversion: Lade die Seite neu und versuch es noch mal',
   noServer: 'Spielserver nicht erreichbar', cancel: 'Abbrechen', rivalOffline: 'Gegner getrennt',
@@ -152,6 +152,7 @@ export default {
   qAuto: "Auto",
   qHigh: "Hoch",
   qSaver: "Sparsam",
+  sureTap: "Zum Bestätigen erneut tippen", briefTwists: "Diese Stufe", briefGoals: "Sterne holen",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Ton", aPause: "Pause", aLeave: "Partie verlassen", aSpeed: "Wiederholungstempo", aPrevCh: "Vorheriges Kapitel", aNextCh: "Nächstes Kapitel",
 } as Record<string, string>;

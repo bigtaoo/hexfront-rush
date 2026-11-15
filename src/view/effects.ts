@@ -39,6 +39,23 @@ interface Floater {
   view: Text | Num | null;
 }
 
+/** Drop the finished entries in place. `filter` built a new array every frame, as long as
+ *  everything on screen; these run over every particle of every burst. */
+function prune<T>(arr: T[], done: (e: T) => boolean): void {
+  let n = 0;
+  for (let i = 0; i < arr.length; i++) {
+    const e = arr[i]!;
+    if (!done(e)) arr[n++] = e;
+  }
+  arr.length = n;
+}
+const expired = (e: { t: number; life: number }): boolean => e.t >= e.life;
+const floaterDone = (fl: Floater): boolean => {
+  if (fl.t < fl.life) return false;
+  fl.view?.destroy();
+  return true;
+};
+
 export class EffectLayer {
   /** Above the sprites: projectiles, particles, rings, floaters. */
   readonly root = new Container();
@@ -107,8 +124,8 @@ export class EffectLayer {
       e.vy += 6 * dt;
     }
     for (const e of this.rings) e.t += dt;
-    this.parts = this.parts.filter((e) => e.t < e.life);
-    this.rings = this.rings.filter((e) => e.t < e.life);
+    prune(this.parts, expired);
+    prune(this.rings, expired);
     for (const e of this.parts) {
       if (!inView(f.vis, e.x, e.y)) continue;
       p.a = 1 - e.t / e.life;
@@ -126,11 +143,7 @@ export class EffectLayer {
       fl.t += dt;
       fl.y -= 0.8 * dt;
     }
-    this.floaters = this.floaters.filter((fl) => {
-      if (fl.t < fl.life) return true;
-      fl.view?.destroy();
-      return false;
-    });
+    prune(this.floaters, floaterDone);
     for (const fl of this.floaters) {
       // a number (gold taken) is a picture number on the board; words stay a Text at screen size
       if (!fl.view) {

@@ -17,6 +17,8 @@
     "balance": "node --import ./scripts/tsResolve.mjs scripts/balance.ts",
     "ailab": "node --import ./scripts/tsResolve.mjs scripts/aiLab.ts",
     "hclab": "node --import ./scripts/tsResolve.mjs scripts/hcLab.ts",
+    "arena": "node --import ./scripts/tsResolve.mjs scripts/arena.ts",
+    "levers": "node --import ./scripts/tsResolve.mjs scripts/levers.ts",
     "ladder": "node --import ./scripts/tsResolve.mjs scripts/ladder.ts",
     "replays": "node --import ./scripts/tsResolve.mjs scripts/replays.ts",
     "collect": "node server/collect.ts",
@@ -24,7 +26,8 @@
     "check:filelength": "node scripts/checkFileLength.mjs",
     "check": "npm run typecheck && npm test && npm run check:filelength",
     "campaign": "node --import ./scripts/tsResolve.mjs scripts/campaign.ts",
-    "campaigntune": "node --import ./scripts/tsResolve.mjs scripts/campaignTune.ts"
+    "campaigntune": "node --import ./scripts/tsResolve.mjs scripts/campaignTune.ts",
+    "axes": "node --import ./scripts/tsResolve.mjs scripts/axes.ts"
   },
   "dependencies": {
     "pixi.js": "^8.6.6",

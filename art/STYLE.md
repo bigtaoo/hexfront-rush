@@ -77,14 +77,24 @@ sheet2 for the rubble alone), so they keep the sheet's hand; `cut/mine.png` and 
 come from `sheet3.png`, the rest from `sheet1.png`. The rubble is a low warm pile (beige stone,
 brown planks): a ruin should read as "something stood here", not as a dark hole in the map.
 
+## Sharpness (TEX_K, PPU, mipmaps)
+
+A sprite holds TEX_K = 3 texture pixels per CSS pixel (tools/art3d/sprite.py, tools/art/sprites.py;
+src/view/art.ts PPU = 38 x 3 = 114), so a 3x phone draws it 1:1 and a 2x screen shrinks it a
+little. At TEX_K = 2 a 3x phone stretched every sprite by 1.5 and the cast looked soft. The atlas
+samples its mip levels with `mipmapFilter = 'nearest'`: trilinear blending mixed in the half-size
+level under slight minification, which blurred the sprites as much as the stretch had.
+`sprite.py --from-k 2` rescales the area it matches when it rebuilds sprites made at the old density.
+
 ## Ground and colour (src/view/ground.ts)
 
 - Blue and red belong to the teams alone. Snow is a warm grey, not blue-white. The old sticker set's
   ice crystals were bright blue and drew as rocks; the wooden-toy crystals are pale grey-green
   (hue about 155°, saturation about 0.2) beside the team's saturated royal blue, so ice draws as ice.
 - A tile top carries a faint wood grain and paint speckle (src/view/grain.ts: light and dark
-  strokes over its own colour, three variants turned 0/60/120 degrees, picked per tile): flat vector fills
-  read as plastic next to the painted wooden toys.
+  strokes over its own colour, three variants turned 0/60/120 degrees, picked per tile), and its
+  bevel lines are drawn a little stronger: flat vector fills read as plastic next to the painted
+  wooden toys.
 - Tiles touch with a faint inner line, not a gap: a gap around every tile drew a heavy honeycomb
   over the whole map. The tile side shows only along the map's rim.
 - Only what stands is drawn in full colour. An offer is a flat white symbol with a thick dark rim,

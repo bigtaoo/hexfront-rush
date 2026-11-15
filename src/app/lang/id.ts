@@ -54,7 +54,7 @@ export default {
   ev_camp: 'Sebuah kemah bergabung!',
   ev_warband: 'Sekelompok prajurit bergabung!',
   ev_taken: 'Rival sampai duluan',
-  online: 'Online 1v1', createRoom: 'Buat ruang', join: 'Gabung', codeHint: 'Kode ruang',
+  online: 'Online 1v1', createRoom: 'Buat ruang', join: 'Gabung', codeHint: 'Kode',
   shareCode: 'Kirim kode ini ke teman', waitingRival: 'Menunggu rival...',
   connecting: 'Menghubungkan...', reconnecting: 'Menyambung ulang...', noRoom: 'Ruang tidak ditemukan, atau sudah penuh', otherVersion: 'Ruang itu memakai versi game yang lain: muat ulang halaman dan coba lagi',
   noServer: 'Tidak bisa terhubung ke server game', cancel: 'Batal', rivalOffline: 'Rival terputus',
@@ -141,7 +141,8 @@ export default {
   rv_q4: 'Ayo lempar dadu!',
   quote: '“{q}”',
   settings: 'Pengaturan', optSound: 'Efek suara', optMusic: 'Musik', optVibrate: 'Getaran',
-  optGraphics: 'Grafis', qAuto: 'Otomatis', qHigh: 'Tinggi', qSaver: 'Hemat baterai',
+  optGraphics: 'Grafis', qAuto: 'Otomatis', qHigh: 'Tinggi', qSaver: 'Hemat',
+  sureTap: "Ketuk lagi untuk konfirmasi", briefTwists: "Tahap ini", briefGoals: "Raih bintang",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Suara", aPause: "Jeda", aLeave: "Keluar dari laga", aSpeed: "Kecepatan tayangan ulang", aPrevCh: "Bab sebelumnya", aNextCh: "Bab berikutnya",
 } as Record<string, string>;

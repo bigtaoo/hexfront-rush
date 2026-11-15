@@ -27,12 +27,24 @@ export interface Hex {
   r: number;
 }
 
-/** The hex whose centre is nearest (x, y), exact in integers. Rows r0-1..r0+2 bracket y, and
- *  within a row the nearest centre by x is the nearest by distance. Ties keep the first row. */
-export function worldToHex(x: number, y: number): Hex {
+/** The box every troop stays inside: the tile centres with a tile's slack all round. Only the
+ *  troop grid (troops.ts separate) reads it; nothing in the sim is clamped to it. */
+export const WORLD_W = HALF_W * 2 * COLS + TILE;
+export const WORLD_H = ROW_H * (ROWS - 1) + FP + TILE;
+
+/** The last answer of `nearest`. Module state because the sim asks a few times per troop per
+ *  tick and an object per call was showing up in the profile; it is written and read in the same
+ *  call, the sim is single-threaded, and nothing is carried between ticks. */
+let hitC = 0, hitR = 0;
+
+/** The hex whose centre is nearest (x, y), exact in integers, into hitC/hitR. Only rows r0 and
+ *  r0+1 can win: within a row the nearest centre by x is the nearest by distance, and it is at
+ *  most HALF_W away, so one of these two rows is within sqrt(866^2 + 750^2) = 1145, while every
+ *  other row is at least ROW_H = 1500 away in y alone. Ties keep the first row. */
+function nearest(x: number, y: number): void {
   const r0 = Math.floor((y - FP) / ROW_H);
   let bc = 0, br = 0, bd = -1;
-  for (let r = r0 - 1; r <= r0 + 2; r++) {
+  for (let r = r0; r <= r0 + 1; r++) {
     const c = Math.floor((x - HALF_W * (r & 1)) / TILE);
     const dx = x - hexX(c, r), dy = y - hexY(r);
     const d = dx * dx + dy * dy;
@@ -42,7 +54,20 @@ export function worldToHex(x: number, y: number): Hex {
       br = r;
     }
   }
-  return { c: bc, r: br };
+  hitC = bc;
+  hitR = br;
+}
+
+/** The nearest hex as a pair, for callers that want the coordinates even off the map. */
+export function worldToHex(x: number, y: number): Hex {
+  nearest(x, y);
+  return { c: hitC, r: hitR };
+}
+
+/** The nearest hex's tile index, or -1 off the map. The sim's hot path: no allocation. */
+export function worldToTile(x: number, y: number): number {
+  nearest(x, y);
+  return inMap(hitC, hitR) ? idx(hitC, hitR) : -1;
 }
 
 export function toCube(c: number, r: number): { x: number; y: number; z: number } {

@@ -27,6 +27,10 @@ export interface SideStats {
   capSecs: number;
   /** Mines standing at 1:30 of play. */
   minesAt90: number;
+  /** A snapshot at 1:30 of play, before the match is decided: cards flipped, tiles owned, and
+   *  barracks standing by rarity. Conditioning on these instead of on whole-match totals keeps
+   *  the winner's extra flips out of the luck numbers. */
+  at90: { flips: number; tiles: number; bar: number[] };
   goldEnd: number;
   /** The layout's mines and epic+ barracks: how many were laid for the side, and how many it saw
    *  (they were a card it could flip at some point). */
@@ -37,6 +41,8 @@ export interface SideStats {
   events: Record<string, number>;
   eventWorth: number;
   middleAt: number[];
+  /** Quests handed in (COUNTERPLAY.md §7.6: the loop keeps paying, so this counts cycles too). */
+  quests: number;
 }
 
 export interface MatchStats {
@@ -56,8 +62,8 @@ export interface MatchStats {
 }
 
 const newSide = (): SideStats => ({
-  flips: {}, barracks: [0, 0, 0, 0], mystery: MYSTERY.map(() => 0), trained: [0, 0, 0, 0], lost: {}, castleLow: 1, capSecs: 0, minesAt90: 0, goldEnd: 0,
-  laid: { mine: 0, best: 0 }, seen: { mine: 0, best: 0 }, events: {}, eventWorth: 0, middleAt: [],
+  flips: {}, barracks: [0, 0, 0, 0], mystery: MYSTERY.map(() => 0), trained: [0, 0, 0, 0], lost: {}, castleLow: 1, capSecs: 0, minesAt90: 0, at90: { flips: 0, tiles: 0, bar: [0, 0, 0, 0] }, goldEnd: 0,
+  laid: { mine: 0, best: 0 }, seen: { mine: 0, best: 0 }, events: {}, eventWorth: 0, middleAt: [], quests: 0,
 });
 
 /** The card key a flip at (x, y) bought: what stood on that tile just before the step. */
@@ -110,6 +116,9 @@ export function playBalanceMatch(seed: number, setup: Omit<ConfigInput, 'seed'> 
           if (e.tileAt(ev.x!, ev.y!)?.r === MID_ROW) S.middleAt.push(Math.round(e.elapsed() / TICK_RATE));
           break;
         }
+        case 'quest':
+          S.quests++;
+          break;
         case 'bldDown':
           S.lost[ev.kind ?? '?'] = (S.lost[ev.kind ?? '?'] ?? 0) + 1;
           break;
@@ -126,7 +135,13 @@ export function playBalanceMatch(seed: number, setup: Omit<ConfigInput, 'seed'> 
       const low = base ? base.hp / base.maxhp : 0;
       if (low < S.castleLow) S.castleLow = low;
       if (e.tick % TICK_RATE === 0 && e.team[team]!.units >= unitCap(e.elapsed(), e.siegeAt)) S.capSecs++;
-      if (e.elapsed() === 90 * TICK_RATE) S.minesAt90 = e.blds.filter((b) => b.team === team && b.type === 'mine').length;
+      if (e.elapsed() === 90 * TICK_RATE) {
+        S.minesAt90 = e.blds.filter((b) => b.team === team && b.type === 'mine').length;
+        const T = e.team[team]!;
+        S.at90.flips = T.built.mine + T.built.tower + T.built.barracks + T.built.mystery;
+        S.at90.tiles = T.tiles;
+        for (const b of e.blds) if (b.team === team && b.type === 'barracks') S.at90.bar[b.rarity ?? 0]!++;
+      }
     }
     if (e.tick % TICK_RATE === 0) {
       e.hash();

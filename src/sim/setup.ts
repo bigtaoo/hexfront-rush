@@ -44,7 +44,7 @@ export interface ConfigInput {
 export const AI_SKILL_MAX = 3;
 /** The standard (and best) AI: the menu's demo, and Normal in a quick match. */
 export const AI_SKILL_STD = 3;
-export const STD_SIEGE = 8 * 60;
+export const STD_SIEGE = 6 * 60;
 
 /** Each field's standard value and its allowed range. */
 const SIDE_RANGE: Record<keyof SideSetup, readonly [number, number, number]> = {

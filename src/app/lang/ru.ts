@@ -54,7 +54,7 @@ export default {
   ev_camp: 'Лагерь присоединился к тебе!',
   ev_warband: 'Дружина присоединилась к тебе!',
   ev_taken: 'Соперник успел первым',
-  online: 'Онлайн 1v1', createRoom: 'Создать комнату', join: 'Войти', codeHint: 'Код комнаты',
+  online: 'Онлайн 1v1', createRoom: 'Создать комнату', join: 'Войти', codeHint: 'Код',
   shareCode: 'Отправь этот код другу', waitingRival: 'Ждём соперника...',
   connecting: 'Подключение...', reconnecting: 'Переподключение...', noRoom: 'Комната не найдена или уже заполнена', otherVersion: 'В этой комнате другая версия игры: обнови страницу и попробуй снова',
   noServer: 'Нет связи с игровым сервером', cancel: 'Отмена', rivalOffline: 'Соперник отключился',
@@ -152,6 +152,7 @@ export default {
   qAuto: "Авто",
   qHigh: "Высокая",
   qSaver: "Экономия",
+  sureTap: "Нажмите ещё раз для подтверждения", briefTwists: "Этот этап", briefGoals: "Звёзды",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Звук", aPause: "Пауза", aLeave: "Покинуть матч", aSpeed: "Скорость повтора", aPrevCh: "Предыдущая глава", aNextCh: "Следующая глава",
 } as Record<string, string>;

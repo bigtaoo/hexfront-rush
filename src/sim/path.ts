@@ -32,27 +32,58 @@ export function distanceField(tiles: readonly Tile[], start: number): Int16Array
   return d;
 }
 
-/** The tiles to walk to get from `from` to `to`, `to` last and `from` left out; empty when it is
- *  already there, null when the target is a wall or walled off. */
-export function bfsPath(tiles: readonly Tile[], from: number, to: number): number[] | null {
-  if (from === to) return [];
-  if (to < 0 || to >= NTILES || tiles[to]!.obst) return null;
-  const prev = new Int16Array(NTILES).fill(-1);
-  prev[from] = from;
-  const q = [from];
-  for (let h = 0; h < q.length; h++) {
-    const i = q[h]!;
+/** The breadth-first search both walkers share. It writes its prev-tree into scratch arrays kept
+ *  between calls rather than a fresh Int16Array(NTILES) each time — `pGen` says which call a cell
+ *  belongs to, so nothing is cleared. Returns 1 when `from` is already `to`, -1 when the target is
+ *  a wall or walled off, 0 when the tree in `pPrev` reaches it. Visit order is the tile order, so
+ *  the tree is the same on every machine. */
+const pPrev = new Int16Array(NTILES);
+const pGen = new Int32Array(NTILES);
+let pG = 0;
+const pQ: number[] = [];
+
+function bfs(tiles: readonly Tile[], from: number, to: number): number {
+  if (from === to) return 1;
+  if (to < 0 || to >= NTILES || tiles[to]!.obst) return -1;
+  if (pG === 0x7fffffff) {
+    pGen.fill(0);
+    pG = 0;
+  }
+  const gen = ++pG;
+  pGen[from] = gen;
+  pPrev[from] = from;
+  pQ.length = 0;
+  pQ.push(from);
+  for (let h = 0; h < pQ.length; h++) {
+    const i = pQ[h]!;
     if (i === to) break;
     for (const n of tiles[i]!.nb) {
-      if (prev[n] === -1 && !tiles[n]!.obst) {
-        prev[n] = i;
-        q.push(n);
+      if (pGen[n] !== gen && !tiles[n]!.obst) {
+        pGen[n] = gen;
+        pPrev[n] = i;
+        pQ.push(n);
       }
     }
   }
-  if (prev[to] === -1) return null;
+  return pGen[to] === gen ? 0 : -1;
+}
+
+/** The tiles to walk to get from `from` to `to`, `to` last and `from` left out; empty when it is
+ *  already there, null when the target is a wall or walled off. */
+export function bfsPath(tiles: readonly Tile[], from: number, to: number): number[] | null {
+  const r = bfs(tiles, from, to);
+  if (r !== 0) return r === 1 ? [] : null;
   const path: number[] = [];
-  for (let i = to; i !== from; i = prev[i]!) path.push(i);
+  for (let i = to; i !== from; i = pPrev[i]!) path.push(i);
   path.reverse();
   return path;
+}
+
+/** Just the first tile to step onto, for the caller that only ever wanted that: -1 when there is
+ *  nowhere to go. Saves the path array and its reverse on the sim's hot path. */
+export function bfsStep(tiles: readonly Tile[], from: number, to: number): number {
+  if (bfs(tiles, from, to) !== 0) return -1;
+  let i = to;
+  while (pPrev[i] !== from) i = pPrev[i]!;
+  return i;
 }

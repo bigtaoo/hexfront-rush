@@ -54,7 +54,7 @@ export default {
   ev_camp: 'Obóz dołącza do ciebie!',
   ev_warband: 'Drużyna wojów dołącza do ciebie!',
   ev_taken: 'Rywal był pierwszy',
-  online: 'Online 1 na 1', createRoom: 'Utwórz pokój', join: 'Dołącz', codeHint: 'Kod pokoju',
+  online: 'Online 1 na 1', createRoom: 'Utwórz pokój', join: 'Dołącz', codeHint: 'Kod',
   shareCode: 'Wyślij ten kod znajomemu', waitingRival: 'Oczekiwanie na rywala...',
   connecting: 'Łączenie...', reconnecting: 'Ponowne łączenie...', noRoom: 'Nie znaleziono pokoju lub jest już pełny', otherVersion: 'Ten pokój działa na innej wersji gry: odśwież stronę i spróbuj ponownie',
   noServer: 'Brak połączenia z serwerem gry', cancel: 'Anuluj', rivalOffline: 'Rywal się rozłączył',
@@ -141,7 +141,8 @@ export default {
   rv_q4: 'Rzućmy kośćmi!',
   quote: '„{q}”',
   settings: 'Ustawienia', optSound: 'Efekty dźwiękowe', optMusic: 'Muzyka', optVibrate: 'Wibracje',
-  optGraphics: 'Grafika', qAuto: 'Auto', qHigh: 'Wysoka', qSaver: 'Oszczędzanie baterii',
+  optGraphics: 'Grafika', qAuto: 'Auto', qHigh: 'Wysoka', qSaver: 'Oszczędny',
+  sureTap: "Stuknij ponownie, aby potwierdzić", briefTwists: "Ten etap", briefGoals: "Gwiazdki do zdobycia",
   // screen-reader names of the icon buttons (aria-label)
   aSound: "Dźwięk", aPause: "Pauza", aLeave: "Opuść mecz", aSpeed: "Prędkość powtórki", aPrevCh: "Poprzedni rozdział", aNextCh: "Następny rozdział",
 } as Record<string, string>;

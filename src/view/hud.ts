@@ -10,7 +10,7 @@ import { TICK_RATE } from '../sim/fixed';
 import { enemyOf, siegePct, unitCap, WAVE_TICKS } from '../sim/rules';
 import { coin } from './bodies';
 import type { Camera } from './camera';
-import { Num } from './digits';
+import { Num, snapPx } from './digits';
 import type { Frame, Juice } from './frame';
 import { label, liveGraphics, setLabel, type LabelOpts, type Pen } from './pen';
 import { COL, teamCol, UI, WOOD } from './viewConst';
@@ -92,7 +92,8 @@ export class Hud {
     n.visible = show;
     if (show) {
       n.set(s, { h: o.size * NUM_K, tint: o.color, align: o.align });
-      n.position.set(x, y);
+      // on a whole device pixel, so the glyphs land texel for texel (digits.ts)
+      n.position.set(snapPx(x), snapPx(y));
     }
     return n;
   }

@@ -17,6 +17,8 @@ export const COL = {
   blue: '#3b82f6', blueDark: '#1d4ed8', blueSpark: '#60a5fa', blueLight: '#93c5fd',
   red: '#ef4444', redDark: '#b91c1c', redSpark: '#f87171', redLight: '#fca5a5',
   coin: '#fde047', hurt: '#fca5a5',
+  // the trailing side's two outlets: a cut price and a mine paying over the odds
+  rebate: '#86efac', surge: '#4ade80',
 } as const;
 
 /** A card's rarity colour: common, rare, epic, legendary. It used to sit in the sim's rules table,

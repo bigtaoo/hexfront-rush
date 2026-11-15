@@ -8,7 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { idx, NTILES, ROWS } from './hex';
 import { baseTile, generateMap, type Tile } from './map';
-import { bfsPath, distanceField, FAR } from './path';
+import { bfsPath, bfsStep, distanceField, FAR } from './path';
 import { TEAM_BLUE, TEAM_RED } from './rules';
 
 const map = (seed = 4242) => generateMap(seed).tiles;
@@ -103,5 +103,25 @@ describe('bfsPath', () => {
       built[i]!.owner = TEAM_RED;
     }
     expect(bfsPath(built, from, to)).toEqual(plain);
+  });
+
+  it('gives bfsStep the same first step as the whole path, from every tile to every castle', () => {
+    // the sim only ever wanted that first step (troops.ts), and the two share one search: if they
+    // ever parted, every troop walking round a rock would take a different route
+    for (const to of [baseTile(TEAM_BLUE), baseTile(TEAM_RED)]) {
+      for (const t of tiles) {
+        const p = bfsPath(tiles, t.i, to);
+        expect(bfsStep(tiles, t.i, to)).toBe(p && p.length ? p[0] : -1);
+      }
+    }
+  });
+
+  it('reuses its scratch without leaking one search into the next', () => {
+    const to = baseTile(TEAM_RED);
+    const first = bfsPath(tiles, from, to);
+    bfsPath(tiles, baseTile(TEAM_RED), from);
+    bfsStep(tiles, from, from);
+    bfsPath(tiles, from, -1);
+    expect(bfsPath(tiles, from, to)).toEqual(first);
   });
 });

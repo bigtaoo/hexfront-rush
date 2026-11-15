@@ -10,11 +10,19 @@ import { AI_SKILL_MAX, AI_SKILL_STD, type SideSetup } from '../src/sim/setup';
 import { TEAM_BLUE, TEAM_RED } from '../src/sim/rules';
 import { playBalanceMatch } from './balanceMatch';
 
-interface Pair { wins: number; games: number; secs: number[]; castleLow: number[] }
+interface Pair {
+  wins: number;
+  games: number;
+  secs: number[];
+  castleLow: number[];
+  /** Quests handed in, a's and the standard side's, one entry a match (COUNTERPLAY.md §9's 21). */
+  quests: number[];
+  questsB: number[];
+}
 
 /** Level a (with setup sa) against level b (sb) over n seeds, both colours. */
 export function duel(a: Partial<SideSetup>, b: Partial<SideSetup>, n: number, seed0 = Number(process.env.SEED0 ?? 1000), siege?: number): Pair {
-  const p: Pair = { wins: 0, games: 0, secs: [], castleLow: [] };
+  const p: Pair = { wins: 0, games: 0, secs: [], castleLow: [], quests: [], questsB: [] };
   for (let i = 0; i < n; i++) {
     const seed = seed0 + i * 7919;
     for (const aBlue of [true, false]) {
@@ -24,6 +32,8 @@ export function duel(a: Partial<SideSetup>, b: Partial<SideSetup>, n: number, se
       if (m.winner === aTeam) p.wins++;
       p.secs.push(m.secs);
       p.castleLow.push(m.side[aTeam]!.castleLow);
+      p.quests.push(m.side[aTeam]!.quests);
+      p.questsB.push(m.side[aBlue ? TEAM_RED : TEAM_BLUE]!.quests);
     }
   }
   return p;
