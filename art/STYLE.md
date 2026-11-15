@@ -26,9 +26,14 @@ and the old mix of flat stickers and a few 3D renders read as clip art from diff
 5. Copy `art/tripo/sprites_ref/<group>/out/*.png` to `art/<group>/out/`, then `python tools/art/pack.py`
    (src/assets/atlas.webp/.json).
 
-The 3D route (tools/art3d/tripo.py -> paint.py -> sprite.py, renders of Tripo models) is kept, but
-the painted ref reads cleaner at 50 px than the render, and Tripo's free plan exports only three
-models (guard, ogre, mine, all spent). A new subject goes through steps 1-5.
+Troops no longer come from this route. Since the move to rendered frames (D56, ANIMATION.md) each
+of the nine troops is **built in code** inside headless Blender - `tools/art3d/troops.py` for the
+six humanoids, `beasts.py` for ogre, colossus and drake, on the shared parts in `body.py`,
+`prim.py` and `pose.py` - and rendered through `sprite.py` with the same camera, lights and
+outline. That is what makes 13 frames per troop per team affordable; a painted ref cannot be posed.
+Buildings, props and map events are still steps 1-5. The Tripo route
+(tools/art3d/tripo.py -> paint.py -> sprite.py) is kept for a one-off model, but Tripo's free plan
+exports only three (guard, ogre, mine, all spent).
 
 Scale on the board (lookB): troops are drawn 1.3x their hit size (LOOKB_UNIT_K); a building fills
 most of its tile (buildingView.ts BLD_W 1.45 / BLD_H 1.75 view units, a tile is 1.73 wide), so the
@@ -36,19 +41,25 @@ castle never reads smaller than the soldiers standing next to it.
 
 ## Motion (src/view/unitView.ts, sprites.ts, buildingView.ts)
 
-The pictures are single still frames; every movement is a transform of the whole picture, the way a
-painted wooden piece moves on a board. That suits the toy look better than frame animation would
-(a carved piece has no knees), keeps the atlas at one frame per subject, and needs no rig or model:
-- walking: a hop per stride with squash and stretch, rocking about 6° onto the foot it lands on
-  (the castle guard too); a slow breath while standing; the drake hovers and bobs;
-- trained: it drops onto the board from about a tile up, fading in, and squashes as it lands (0.42 s);
-- attack: a melee troop lunges and leans into the blow; a shooter (anything with a missile) rocks
-  back on its heels instead;
-- hit: a white flash and a quick squash;
+A carved piece never deforms. Nothing squashes or stretches: the old volume-preserving squash
+(`sx = 2 - sy`) read as a sheet of paper being crumpled, so every transform is now a rigid move or
+a tip about the foot the piece stands on. The troops themselves walk, strike and turn in **rendered
+frames** baked offline (ANIMATION.md: 9 troops x 2 teams x 13 frames = still + 6 walk + 4 attack +
+2 turn), so the knees a transform could not give them are drawn. Everything else stays a transform:
+- walking: the drawn 6-frame cycle, with the piece hopping and leaning onto the foot it lands on
+  (the castle guard too); a slight sway while standing; the drake hovers and bobs;
+- turning: five full-width steps (side -> half -> front -> half -> side) from the `_t0`/`_t1`
+  frames plus the mirror, never a narrowing of the picture;
+- trained: it drops onto the board from about a tile up, fading in, and sinks into the board as it
+  lands (0.42 s);
+- attack: the drawn 4-frame swing, played out in seconds (not in sim ticks, so it is smooth at any
+  frame rate); a shooter (anything with a missile) rocks back on its heels instead;
+- hit: a white flash, and it leans back and gives ground;
 - death: it tips over backwards on its feet, sinks out of sight and fades, base and shadow with it
   (0.5 s, DEATH_S); off screen it simply goes;
-- buildings pop up with a squash when built, flash when hit, shake the screen and leave rubble when
-  they fall; map events bob.
+- buildings rise into place when built, flash when hit, shake the screen and leave rubble when
+  they fall; map events bob;
+- the cast shadow tightens and fades with height, so a piece that leaves the board is seen to.
 All of it is view-only (no sim state), so replays and online play are untouched.
 
 ## The old sticker set (until 2026-11-10)
