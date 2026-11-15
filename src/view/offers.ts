@@ -21,8 +21,12 @@ const REVEAL = 0.35;
 const GLYPH_K = LOOK_B ? 0.85 : 1.3, GLYPH_Y = LOOK_B ? -0.14 : -0.22, PRICE_Y = LOOK_B ? 0.32 : 0.46;
 /** The price's height (view units), a picture number (digits.ts). */
 const PRICE_H = LOOK_B ? 0.3 : 0.46;
-/** An offer the player cannot pay for: its price and coin this faint. */
-const POOR_ALPHA = 0.42;
+/** The price is never drawn shorter than this on screen (px): at a phone's zoom PRICE_H alone came
+ *  to about 9 px, too small to read at a glance. It grows only so far, or it would leave the plaque. */
+const PRICE_MIN_PX = 12, PRICE_MAX_H = PRICE_H * 1.45;
+/** An offer the player cannot pay for: its price turns a dull clay colour and its coin greys a
+ *  little (a faded price was unreadable, a red one on every card early on read as an alarm). */
+const POOR_TINT = '#b9a487', POOR_ALPHA = 0.6;
 
 /** The stamp's two colours: a light cream face and a dark brown ink rim. */
 // lookB: a stamp in the ground's own light tone with a soft brown rim, not white on black
@@ -111,6 +115,9 @@ const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
 
 interface CardView {
   root: Container;
+  /** The coin and the price, in a layer over the troops (renderer.ts): one walking across a card
+   *  hid what it cost just when the player was deciding. */
+  tag: Container;
   glyph: Graphics;
   coin: Graphics;
   cost: Num;
@@ -120,6 +127,8 @@ interface CardView {
 
 export class OfferLayer {
   readonly root = new Container({ sortableChildren: true });
+  /** The prices, drawn above the units. */
+  readonly tags = new Container();
   /** tile -> seconds since the local player flipped that card */
   readonly flips = new Map<number, number>();
   /** tile -> the face of a card being flipped, so a spent card (a mystery) finishes its flip */
@@ -136,7 +145,7 @@ export class OfferLayer {
     this.faces.clear();
     this.reveals.clear();
     this.last = [];
-    for (const c of this.cards.values()) c.root.destroy({ children: true });
+    for (const c of this.cards.values()) this.drop(c);
     this.cards.clear();
   }
 
@@ -193,20 +202,31 @@ export class OfferLayer {
       c.root.zIndex = v.y;
       c.root.scale.set(sx, 1);
       c.root.alpha = alpha;
+      c.tag.position.copyFrom(c.root.position);
+      c.tag.scale.set(sx, 1);
+      c.tag.alpha = alpha;
       if (c.key !== off.key) {
         c.key = off.key;
         c.glyph.context = glyphCtx(off.key);
       }
       // what the player cannot pay for keeps its symbol (a faded one was unreadable); its price and
       // coin fade instead (a red price on every card early on read as an alarm)
-      c.cost.set(String(cost), { h: PRICE_H, tint: '#ffffff', align: 'left', screen: zoom });
-      c.cost.alpha = c.coin.alpha = afford ? 1 : POOR_ALPHA;
+      // what the player cannot pay for keeps its symbol and its price at full strength; the price
+      // turns clay instead of white (a faded one could not be read) and the coin greys a little
+      const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
+      c.cost.set(String(cost), { h: ph, tint: afford ? '#ffffff' : POOR_TINT, align: 'left', screen: zoom });
+      c.coin.alpha = afford ? 1 : POOR_ALPHA;
     }
     for (const [i, c] of this.cards) {
       if (c.seen === n) continue;
-      c.root.destroy({ children: true });
+      this.drop(c);
       this.cards.delete(i);
     }
+  }
+
+  private drop(c: CardView): void {
+    c.root.destroy({ children: true });
+    c.tag.destroy({ children: true });
   }
 
   private card(i: number): CardView {
@@ -221,9 +241,12 @@ export class OfferLayer {
     if (LOOK_B) cg.scale.set(0.7);
     const cost = new Num();
     cost.position.set(LOOK_B ? -0.06 : -0.08, PRICE_Y);
-    root.addChild(glyph, cg, cost);
+    root.addChild(glyph);
+    const tag = new Container();
+    tag.addChild(cg, cost);
     this.root.addChild(root);
-    c = { root, glyph, coin: cg, cost, key: '', seen: 0 };
+    this.tags.addChild(tag);
+    c = { root, tag, glyph, coin: cg, cost, key: '', seen: 0 };
     this.cards.set(i, c);
     return c;
   }

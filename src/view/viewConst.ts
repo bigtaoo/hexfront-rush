@@ -23,6 +23,10 @@ export const COL = {
  *  which has no business naming colours. */
 export const RARITY_COLOR = ['#9aa5b1', '#38bdf8', '#c084fc', '#fbbf24'] as const;
 
+/** The light wood of the page's buttons (index.html --wood-hi, --wood, --wood-rim): the HUD's slots
+ *  sit in frames of it, so the canvas HUD and the HTML buttons beside it read as one carved set
+ *  (the slots were dark grooves alone, a second style next to the raised wooden buttons). */
+export const WOOD = { hi: 'rgba(243,214,164,0.8)', face: '#d9a865', rim: '#6e4320', ink: '#4a2c12' } as const;
 /** The chrome drawn in Pixi (the match HUD, the edge markers, the card pop) in the same carved-wood
  *  palette as the DOM panels (index.html :root, art/STYLE.md UI). It used to be slate blue, which is
  *  the cold chrome of a different game: the board is a wooden toy on a table (view/table.ts), so the
@@ -36,6 +40,9 @@ export const UI = {
   lip: 'rgba(243,214,164,0.28)',
   /** A groove cut into the rail (the gold pill, the quest sign, the progress bar). */
   groove: 'rgba(28,15,5,0.55)',
+  /** A slot inside a light wooden frame (hud.ts bezel): darker and solid, so the light frame
+   *  does not show through it and its numbers stand out. */
+  slot: 'rgba(40,23,9,0.92)',
   /** A token's wood and the warm rim around it. */
   token: 'rgba(58,35,14,0.86)',
   tokenRim: 'rgba(243,214,164,0.75)',

@@ -4,8 +4,7 @@
 // on their foot; timers, bars and shadows are Graphics. Each view keeps its objects between
 // frames, is hidden while off screen and is destroyed when its entity is gone.
 
-import { Container, Graphics, Sprite, type Text } from 'pixi.js';
-import { T } from '../app/i18n';
+import { Container, Graphics, Sprite } from 'pixi.js';
 import type { Engine } from '../sim/engine';
 import { FP, TICK_RATE } from '../sim/fixed';
 import { EVENT_LIST, GUARD, HIT_FLASH, LUNGE_TICKS, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
@@ -15,7 +14,7 @@ import { hpBar, shadowCtx } from './bodies';
 import { BuildingView, WallLayer } from './buildingView';
 import type { Camera } from './camera';
 import { inView, type Frame } from './frame';
-import { label, type Live, liveGraphics, setLabel } from './pen';
+import { type Live, liveGraphics } from './pen';
 import { LOOK_B } from './lookB';
 import { DEATH_S, dotCtx, UnitView } from './unitView';
 
@@ -69,18 +68,16 @@ class GuardView {
   private body: Sprite;
   private flash: Sprite;
   private hp: Live = liveGraphics();
-  private name: Text;
   private team = -1;
   private h = 1;
   private hpKey = '';
 
   constructor() {
-    this.name = label('', { size: 10, color: '#e5e7eb' });
     this.body = artSprite(guardTex(0), GUARD_FOOT);
     this.flash = artSprite(guardTex(0), GUARD_FOOT);
     this.flash.blendMode = 'add';
     this.shadow.position.set(0, GUARD_FOOT);
-    this.root.addChild(this.shadow, this.body, this.flash, this.hp.g, this.name);
+    this.root.addChild(this.shadow, this.body, this.flash, this.hp.g);
     if (LOOK_B) {
       this.cast = castSprite(guardTex(0), GUARD_FOOT);
       this.root.addChildAt(this.cast, 0);
@@ -119,10 +116,7 @@ class GuardView {
       hpBar(this.hp.p.clear(), 0, 0, 0.75, Math.max(0, g.hp / g.maxhp), own);
     }
     this.hp.g.position.set(0, top - 0.08);
-    const zoom = f.cam.scale;
-    setLabel(this.name, T('guard'), { size: 0.28 * zoom, color: '#e5e7eb', weight: 800, stroke: 'rgba(0,0,0,0.6)' });
-    this.name.scale.set(1 / zoom);
-    this.name.position.set(0, top - 0.3);
+    // no name over it: at a phone's zoom it was a 7 px smudge, and the figure says what it is
   }
 }
 

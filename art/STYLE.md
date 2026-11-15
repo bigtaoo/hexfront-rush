@@ -82,6 +82,9 @@ brown planks): a ruin should read as "something stood here", not as a dark hole 
 - Blue and red belong to the teams alone. Snow is a warm grey, not blue-white. The old sticker set's
   ice crystals were bright blue and drew as rocks; the wooden-toy crystals are pale grey-green
   (hue about 155°, saturation about 0.2) beside the team's saturated royal blue, so ice draws as ice.
+- A tile top carries a faint wood grain and paint speckle (src/view/grain.ts: light and dark
+  strokes over its own colour, three variants turned 0/60/120 degrees, picked per tile): flat vector fills
+  read as plastic next to the painted wooden toys.
 - Tiles touch with a faint inner line, not a gap: a gap around every tile drew a heavy honeycomb
   over the whole map. The tile side shows only along the map's rim.
 - Only what stands is drawn in full colour. An offer is a flat white symbol with a thick dark rim,
@@ -112,6 +115,49 @@ brown planks): a ruin should read as "something stood here", not as a dark hole 
   mine, the portrait of the troop it trains for a barracks. A progress ring around the badge
   shows the next payout or troop: yellow for coin, the rarity colour on a barracks, grey once
   the barracks is full.
+
+## Interface art (art/ui/, public/ui/)
+The page chrome is carved wood, the same toy box as the board, so the menus, the pop-ups and
+the in-match HUD read as one set:
+- HUD (src/view/hud.ts): every dark groove (the tug bar, the gold pill, the quest box) sits in a
+  wooden bezel (`bezel()`: rim drop, oak face, lit top band; UI.slot is the groove's walnut
+  fill), and the two avatars are painted team discs in a wooden ring (`token()`), matching the
+  DOM's wooden buttons beside them. No flat dark plates on the board.
+  The overview button (edges.ts) is a raised wooden button with a walnut magnifier, like the
+  page's pause and sound buttons; the shared wood lives in viewConst.ts WOOD. The quest box keeps
+  a gap from the gold pill counted outside both frames (on a 360 px phone they had touched).
+- Page details from the 2026-11-15 review: the win/loss record sits on a walnut plaque (white
+  text straight on a pale board could not be read); tabs and the quality picker are solid wood
+  (a see-through tab looked disabled); scroll bars on cream cards are a thin walnut groove, not
+  the system grey, and a scrolled list fades out over 30 px; an unearned star is a walnut hollow
+  at 50 %; on a phone the difficulty, medal and gear buttons keep to one line.
+- Later the same day, from screenshots of every screen on a 360x740 phone, a 760x400 landscape
+  phone and an 800x600 desktop, in Chinese and English:
+  - A phone's scroll bar floats over the content and takes no width, so a scrolling box (the
+    how-to, the achievement grid) keeps 10 px of right padding.
+  - The Join button keeps no minimum width: it had pushed the code row out of a phone's card.
+  - The landscape settings card keeps a 6 px gap and 38 px rows: it had run 18 px past its card.
+  - A stage tile's padlock and number stay on one line (`nowrap`, 16 px under 380 px wide), and
+    a chapter title wraps balanced, not one character on its own line.
+  - Banners stack: each one moves below the card pop-up and the banners already shown, and stays
+    inside the play area. On a short landscape screen the card pop-up sits in the top left
+    corner, out of the banners' way.
+- Logo: `public/ui/logo.webp`, an AI-painted "HEXFRONT RUSH" in carved wooden block letters
+  (ivory HEXFRONT, tomato RUSH, walnut outline), on the menu and the loading screen. The text
+  logo it replaces could not carry the material.
+- Icons: `public/ui/icons/*.webp` (medal, gear, and the how-to's cards, pickaxe, magnifier,
+  castle, chest), each a small carved toy piece at 128 px at most, in place of flat line SVGs.
+  Prompt: the object, then the shared style paragraph in `art/ui/src/medal.txt` (hand-carved,
+  hand-painted wooden toy piece, walnut outline, reads at 32 px, plain white background).
+  Achievements grey a locked medal with a CSS filter, so one image serves both.
+- Making one: `art/ui/src/<name>.txt` is the prompt, `<name>.png` the chosen take
+  (tools/art/generate_image.sh); `python tools/art/cut_ui.py art/ui/src/<name>.png
+  public/ui/icons/<name>.webp 128` cuts the white away (the logo: max side 779). Look at the
+  cut on the cream card and on the dark menu: a white hole the cut missed shows there.
+- How to play opens with `public/ui/howto_start.webp`, a real frame of a quick match's
+  opening (the castle, its guard and its first six priced cards), cropped from the canvas at
+  495x360. It shows what the first rule describes; re-take it when the offers or tiles change.
+  Hidden in the short landscape layout, where the rules go to two columns.
 
 ## Store covers (art/covers/)
 - Three covers for the Playgama form, uploaded 2026-11-10: `cover_landscape.jpg` 1920×1080,

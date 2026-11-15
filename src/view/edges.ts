@@ -14,7 +14,7 @@ import { buildingTex, eventTex } from './art';
 import type { Camera } from './camera';
 import type { Frame } from './frame';
 import { liveGraphics } from './pen';
-import { COL, RARITY_COLOR, UI, type Pt } from './viewConst';
+import { COL, RARITY_COLOR, UI, WOOD, type Pt } from './viewConst';
 
 /** Marker radius and the margin it keeps from the play area's edge, screen pixels. */
 const MR = 17;
@@ -118,11 +118,14 @@ export class EdgeLayer {
     if (show && cam.canZoom) {
       const x = cam.W - BR - 10, y = cam.hudTop + BR + 10;
       this.btn = { x, y };
-      p.circle(x, y, BR, UI.token, UI.tokenRim, 2);
-      p.circle(x - 3, y - 3, 9, null, UI.cream, 2.6);
-      p.line([x + 3.5, y + 3.5, x + 11, y + 11], UI.cream, 3.4, 'round');
-      p.line([x - 7.5, y - 3, x + 1.5, y - 3], UI.cream, 2.4, 'round');
-      if (cam.overview) p.line([x - 3, y - 7.5, x - 3, y + 1.5], UI.cream, 2.4, 'round');
+      // a raised wooden button like the page's (sound, pause), the magnifier burnt into it in walnut
+      p.circle(x, y + 3, BR, WOOD.rim);
+      p.circle(x, y, BR, WOOD.face, WOOD.rim, 2);
+      p.circle(x, y - BR * 0.42, BR * 0.5, WOOD.hi);
+      p.circle(x - 3, y - 3, 9, 'rgba(255,248,230,0.55)', WOOD.ink, 2.8);
+      p.line([x + 3.5, y + 3.5, x + 11, y + 11], WOOD.ink, 3.8, 'round');
+      p.line([x - 7.5, y - 3, x + 1.5, y - 3], WOOD.ink, 2.4, 'round');
+      if (cam.overview) p.line([x - 3, y - 7.5, x - 3, y + 1.5], WOOD.ink, 2.4, 'round');
     }
     if (show && !cam.fitAll && cam.zoomK < 0.02) {
       // map events still waiting, then the pings over them
@@ -148,8 +151,25 @@ export class EdgeLayer {
     if (s.x >= x0 - MR && s.x <= x1 + MR && s.y >= y0 - MR && s.y <= y1 + MR) return;
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, dx = s.x - cx, dy2 = s.y - cy;
     const t = Math.min(dx ? (dx > 0 ? x1 - cx : x0 - cx) / dx : Infinity, dy2 ? (dy2 > 0 ? y1 - cy : y0 - cy) / dy2 : Infinity);
-    const mx = cx + dx * t, my = cy + dy2 * t, a = Math.atan2(dy2, dx);
+    let mx = cx + dx * t, my = cy + dy2 * t;
+    const a = Math.atan2(dy2, dx);
     const r = MR * scale, p = this.back.p;
+    // a marker in the top right corner slides along its edge out from under the overview button
+    // (the two overlapped there, and a tap meant for one went to the other)
+    const b = this.btn;
+    if (b && Math.hypot(mx - b.x, my - b.y) < BR + r + 6) {
+      if (Math.abs(mx - x1) < 1) my = Math.max(my, b.y + BR + r + 8);
+      else mx = Math.min(mx, b.x - BR - r - 8);
+    }
+    // two things off screen in about the same direction stacked their discs into one smudge: a
+    // marker slides along its edge until it clears the ones already placed
+    const side = Math.abs(mx - x0) < 1 || Math.abs(mx - x1) < 1;
+    for (let k = 0; k < 8; k++) {
+      const o = this.markers.find((m) => Math.hypot(m.sx - mx, m.sy - my) < r + MR + 3);
+      if (!o) break;
+      if (side) my = Math.min(y1, Math.max(y0, o.sy + (my >= o.sy ? 1 : -1) * (r + MR + 4)));
+      else mx = Math.min(x1, Math.max(x0, o.sx + (mx >= o.sx ? 1 : -1) * (r + MR + 4)));
+    }
     p.a = alpha;
     // the arrow, then the disc
     const ax = Math.cos(a), ay = Math.sin(a), tip = r + 8;

@@ -24,6 +24,10 @@ let frames: Record<string, Texture> | null = null;
 export async function loadArt(): Promise<void> {
   if (frames) return;
   const tex = await Assets.load<Texture>({ src: atlasUrl, data: { autoGenerateMipmaps: true } });
+  // the nearest mip level, not a blend of two: drawn a little under its size (a 2x desktop shows a
+  // 114 px hex at about 80 device px), trilinear filtering mixed in half of the half-size level and
+  // the sprites went soft; the nearest level keeps them on the full-size one until under 0.7x
+  tex.source.style.mipmapFilter = 'nearest';
   const sheet = new Spritesheet(tex, atlasJson as unknown as SpritesheetData);
   frames = await sheet.parse();
 }

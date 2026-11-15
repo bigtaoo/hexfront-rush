@@ -444,6 +444,7 @@ export class Game {
     }
     this.ui.demo = this.mode === 'demo';
     this.ui.look = this.canLook();
+    this.ui.covered = this.paused || this.state !== 'match';
     if (online && this.state === 'match') this.renderer.status = this.online.statusLine();
     else if (this.mode === 'watch' && this.state === 'match') this.renderer.status = { text: T('watching') };
     else if (this.mode === 'solo' && this.state === 'match') this.renderer.status = this.tut ? null : goalTrack(this.match, this.stats.taken(this.localTeam));

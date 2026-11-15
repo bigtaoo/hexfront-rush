@@ -132,7 +132,11 @@ export function updateMenu(save: Save, onlineOk: boolean): void {
   for (const [id, hide] of Object.entries(menuHidden(save, onlineOk))) $(id).classList.toggle('hidden', hide);
   const id = nextStage(save.stages);
   $('playBtn').textContent = save.tutorialDone ? `${T('campaign')} · ${stageLabel(id)}` : T('play');
-  $('diffBtn').textContent = T(`diff${save.skirmish}`);
+  for (const b of $('diffBtn').querySelectorAll<HTMLElement>('button')) {
+    const on = Number(b.dataset.d) === save.skirmish;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-checked', String(on));
+  }
   const today = dayNumber(Date.now());
   const done = save.dailyDay === today ? save.dailyGoals : 0;
   $('dailyBtn').innerHTML = `${T('daily')} <span class="st">${starsHtml(done)}</span>`;
@@ -148,7 +152,8 @@ export function showChapter(save: Save, ch: number, hard: boolean, pick: (id: nu
   $('modeNormal').classList.toggle('on', !hard);
   $('modeHard').classList.toggle('on', hard);
   $('chName').textContent = T('chapterN', { n: ch + 1, name: T(`ch_${c.key}`) });
-  $('chStars').textContent = `★ ${chapterStars(goals, ch)}/${STAGES_PER_CHAPTER * 3}`;
+  // the star gold, the count in the card's brown ink
+  $('chStars').innerHTML = `<span class="g">★</span> ${chapterStars(goals, ch)}/${STAGES_PER_CHAPTER * 3}`;
   $<HTMLButtonElement>('chPrev').disabled = ch === 0;
   $<HTMLButtonElement>('chNext').disabled = ch === CHAPTERS.length - 1;
   const grid = $('stageGrid');
@@ -161,7 +166,8 @@ export function showChapter(save: Save, ch: number, hard: boolean, pick: (id: nu
     b.className = 'stage' + (s === STAGES_PER_CHAPTER - 1 ? ' boss' : '');
     const open = hard ? hardOpen(save.stages, save.hard, id) : stageOpen(save.stages, id);
     b.disabled = !open;
-    b.innerHTML = `<span>${open ? stageLabel(id) : LOCK}</span><span class="st">${starsHtml(goals[id] ?? 0)}</span>`;
+    // a locked stage keeps its number beside the padlock, so the chapter still reads 1 to 7
+    b.innerHTML = `<span class="n">${open ? '' : LOCK}${stageLabel(id)}</span><span class="st">${starsHtml(goals[id] ?? 0)}</span>`;
     if (open) {
       b.addEventListener('click', () => pick(id));
       last = b;
@@ -187,7 +193,19 @@ export function showBoard(rows: ScoreRow[] | null, board: Board): void {
     list.appendChild(li);
   };
   if (!rows) return note('boardLoading');
-  if (!rows.length) return note('boardEmpty');
+  if (!rows.length) {
+    // an empty board says how to get on it, and gives the button that does
+    note('boardEmpty');
+    const li = document.createElement('li');
+    li.className = 'note act';
+    const b = document.createElement('button');
+    b.className = 'btn small';
+    b.textContent = T(board === 'stars' ? 'campaign' : 'daily');
+    b.addEventListener('click', () => $(board === 'stars' ? 'boardBack' : 'dailyBtn').click());
+    li.appendChild(b);
+    list.appendChild(li);
+    return;
+  }
   for (const r of rows.slice(0, 50)) {
     const li = document.createElement('li');
     const rank = document.createElement('b');
@@ -223,6 +241,9 @@ export function showBrief(save: Save, m: Exclude<MatchKind, { kind: 'quick' }>):
     $('briefSub').textContent = save.streak && save.streakDay >= m.day - 1 ? T('streak', { n: save.streak }) : T('dailyNew');
   }
   fillRivalCard($('briefRival'), rivalStyle(st), boss);
+  // each list under a small heading (CSS draws data-h), so the twists and the goals read as two things
+  $('briefTwists').dataset.h = T('briefTwists');
+  $('briefGoals').dataset.h = T('briefGoals');
   $('briefTwists').innerHTML = twists(st).map((t) => `<li>${t}</li>`).join('');
   $('briefGoals').innerHTML = GOALS.map((b) => `<li class="${had & b ? '' : 'off'}">${goalText(b, st)}</li>`).join('');
   $('briefTip').textContent = m.kind === 'stage' ? T(`chtip_${CHAPTERS[Math.floor(m.id / STAGES_PER_CHAPTER)]!.key}`) : '';

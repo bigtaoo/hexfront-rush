@@ -163,12 +163,16 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
     tap();
     g.beginMatch({ kind: 'quick' });
   });
-  $('diffBtn').addEventListener('click', () => {
-    tap();
-    g.save.skirmish = (g.save.skirmish + 1) % SKIRMISH.length;
-    g.persist();
-    updateMenu(g.save, g.online.available());
-  });
+  // the quick match's difficulty: a segmented control, one segment per level (it was one button
+  // that stepped through four levels, so the choice could not be seen before it was made)
+  for (const b of $('diffBtn').querySelectorAll<HTMLButtonElement>('button')) {
+    b.addEventListener('click', () => {
+      tap();
+      g.save.skirmish = Math.min(SKIRMISH.length - 1, Number(b.dataset.d) || 0);
+      g.persist();
+      updateMenu(g.save, g.online.available());
+    });
+  }
   $('dailyBtn').addEventListener('click', () => {
     S.unlock();
     g.openBrief({ kind: 'daily', day: dayNumber(Date.now()) });

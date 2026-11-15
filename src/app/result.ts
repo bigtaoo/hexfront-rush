@@ -22,7 +22,9 @@ export function showResult(g: Game, res: MatchResult | null): void {
   const lost = !!res && res.winner === foe;
   const solo = g.mode === 'solo' && !!res;
   const counted = g.mode === 'solo' || g.mode === 'online';
-  const secs = Math.round(g.eng.elapsed() / TICK_RATE);
+  // whole seconds as the clock showed them (hud.ts floors): rounding put the card a second past
+  // the clock, and a par could fail with the clock still on it
+  const secs = Math.floor(g.eng.elapsed() / TICK_RATE);
   let got: ReturnType<typeof recordGoals> = null;
   let best: { had: number; now: number } | null = null;
   let fresh: string[] = [];
@@ -76,6 +78,9 @@ export function showResult(g: Game, res: MatchResult | null): void {
   ach.querySelectorAll('b').forEach((b, i) => (b.textContent = T(`ach_${fresh[i]}`)));
   ach.classList.toggle('hidden', !fresh.length);
 
+  // one main button: "Next stage" after a stage won (then "Play again" is plain wood), otherwise
+  // "Retry" / "Play again"; two green buttons side by side left the eye nowhere to go
+  $('againBtn').classList.toggle('wood', !$('nextBtn').classList.contains('hidden'));
   updateRecord(save);
   g.show('result');
   replay($('result'), 'reveal');
@@ -87,9 +92,9 @@ export function showResult(g: Game, res: MatchResult | null): void {
   if (counted) g.platform.level(won ? 'level_completed' : 'level_failed');
 }
 
-/** A medal (an icon drawn here, no emoji: Playgama 4.3.2): a ribbon and a gold disc with a star. */
+/** A medal (a painted wooden toy, public/ui/icons/; no emoji: Playgama 4.3.2): a ribbon and a gold disc with a star. */
 export const MEDAL =
-  '<svg class="medal" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h4l2 6H9zM13 2h4l-2 6h-4z" fill="#c8402a"/><circle cx="12" cy="15" r="7" fill="var(--gold)" stroke="var(--gold-rim)" stroke-width="1.6"/><path d="M12 11l1.2 2.5 2.7.3-2 1.9.6 2.7L12 17l-2.5 1.4.6-2.7-2-1.9 2.7-.3z" fill="#fff6e2"/></svg>';
+  '<img class="medal" src="ui/icons/medal.webp" alt="">';
 
 /** Both sides' stats, one row each; the better side's number is marked. */
 function statsTable(you: SideStats, rival: SideStats, me: number): void {

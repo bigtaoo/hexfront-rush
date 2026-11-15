@@ -20,14 +20,23 @@ export const openPanel = (): Panel | null => current;
 
 /** Shows one panel (null: none, the match is on); the leave button shows during an online match
  *  and a replay, the speed button during a replay, the pause button during a solo match. The
- *  music switch shows beside the sound one whenever a panel is up (in a match only the sound one). */
+ *  sound switch shows in a match, on the menu and in the pause menu; the music switch only on the
+ *  menu. On the other panels both stay off the screen (the settings hold them): a corner token sat
+ *  over a panel's own bottom button on a short phone. The music switch no longer takes the pause
+ *  button's place either: a quick double tap on pause turned the music off. */
 export function show(id: Panel | null, leave: boolean, watch: boolean, pause: boolean): void {
   current = id;
+  // a button armed for a second tap (pauseMenu.ts) forgets it once the panels change
+  for (const el of document.querySelectorAll<HTMLElement>('.armed')) {
+    el.classList.remove('armed');
+    el.textContent = T(el.getAttribute('data-t') ?? '');
+  }
   for (const p of PANELS) $(p).classList.toggle('hidden', p !== id);
   $('leaveBtn').classList.toggle('hidden', !(id === null && leave));
   $('speedBtn').classList.toggle('hidden', !(id === null && watch));
   $('pauseBtn').classList.toggle('hidden', !(id === null && pause));
-  $('musicBtn').classList.toggle('hidden', id === null);
+  $('muteBtn').classList.toggle('hidden', !(id === null || id === 'menu' || id === 'pause'));
+  $('musicBtn').classList.toggle('hidden', id !== 'menu');
   settleFocus(id);
 }
 
@@ -59,12 +68,13 @@ export function updateMuteIcon(save: Save): void {
   showVolume('optMusicVol', save.musicVol, save.musicOff);
 }
 
-/** A volume slider: its knob, its green fill, and greyed out while its switch is off. */
+/** A volume slider: its knob, its green fill, and greyed out while its sound is off. It stays
+ *  draggable then: dragging it is how the sound comes back on (settings.ts). */
 export function showVolume(id: string, pct: number, off: boolean): void {
   const el = $<HTMLInputElement>(id);
-  el.value = String(pct);
-  el.style.setProperty('--v', `${pct}%`);
-  el.disabled = off;
+  el.value = String(off ? 0 : pct);
+  el.style.setProperty('--v', `${off ? 0 : pct}%`);
+  el.classList.toggle('off', off);
 }
 
 /** The score counts up from 0 once its chip has popped in; the last value always lands. */

@@ -60,7 +60,7 @@ export class Renderer {
 
   constructor(private readonly app: Application) {
     if (this.table) this.world.addChild(this.table.root);
-    this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.root, this.effects.root);
+    this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.root, this.offers.tags, this.effects.root);
     app.stage.addChild(this.world, this.edges.root, this.hud.root, this.overlays.root);
     if (this.light) {
       // the sand's grain lies on the ground, over it and under everything that stands on it

@@ -11,6 +11,8 @@ export interface DrawUi {
   demo?: boolean;
   /** The player may move the camera (a match past its intro): the overview button shows. */
   look?: boolean;
+  /** A panel covers the board (paused, or the result is up): the hint and the tutorial hand hide. */
+  covered?: boolean;
 }
 
 /** The part of the view on screen, in view units, with margins for tall sprites. */

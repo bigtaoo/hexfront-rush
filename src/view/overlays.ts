@@ -100,6 +100,9 @@ class CardView {
   }
 }
 
+/** The hint slip's paper, ink and wooden rim (the panels' own colours, index.html). */
+const HINT_PAPER = '#fff6e2', HINT_INK = '#3b2412', HINT_RIM = '#6e4320';
+
 export class Overlays {
   readonly root = new Container();
   private dmgBox = new Container();
@@ -108,7 +111,7 @@ export class Overlays {
   private hand = liveGraphics();
   private handS = 0;
   private pill = liveGraphics();
-  private hintText = label('', { size: 16, color: '#1f2937', weight: 900 });
+  private hintText = label('', { size: 16, color: HINT_INK, weight: 900 });
   private cardView = new CardView();
   private bandG = liveGraphics();
   private bannerBox = new Container();
@@ -171,7 +174,7 @@ export class Overlays {
   draw(f: Frame): void {
     const dt = f.dt, cam = f.cam, J = this.juice;
     const W = cam.W, H = cam.H;
-    const play = f.eng.phase === PHASE_PLAY;
+    const play = f.eng.phase === PHASE_PLAY && !f.ui.covered;
     J.goldPop = J.goldPop > 0 ? Math.max(0, J.goldPop - dt * 5) : Math.min(0, Math.max(-0.5, J.goldPop + dt * 4));
     if (J.goldShake > 0) J.goldShake = Math.max(0, J.goldShake - dt);
     // damage numbers
@@ -185,6 +188,10 @@ export class Overlays {
         continue;
       }
       const p = cam.worldToScreen(d.x, d.y - 0.9 - d.t * 0.7);
+      // this layer is over the HUD: a fight at the field's top edge floated its numbers onto the
+      // clock and the tug bar, so a number shows only over the field
+      d.view.visible = p.y > cam.hudTop + dsize * 0.6 && p.y < H - cam.hudBot - dsize * 0.6;
+      if (!d.view.visible) continue;
       d.view.set(String(Math.round(d.v)), { h: dsize * 1.1, tint: d.color });
       d.view.position.set(p.x, p.y);
       d.view.scale.set(1 + 0.4 * d.pop);
@@ -198,7 +205,7 @@ export class Overlays {
     this.hintText.visible = showHint;
     if (showHint) {
       const fs = Math.min(18, W / 26);
-      setLabel(this.hintText, this.hint!, { size: fs, color: '#1f2937', weight: 900 });
+      setLabel(this.hintText, this.hint!, { size: fs, color: HINT_INK, weight: 900 });
       // a long hint (German, Russian) wraps onto a second line instead of running off a phone's edges;
       // breakWords lets Chinese and Japanese, which have no spaces, break between characters
       const maxW = Math.min(W - 24, 760);
@@ -211,8 +218,12 @@ export class Overlays {
       const tw = Math.min(maxW, this.hintText.width + 30);
       const th = Math.max(fs * 2, this.hintText.height + fs * 0.5);
       const yb = H - cam.hudBot - 34 + fs;
-      const a = 0.85 + 0.15 * Math.sin(f.time * 5);
-      this.pill.p.rrect(W / 2 - tw / 2, yb - th, tw, th, Math.min(fs, th / 2), `rgba(250,204,21,${a.toFixed(3)})`);
+      // a paper slip in a wooden rim, like the panels (it was a flat yellow strip, the one thing on
+      // screen in no material); it breathes by its rim, not by flashing its whole face
+      const a = 0.75 + 0.25 * Math.sin(f.time * 5);
+      const pr = Math.min(fs, th / 2);
+      this.pill.p.rrect(W / 2 - tw / 2, yb - th + 3, tw, th, pr, HINT_RIM);
+      this.pill.p.rrect(W / 2 - tw / 2, yb - th, tw, th, pr, HINT_PAPER, `rgba(110,67,32,${a.toFixed(3)})`, 3);
       this.hintText.position.set(W / 2, yb - th / 2 + 1);
     }
     // the card for a barracks / mystery roll
@@ -222,7 +233,8 @@ export class Overlays {
       if (cd.t >= cd.life) this.card = null;
       else {
         const k = Math.min(1, cd.t * 5) * Math.min(1, (cd.life - cd.t) * 4);
-        this.cardView.show(cd, f.local, W / 2 - 100, cam.hudTop + 14 - (1 - k) * 30, k);
+        // a landscape phone has no height for the card above the banners' row: it sits top left
+        this.cardView.show(cd, f.local, this.cardLeft(f) ? 14 : W / 2 - 100, cam.hudTop + 14 - (1 - k) * 30, k);
       }
     }
     this.cardView.root.visible = !!this.card;
@@ -277,8 +289,16 @@ export class Overlays {
       h.g.roundRect(-s * 0.15, 0, s * 0.3, s * 0.95, s * 0.15).fill('#ffffff').stroke({ color: '#1f2937', width: lw, join: 'round' });
       h.rect(-s * 0.1, s * 0.6, s * 0.2, s * 0.3, '#ffffff');
     }
-    this.hand.g.position.set(p.x + s * 0.15, p.y + s * (0.15 + 0.45 * (1 - press)));
-    this.hand.g.rotation = -0.35;
+    // the hand comes down from above onto the card's symbol, its palm above the card: it used to
+    // reach up from below and sat on the price the player was being taught to read
+    const gy = p.y - cam.scale * 0.14;
+    this.hand.g.position.set(p.x + s * 0.12, gy - s * 0.45 * (1 - press));
+    this.hand.g.rotation = Math.PI - 0.35;
+  }
+
+  /** On a short landscape screen the card popup goes top left instead of top centre. */
+  private cardLeft(f: Frame): boolean {
+    return f.cam.H < 560 && f.cam.W > f.cam.H * 1.25;
   }
 
   private drawBanners(f: Frame): void {
@@ -290,6 +310,11 @@ export class Overlays {
       return false;
     });
     const band = this.bandG.p.clear();
+    // what a banner must clear: the card popup (on a landscape phone 0.32 of the height is inside
+    // it, and "Lucky!" comes with the card), then the banners placed before it (a siege note and
+    // a map event at once wrote one on top of the other)
+    const taken: [number, number][] = this.card && !this.cardLeft(f) ? [[0, f.cam.hudTop + 14 + 92 + 4]] : [];
+    const top = f.cam.hudTop + 4, bot = H - f.cam.hudBot - 4;
     for (const b of this.banners) {
       const k = b.t / b.life;
       const pop = b.t < 0.18 ? 0.6 + (b.t / 0.18) * 0.55 : b.t < 0.3 ? 1.15 - ((b.t - 0.18) / 0.12) * 0.15 : 1;
@@ -300,7 +325,17 @@ export class Overlays {
       b.view.scale.set(1);
       const sc = Math.min(pop, (W - 24) / Math.max(1, b.view.width));
       const fs = base * sc;
-      const cy = H * (b.y || 0.42);
+      // the room a banner takes, without its pop-in (which would shove the ones below it about)
+      const half = base * Math.min(1, sc / pop) * 0.85;
+      let cy = H * (b.y || 0.42);
+      for (let k2 = 0; k2 < 3; k2++) {
+        const o = taken.find(([a, z]) => cy + half > a && cy - half < z);
+        if (!o) break;
+        cy = o[1] + half;
+      }
+      // it never leaves the play area for the bars (crowded, it overlaps instead)
+      cy = Math.max(top + half, Math.min(bot - half, cy));
+      taken.push([cy - half, cy + half]);
       if (b.band) {
         band.a = alpha;
         band.rect(0, cy - fs * 0.85, W, fs * 1.7, b.band);

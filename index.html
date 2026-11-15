@@ -51,19 +51,21 @@
   }
   .hidden { display: none !important; }
 
-  /* the title: carved letters in cream and red paint, standing between two of the toys */
+  /* the title: the carved logo standing between two of the toys */
   .title { display: flex; align-items: flex-end; justify-content: center; gap: clamp(2px, 1.5vmin, 16px); margin-bottom: 2px; }
   .title img { height: clamp(74px, 18vmin, 160px); width: auto; filter: drop-shadow(0 6px 5px rgba(0,0,0,.4)); }
   .title img.l { animation: bob 2.6s ease-in-out infinite; }
   .title img.r { animation: bob 2.6s ease-in-out -1.3s infinite; }
   @keyframes bob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-6px) rotate(2deg); } }
-  .logo { font-family: "Lilita One", "Trebuchet MS", sans-serif; font-synthesis: none; font-size: clamp(34px, 8.5vmin, 74px); letter-spacing: 1px; line-height: .95; color: #fff6e2; font-weight: 400; padding-bottom: 8px;
-    -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill;
-    text-shadow: 0 1px 0 #e9c48c, 0 2px 0 #c8955a, 0 3px 0 #a8743d, 0 4px 0 #8a5a2b, 0 5px 0 var(--wood-rim), 0 7px 0 var(--ink), 0 12px 16px rgba(0,0,0,.5); }
-  .logo span { display: block; color: #ef5a3c; font-size: 1.2em;
-    text-shadow: 0 1px 0 #d8452a, 0 2px 0 #c03a22, 0 3px 0 #a3301b, 0 4px 0 #862713, 0 5px 0 #6b1d0c, 0 7px 0 var(--ink), 0 12px 16px rgba(0,0,0,.5); }
+  /* the logo: carved, painted wooden letters (public/ui/logo.webp, a painting from the same prompt
+     family as the toys), no longer the font with stacked text shadows, which read thin and flat next to them */
+  .title img.logo, .logo { height: clamp(84px, 21vmin, 190px); width: auto; max-width: 62vw; object-fit: contain; filter: drop-shadow(0 6px 6px rgba(0,0,0,.45)); }
   .sub { font-size: clamp(14px, 3.2vmin, 20px); opacity: .95; }
   .panel > .sub { text-shadow: 0 2px 0 var(--ink), 0 0 8px rgba(0,0,0,.6); }
+  /* the record sits on a dark walnut plaque: white text straight on the pale board could not be read */
+  #record:not(:empty) { display: inline-block; padding: 3px 14px; border-radius: 999px;
+    background: linear-gradient(rgba(70,42,18,.88), rgba(46,26,10,.88)); border: 2px solid #8a5a2e;
+    box-shadow: inset 0 1px 0 rgba(255,220,170,.25), 0 2px 3px rgba(0,0,0,.35); }
 
   /* buttons: lacquered green (the main action), natural wood (the rest), gold (a setting) */
   .btn {
@@ -85,6 +87,36 @@
     box-shadow: inset 0 -4px 0 rgba(0,0,0,.12), 0 6px 0 var(--gold-rim), 0 10px 16px rgba(0,0,0,.35); }
   .btn.small:active { box-shadow: 0 2px 0 var(--gold-rim); }
   #menu .row .btn.wood { min-width: 0; }
+  /* the menu: the main button, a two-by-two grid of the modes, then the tools row */
+  .menuGrid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; width: min(460px, 100%); }
+  .menuGrid > .btn { flex: 0 0 calc(50% - 6px); min-width: 0; padding-left: 8px; padding-right: 8px; box-sizing: border-box; }
+  /* the difficulty, medals and gear stay on one line: on a phone the gear wrapped to a row of its own */
+  @media (max-width: 480px) {
+    #menu .row.tools { flex-wrap: nowrap; gap: 8px; }
+    #menu .row.tools .seg button { padding: 0 7px; }
+    #menu .row.tools .btn { padding-left: 12px; padding-right: 12px; }
+  }
+  @media (max-width: 380px) {
+    #menu .row.tools { gap: 6px; }
+    #menu .row.tools .seg button { padding: 0 5px; font-size: 13px; }
+    #menu .row.tools .btn { padding-left: 9px; padding-right: 9px; }
+    #achBtn { gap: 5px; }
+    /* a stage four to a row: the padlock and "1-2" on one line (the number broke at the dash) */
+    #stageGrid .stage { font-size: 16px; padding-inline: 2px; }
+    #stageGrid .stage svg.lock { width: .9em; height: .9em; }
+  }
+  /* the quick match's difficulty: every level in sight, the chosen one filled gold */
+  .seg { display: inline-flex; border: 3px solid var(--gold-rim); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 0 var(--gold-rim); background: #fffaf0; }
+  .seg button { font: inherit; font-size: clamp(13px, 3vmin, 17px); color: var(--ink); background: none; border: 0; padding: 0 10px; min-height: 44px; cursor: pointer; }
+  .seg button + button { border-left: 2px solid rgba(168,116,61,.45); }
+  .seg button.on { background: var(--gloss), linear-gradient(var(--gold-hi), var(--gold)); }
+  /* a destructive button asking for a second tap */
+  .btn.armed { border-color: #6b1d0c; background: var(--gloss), linear-gradient(#f2795c, #c8402a); color: #fff; text-shadow: 0 2px 0 #6b1d0c; box-shadow: 0 6px 0 #6b1d0c; }
+  @media (max-height: 560px) and (min-aspect-ratio: 5/4) {
+    .menuGrid { width: min(760px, 100%); }
+    .menuGrid > .btn { flex: 1 1 0; }
+  }
+  @media (min-width: 700px) { #settings .card { max-width: 460px; } }
   /* the brief's rewarded-ad offer: labelled as an ad (the screen icon and the text say so) */
   .btn.boost { display: inline-flex; align-items: center; gap: 8px; margin: 0 auto 14px; font-size: clamp(14px, 3.2vmin, 18px); }
   .btn.boost svg { width: 1.4em; height: 1.4em; flex: none; }
@@ -102,10 +134,23 @@
   .card li { margin-bottom: 8px; }
   /* how to play: on a screen too short for all five rules, the list scrolls and "Got it" stays in view */
   #howto .card { display: flex; flex-direction: column; }
-  #howto .howScroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 10px;
-    -webkit-mask-image: linear-gradient(#000 calc(100% - 16px), transparent); mask-image: linear-gradient(#000 calc(100% - 16px), transparent); }
+  #howto .howScroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 0 10px 10px 0; /* the right pad keeps a phone's overlay scrollbar off the picture */
+    -webkit-mask-image: linear-gradient(#000 calc(100% - 30px), transparent); mask-image: linear-gradient(#000 calc(100% - 30px), transparent); }
   #howto ol { margin-bottom: 0; }
+  /* scroll bars on the cream cards are a thin walnut groove, not the system's grey */
+  .card * { scrollbar-width: thin; scrollbar-color: #a8763f rgba(110,67,32,.12); }
+  .card *::-webkit-scrollbar { width: 8px; }
+  .card *::-webkit-scrollbar-track { background: rgba(110,67,32,.12); border-radius: 4px; }
+  .card *::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #b9864c, #8a5a2e); border-radius: 4px; }
+  /* each step with its picture: the card, the pickaxe, the magnifier, the castle, the chest */
+  #howto ol { list-style: none; padding: 0; }
+  #howto li { display: flex; align-items: flex-start; gap: 12px; text-align: left; }
+  #howto li .ic { flex: none; width: 40px; height: 40px; padding: 4px; box-sizing: border-box; border-radius: 12px;
+    background: rgba(120,72,30,.1); box-shadow: inset 0 0 0 2px rgba(110,67,32,.25); }
   #howto .card > .btn { flex: none; align-self: center; margin-top: 6px; }
+  /* the opening position from a real match: the castle and its first offers, as the rules describe them */
+  #howto .howPic { display: block; width: 100%; max-width: 300px; aspect-ratio: 495 / 360; margin: 0 auto 10px; border-radius: 14px;
+    border: 3px solid #6e4320; box-shadow: 0 3px 0 #4a2c13, inset 0 0 0 1px rgba(243,214,164,.5); box-sizing: border-box; }
   .card li::marker { color: var(--leaf); }
   #resultTitle { font-size: clamp(40px, 10vmin, 72px); margin: 0; font-weight: 400; -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill;
     text-shadow: 0 4px 0 var(--ink), 0 8px 14px rgba(0,0,0,.25); line-height: 1.05; }
@@ -121,11 +166,14 @@
   .stats tr:nth-child(even) { background: rgba(120,72,30,.09); }
   .stats tr > th:first-child { text-align: left; color: #6b4a2e; }
   .stats th.b { color: var(--team-b); } .stats th.r { color: var(--team-r); }
-  .stats td { text-align: center; color: rgba(59,36,18,.6); min-width: 3em; }
+  .stats td { text-align: center; color: #6b4a2e; min-width: 3em; }
   .stats td.up.b { color: var(--team-b); } .stats td.up.r { color: var(--team-r); }
   .achNew { display: flex; flex-direction: column; gap: 4px; font-size: clamp(14px, 3.2vmin, 18px); }
   .achNew div { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
   .achNew b { font-weight: inherit; color: var(--gold-rim); }
+  /* the medal, the gear and the how-to icons are wooden toys like the cast (public/ui/icons/, painted
+     from the same prompt family), not flat line drawings */
+  .medal, .gear, .ic { object-fit: contain; }
   .medal { width: 1.6em; height: 1.6em; flex: none; }
   .card .stars div { text-shadow: none; }
   .card .stars b { color: rgba(110,67,32,.2); }
@@ -134,21 +182,24 @@
   .card.narrow { max-width: 340px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
   .card.narrow h2 { margin: 0; }
   .col { display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
-  /* the leaderboard's tabs */
+  /* the leaderboard's tabs (and the quality picker): solid wood, the chosen one gold. A see-through
+     tab let the cream card wash it out and read as disabled */
   .tabs { display: flex; gap: 8px; justify-content: center; margin: 0 0 8px; }
-  .tab { font: inherit; font-size: clamp(14px, 3.2vmin, 18px); color: var(--ink); padding: 6px 16px; border-radius: 14px; cursor: pointer; opacity: .7;
+  .tab { min-height: 44px; font: inherit; font-size: clamp(14px, 3.2vmin, 18px); color: var(--ink); padding: 6px 16px; border-radius: 14px; cursor: pointer;
     border: 3px solid var(--wood-rim); background: var(--grain), linear-gradient(var(--wood-hi), var(--wood)); box-shadow: 0 3px 0 var(--wood-rim); }
   .tab.on { opacity: 1; border-color: var(--gold-rim); background: var(--gloss), linear-gradient(var(--gold-hi), var(--gold)); box-shadow: 0 3px 0 var(--gold-rim); }
   /* the achievements */
   #achBtn { display: inline-flex; align-items: center; gap: 8px; }
   #achBtn .medal { width: 1.3em; height: 1.3em; }
-  .achGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 16px; }
+  .achGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0 16px; }
   .achGrid .a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; background: rgba(120,72,30,.09); }
   .achGrid .medal { width: 40px; height: 40px; filter: grayscale(1); opacity: .3; }
   .achGrid .on .medal { filter: none; opacity: 1; }
+  /* an earned one sits on a warm gilt plate; the rest stay pale, their names a shade lighter */
+  .achGrid .a.on { background: linear-gradient(rgba(255,215,106,.34), rgba(240,169,42,.2)); box-shadow: inset 0 0 0 2px rgba(143,90,18,.35); }
+  .achGrid .a:not(.on) b { color: rgba(74,44,18,.62); }
   .achGrid b { font-weight: inherit; font-size: clamp(13px, 3vmin, 16px); }
-  .achGrid .a:not(.on) b { opacity: .55; }
-  .achGrid span { font-size: clamp(11px, 2.4vmin, 13px); color: #6b4a2e; line-height: 1.2; }
+    .achGrid span { font-size: 13px; color: #6b4a2e; line-height: 1.2; }
   /* middling screens: the results board is drawn a little tighter so it fits without scrolling */
   @media (max-height: 820px) {
     #resultTitle { font-size: clamp(34px, 8vmin, 56px); }
@@ -162,7 +213,7 @@
     #brief .twists li, #brief .goals li { margin-bottom: 5px; }
     /* the achievements: the medals scroll and "Back" stays in view */
     #ach .card { display: flex; flex-direction: column; }
-    #ach .achGrid { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 8px;
+    #ach .achGrid { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 0 10px 8px 0; /* clear of a phone's overlay scrollbar */
       -webkit-mask-image: linear-gradient(#000 calc(100% - 14px), transparent); mask-image: linear-gradient(#000 calc(100% - 14px), transparent); }
     #ach .card > .btn { flex: none; align-self: center; }
   }
@@ -197,13 +248,17 @@
     #howto h2 { margin-bottom: 4px; }
     #howto ol { columns: 2; column-gap: 30px; font-size: 13.5px; line-height: 1.26; }
     #howto li { break-inside: avoid; margin-bottom: 5px; }
+    #howto li .ic { width: 28px; height: 28px; padding: 3px; }
+    #howto .howPic { display: none; }
     /* the campaign: a chapter's seven stages in one row, so the Normal/Hard tabs and "Menu" still fit */
     #campaign .card { max-width: 760px; }
-    #campaign .stages { grid-template-columns: repeat(7, 1fr); gap: 8px; margin: 10px 0 12px; }
+    #campaign .stages { gap: 8px; margin: 10px 0 12px; }
+    #campaign .stages > .stage { flex-basis: calc((100% - 48px) / 7); }
     #campaign .tabs { margin-bottom: 4px; }
     /* settings: the graphics label beside its tabs */
-    #settings .card { max-width: 560px; }
+    #settings .card { max-width: 560px; gap: 6px; }
     #settings .opts { gap: 6px; }
+    #settings .opts > .opt { min-height: 38px; }
     #settings .opt.q { flex-direction: row; align-items: center; gap: 12px; }
     #settings .opt.q .tabs { flex: 1; }
   }
@@ -217,12 +272,16 @@
     .achGrid { gap: 5px; margin: 6px 0 10px; }
     .card { padding: 12px 16px; }
   }
-  #resultTitle.win { color: #93c5fd; } #resultTitle.lose { color: #fca5a5; } #resultTitle.draw { color: #fff6e2; }
+  /* on the cream card: a deep leaf for a win, brick for a loss, wood for a draw (the pale blue / pink it had
+     were for a dark backdrop and washed out on paper) */
+  #resultTitle.win { color: #3d8f22; } #resultTitle.lose { color: #c8402a; } #resultTitle.draw { color: var(--wood-rim); }
   .score { display: flex; gap: 18px; align-items: center; justify-content: center; font-size: clamp(26px, 6vmin, 40px); }
   .chip { min-width: 90px; padding: 8px 14px; border-radius: 16px; border: 3px solid var(--ink); text-shadow: 0 2px 0 rgba(0,0,0,.35);
     box-shadow: inset 0 -4px 0 rgba(0,0,0,.2), 0 5px 0 var(--ink); }
   .chip.b { background: var(--gloss), var(--team-b); } .chip.r { background: var(--gloss), var(--team-r); }
   .chip small { display: block; font-size: 13px; opacity: .9; }
+  .chip, .chip span { color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
+  .chip small { -webkit-text-stroke: 2px var(--ink); }
 
   /* the corner buttons: round wooden tokens */
   #muteBtn, #musicBtn, #pauseBtn, #leaveBtn, #speedBtn {
@@ -231,8 +290,9 @@
     box-shadow: inset 0 -3px 0 rgba(110,67,32,.3), 0 4px 0 var(--wood-rim), 0 6px 10px rgba(0,0,0,.35);
     color: var(--ink); cursor: pointer; z-index: 20; padding: 10px; box-sizing: border-box;
   }
-  #muteBtn { right: 10px; } #leaveBtn, #pauseBtn, #musicBtn { right: 68px; }
-  #speedBtn { right: 126px; min-width: 50px; width: auto; border-radius: 25px; padding: 0 12px; font: inherit; font-size: 20px; }
+  #muteBtn, #musicBtn, #pauseBtn, #leaveBtn, #speedBtn { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+  #muteBtn { right: calc(10px + env(safe-area-inset-right, 0px)); } #leaveBtn, #pauseBtn, #musicBtn { right: calc(68px + env(safe-area-inset-right, 0px)); }
+  #speedBtn { right: calc(126px + env(safe-area-inset-right, 0px)); min-width: 50px; width: auto; border-radius: 25px; padding: 0 12px; font: inherit; font-size: 20px; }
   #muteBtn:active, #musicBtn:active, #pauseBtn:active, #leaveBtn:active, #speedBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--wood-rim); }
   #muteBtn svg, #musicBtn svg, #pauseBtn svg, #leaveBtn svg { width: 100%; height: 100%; display: block; }
   #muteBtn .x, #musicBtn .x { display: none; }
@@ -254,6 +314,8 @@
   .btn .gear { width: 1.3em; height: 1.3em; }
   .opts { display: flex; flex-direction: column; gap: 12px; align-self: stretch; text-align: left; font-size: clamp(15px, 3.4vmin, 19px); }
   .opt { display: flex; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; }
+  /* every row as tall as the 44px slider strips, so the switch row does not crowd the quality label */
+  .opts > .opt { min-height: 44px; }
   .opt.q { flex-direction: column; align-items: stretch; gap: 6px; cursor: default; }
   .opt.q .tabs { margin: 0; }
   .opt.q .tab { flex: 1; padding: 6px 8px; }
@@ -266,13 +328,22 @@
   /* a volume slider: a carved groove, leaf green up to the knob (--v, set by settings.ts) */
   .opt.volrow { cursor: default; }
   .opt.volrow > label { flex: 0 0 36%; cursor: pointer; }
-  .vol { appearance: none; -webkit-appearance: none; flex: 1; min-width: 70px; height: 14px; margin: 0; border-radius: 7px; cursor: pointer;
+  /* the switch is hidden: the name is its label (a tap turns the sound off and on) and the slider at 0 is off */
+  .opt.volrow .sw { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .opt.volrow:has(.sw:not(:checked)) > label { text-decoration: line-through; opacity: .6; }
+  /* a 44px touch strip; the groove is the track inside it */
+  .vol { appearance: none; -webkit-appearance: none; flex: 1; min-width: 70px; height: 44px; margin: 0; cursor: pointer; background: transparent; }
+  .vol::-webkit-slider-runnable-track { height: 14px; border-radius: 7px; box-sizing: border-box;
     border: 3px solid var(--wood-rim); box-shadow: inset 0 2px 3px rgba(110,67,32,.35);
     background: linear-gradient(90deg, var(--leaf) 0 var(--v, 100%), #d8c4a0 var(--v, 100%)); }
-  .vol::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%;
+  .vol::-moz-range-track { height: 8px; border-radius: 7px;
+    border: 3px solid var(--wood-rim); box-shadow: inset 0 2px 3px rgba(110,67,32,.35);
+    background: linear-gradient(90deg, var(--leaf) 0 var(--v, 100%), #d8c4a0 var(--v, 100%)); }
+  .vol::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; margin-top: -8px;
     border: 2px solid var(--wood-rim); background: radial-gradient(circle at 35% 30%, #fff, var(--wood-hi)); box-shadow: 0 2px 0 var(--wood-rim); }
   .vol::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%;
     border: 2px solid var(--wood-rim); background: radial-gradient(circle at 35% 30%, #fff, var(--wood-hi)); box-shadow: 0 2px 0 var(--wood-rim); }
+  .vol.off { filter: grayscale(1); opacity: .6; }
   .vol:disabled { opacity: .45; cursor: default; }
   .card .share { text-shadow: none; color: var(--ink); max-width: none; }
   .card .privacy { margin-top: -8px; color: var(--wood-lo); }
@@ -298,7 +369,7 @@
   #onlineForm { display: flex; flex-direction: column; align-items: center; gap: 14px; }
   #roomCode { font-size: clamp(56px, 14vmin, 96px); letter-spacing: 12px; color: var(--gold); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; text-shadow: 0 4px 0 var(--ink); line-height: 1; }
   #codeIn {
-    font: inherit; font-size: clamp(22px, 5vmin, 30px); width: 5.2em; text-align: center; letter-spacing: 6px; text-transform: uppercase;
+    font: inherit; font-size: clamp(22px, 5vmin, 30px); width: 4.6em; text-align: center; letter-spacing: 4px; text-transform: uppercase;
     padding: 8px 10px; border-radius: 14px; border: 3px solid var(--wood-rim); background: #fffaf0; color: var(--ink); outline: none;
     box-shadow: inset 0 3px 6px rgba(110,67,32,.3);
     -webkit-user-select: text; user-select: text; touch-action: auto;
@@ -308,14 +379,18 @@
   button:focus:not(:focus-visible), input:focus:not(:focus-visible) { outline: none; }
   #codeIn:focus { outline: none; border-color: var(--gold); }
   #codeIn::placeholder { color: rgba(59,36,18,.35); letter-spacing: 2px; }
-  .row.join { align-items: center; }
+  .row.join { align-items: center; flex-wrap: nowrap; }
+  #joinBtn { min-width: 0; padding-inline: 28px; } /* beside the code box a full-width button pushed the row out of a phone's card */
   .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
   .st { color: var(--star); letter-spacing: 1px; }
   .panel > .sub .st, .btn .st { text-shadow: 0 1px 0 var(--ink); }
-  .st .off { color: rgba(110,67,32,.28); }
+  /* an unearned star is a walnut hollow: at .28 it vanished into the light wood of an open stage */
+  .st .g { color: var(--star); text-shadow: 0 1px 0 var(--gold-rim); }
+  .st .off { color: rgba(110,67,32,.5); text-shadow: 0 1px 0 rgba(255,240,210,.6); }
+  .stage:disabled .st .off { color: rgba(110,67,32,.3); text-shadow: none; }
   .btn .st .off, .panel > .sub .st .off { color: rgba(255,255,255,.35); }
   .chapRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .chapRow h2 { margin: 0 0 2px; }
+  .chapRow h2 { margin: 0 0 2px; font-size: clamp(18px, 4.6vmin, 32px); text-wrap: balance; }
   #boardBtn { display: inline-flex; align-items: center; gap: 8px; }
   #boardBtn svg { width: 1.3em; height: 1.3em; flex: none; }
   #boardList { list-style: none; margin: 14px 0 18px; padding: 0; min-height: 3em; max-height: 46vh; overflow-y: auto; text-align: left; }
@@ -325,24 +400,37 @@
   #boardList li span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   #boardList li i { font-style: normal; color: var(--gold-rim); font-weight: 800; }
   #boardList li.note { justify-content: center; background: none; opacity: .75; }
+  #boardList li.note.act { opacity: 1; padding-top: 4px; }
   .arrow { font: inherit; font-size: 20px; width: 48px; height: 48px; flex: none; border-radius: 50%; border: 3px solid var(--wood-rim); color: var(--ink); cursor: pointer;
     background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), rgba(255,255,255,0) 45%), radial-gradient(circle, var(--wood-hi), var(--wood) 72%); box-shadow: 0 4px 0 var(--wood-rim); }
   .arrow:disabled { opacity: .3; cursor: default; }
   .stage svg.lock { width: 1.1em; height: 1.1em; opacity: .75; }
-  .stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 16px 0; }
+  /* a row of four (seven in landscape); a short last row is centred, not left hanging */
+  .stages { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 16px 0; }
+  .stages > .stage { flex: 0 0 calc(25% - 7.5px); box-sizing: border-box; }
+  .stage .n { display: inline-flex; align-items: center; gap: 2px; white-space: nowrap; }
+  /* a boss not yet open keeps its red rim: the eye finds where the chapter ends */
+  .stage.boss:disabled { border-color: #c8402a; box-shadow: 0 4px 0 #6b1d0c; }
   .stage { font: inherit; font-size: clamp(18px, 4vmin, 24px); color: var(--ink); border: 3px solid var(--wood-rim); border-radius: 14px; padding: 8px 4px 6px; cursor: pointer;
     background: var(--gloss), var(--grain), linear-gradient(var(--wood-hi), var(--wood));
     box-shadow: 0 4px 0 var(--wood-rim); display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .stage.boss { color: #fff; border-color: #6b1d0c; background: var(--gloss), linear-gradient(#f2795c, #c8402a); box-shadow: 0 4px 0 #6b1d0c; text-shadow: 0 2px 0 #6b1d0c; }
-  .stage:disabled { color: rgba(59,36,18,.4); background: linear-gradient(#e3d3b5, #cdb68e); border-color: #a08a66; box-shadow: 0 4px 0 #a08a66; cursor: default; text-shadow: none; }
+  .stage:disabled { color: #6b5638; background: linear-gradient(#e3d3b5, #cdb68e); border-color: #a08a66; box-shadow: 0 4px 0 #a08a66; cursor: default; text-shadow: none; }
   .stage .st { font-size: 14px; }
+  /* earned stars carry a dark gilt edge: plain gold melts into the tan wood */
+  .stage .st > span:not(.off) { text-shadow: 0 0 1px var(--gold-rim), 0 1px 0 var(--gold-rim); }
   .stage.boss .st .off { color: rgba(255,255,255,.4); }
+  .stage.boss:disabled .st .off { color: rgba(110,67,32,.3); }
   .stage:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
   .twists, .goals { list-style: none; padding: 0; margin: 12px 0; text-align: left; font-size: clamp(14px, 3.4vmin, 18px); line-height: 1.4; }
+  /* each list has a small heading (data-h, campaignUi.ts) and its lines hang under their mark */
+  .twists[data-h]::before, .goals[data-h]::before { content: attr(data-h); display: block; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--wood-lo); margin-bottom: 2px; }
+  .twists:empty, .goals:empty { display: none; }
+  .twists li, .goals li { padding-left: 1.2em; text-indent: -1.2em; }
   .twists li::before { content: '⚑ '; color: #c8402a; }
   .goals li::before { content: '★ '; color: var(--star); }
   .goals li.off::before { color: rgba(110,67,32,.3); }
-  .tip { font-size: clamp(13px, 3vmin, 16px); opacity: .9; font-style: italic; margin: 4px auto 10px; max-width: 30em; line-height: 1.35; }
+  .tip { font-size: clamp(13px, 3vmin, 16px); opacity: .9; margin: 4px auto 10px; max-width: 30em; line-height: 1.35; }
   .panel > .tip { text-shadow: 0 1px 0 var(--ink), 0 0 6px rgba(0,0,0,.6); }
   .stars { display: flex; gap: 18px; justify-content: center; }
   .stars div { display: flex; flex-direction: column; align-items: center; font-size: clamp(12px, 2.6vmin, 15px); opacity: .95; min-width: 80px; text-shadow: 0 1px 0 var(--ink); }
@@ -354,19 +442,19 @@
 <body>
 
 <div id="menu" class="panel hidden">
-  <div class="title"><img class="l" src="ui/guard_blue.webp" alt=""><div class="logo">HEXFRONT <span>RUSH</span></div><img class="r" src="ui/ogre_red.webp" alt=""></div>
+  <div class="title"><img class="l" src="ui/guard_blue.webp" alt=""><img class="logo" src="ui/logo.webp" alt="Hexfront Rush"><img class="r" src="ui/ogre_red.webp" alt=""></div>
   <div class="sub" id="record"></div>
   <button class="btn" id="playBtn"></button>
-  <div class="row">
+  <div class="menuGrid">
     <button class="btn wood" id="quickBtn" data-t="quick"></button>
-    <button class="btn small" id="diffBtn"></button>
-    <button class="btn wood" id="achBtn" aria-label="Achievements"><svg class="medal" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h4l2 6H9zM13 2h4l-2 6h-4z" fill="#c8402a"/><circle cx="12" cy="15" r="7" fill="var(--gold)" stroke="var(--gold-rim)" stroke-width="1.6"/><path d="M12 11l1.2 2.5 2.7.3-2 1.9.6 2.7L12 17l-2.5 1.4.6-2.7-2-1.9 2.7-.3z" fill="#fff6e2"/></svg><span id="achN"></span></button>
-    <button class="btn wood icon" id="setBtn" aria-label="Settings"><svg class="gear" viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M10.3 2h3.4l.5 2.6 1.9.8 2.2-1.5 2.4 2.4-1.5 2.2.8 1.9 2.6.5v3.4l-2.6.5-.8 1.9 1.5 2.2-2.4 2.4-2.2-1.5-1.9.8-.5 2.6h-3.4l-.5-2.6-1.9-.8-2.2 1.5-2.4-2.4 1.5-2.2-.8-1.9L2 13.7v-3.4l2.6-.5.8-1.9-1.5-2.2 2.4-2.4 2.2 1.5 1.9-.8zM12 8.4a3.6 3.6 0 1 0 0 7.2 3.6 3.6 0 1 0 0-7.2z"/></svg></button>
-  </div>
-  <div class="row">
     <button class="btn wood" id="dailyBtn"></button>
     <button class="btn wood" id="onlineBtn" data-t="online"></button>
     <button class="btn wood" id="howBtn" data-t="howto"></button>
+  </div>
+  <div class="row tools">
+    <div class="seg" id="diffBtn" role="radiogroup"><button data-d="0" data-t="diff0" role="radio"></button><button data-d="1" data-t="diff1" role="radio"></button><button data-d="2" data-t="diff2" role="radio"></button><button data-d="3" data-t="diff3" role="radio"></button></div>
+    <button class="btn wood" id="achBtn" aria-label="Achievements"><img class="medal" src="ui/icons/medal.webp" alt=""><span id="achN"></span></button>
+    <button class="btn wood icon" id="setBtn" aria-label="Settings"><img class="gear" src="ui/icons/gear.webp" alt=""></button>
   </div>
 </div>
 
@@ -425,19 +513,19 @@
         <button class="btn wood" id="joinBtn" data-t="join"></button>
       </div>
     </div>
-    <button class="btn wood" id="onlineBack" data-t="cancel"></button>
+    <button class="btn wood" id="onlineBack" data-t="back"></button>
   </div>
 </div>
 
 <div id="howto" class="panel hidden">
   <div class="card">
     <h2 data-t="howto"></h2>
-    <div class="howScroll"><ol>
-      <li data-t="how1"></li>
-      <li data-t="how2"></li>
-      <li data-t="how3"></li>
-      <li data-t="how4"></li>
-      <li data-t="how5"></li>
+    <div class="howScroll"><img class="howPic" src="ui/howto_start.webp" alt=""><ol>
+      <li><img class="ic" src="ui/icons/cards.webp" alt=""><span data-t="how1"></span></li>
+      <li><img class="ic" src="ui/icons/pickaxe.webp" alt=""><span data-t="how2"></span></li>
+      <li><img class="ic" src="ui/icons/magnifier.webp" alt=""><span data-t="how3"></span></li>
+      <li><img class="ic" src="ui/icons/castle.webp" alt=""><span data-t="how4"></span></li>
+      <li><img class="ic" src="ui/icons/chest.webp" alt=""><span data-t="how5"></span></li>
     </ol></div>
     <button class="btn" id="howtoOk" data-t="gotit"></button>
   </div>
@@ -533,7 +621,7 @@
 
 <button id="speedBtn" class="hidden" aria-label="Replay speed">1×</button>
 
-<div id="loading"><div class="logo">HEXFRONT <span>RUSH</span></div><div class="bar"><i></i></div></div>
+<div id="loading"><img class="logo" src="ui/logo.webp" alt="Hexfront Rush"><div class="bar"><i></i></div></div>
 
 <script type="module" src="/src/main.ts"></script>
 </body>

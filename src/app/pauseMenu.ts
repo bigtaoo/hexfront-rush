@@ -21,16 +21,14 @@ export function wirePause(g: Game, tap: () => void): void {
     tap();
     g.setUserPause(false);
   });
-  $('pRestart').addEventListener('click', () => {
-    tap();
+  // Restart and Menu throw the match away, so each asks for a second tap: the first one turns the
+  // button into "Tap again to confirm" for a few seconds (a stray tap on a phone lost a whole match)
+  armed(tap, 'pRestart', 'restart', () => {
     // the match left counts as quit; the new one starts the platform's gameplay again
     g.uploads?.end();
     g.beginMatch();
   });
-  $('pMenu').addEventListener('click', () => {
-    tap();
-    g.toMenu();
-  });
+  armed(tap, 'pMenu', 'menu', () => g.toMenu());
 
   $('musicBtn').addEventListener('click', (e) => {
     e.stopPropagation();
@@ -61,6 +59,32 @@ export function wirePause(g: Game, tap: () => void): void {
     g.state = 'menu';
     g.show('menu');
     updateMenu(g.save, g.online.available());
+  });
+}
+
+/** How long a destructive pause button stays armed after its first tap (ms). */
+const ARM_MS = 3000;
+
+/** A button that acts on its second tap: the first one arms it (class "armed", its text asks for
+ *  the second tap) until ARM_MS pass or a panel changes (dom.ts show disarms every armed button). */
+function armed(tap: () => void, id: string, key: string, act: () => void): void {
+  const el = $(id);
+  let timer = 0;
+  el.addEventListener('click', () => {
+    tap();
+    clearTimeout(timer);
+    if (!el.classList.contains('armed')) {
+      el.classList.add('armed');
+      el.textContent = T('sureTap');
+      timer = window.setTimeout(() => {
+        el.classList.remove('armed');
+        el.textContent = T(key);
+      }, ARM_MS);
+      return;
+    }
+    el.classList.remove('armed');
+    el.textContent = T(key);
+    act();
   });
 }
 

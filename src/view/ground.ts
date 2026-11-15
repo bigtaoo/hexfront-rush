@@ -13,7 +13,8 @@ import { FP } from '../sim/fixed';
 import { baseTile, type ThemeKey, type Tile } from '../sim/map';
 import { GUARD, TEAM_BLUE, TEAM_RED, TEAMS } from '../sim/rules';
 import type { Camera } from './camera';
-import { Pen, sharedCtx } from './pen';
+import { grain, GRAIN_VARIANTS } from './grain';
+import { hexPts, Pen, sharedCtx } from './pen';
 import { LOOK_B } from './lookB';
 import type { Pt } from './viewConst';
 
@@ -51,10 +52,12 @@ const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }>
 
 /** Tiles touch (no gaps: a gap per tile drew a heavy honeycomb over the whole map); a faint line
  *  just inside each top keeps the grid readable, and the side shows only along the map's rim. */
-function tileCtx(side: string, top: string, obst: boolean) {
-  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}`, (p) => {
+function tileCtx(side: string, top: string, obst: boolean, variant: number) {
+  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${variant}`, (p) => {
     p.hex(0, 0.16, 1.01, side);
     p.hex(0, 0, 1.01, top);
+    // lookB: the wood under the paint (grain.ts), stretched over the top's bounds
+    if (LOOK_B) p.g.poly(hexPts(0, 0, 1.01), true).fill({ texture: grain(variant), color: 0xffffff });
     p.hex(0, 0, 0.955, null, 'rgba(60,45,25,0.09)', 0.035);
     if (obst) p.hex(0, 0, 0.95, 'rgba(60,40,20,0.05)');
   });
@@ -135,7 +138,9 @@ export class GroundLayer {
   private lookOf(t: Tile, look: GroundLook) {
     const th = TEAM_HUE[t.owner];
     const top = look.top[t.shade ? 1 : 0]!;
-    return tileCtx(look.side, th ? th.top[t.shade ? 1 : 0]! : top, !!t.obst);
+    // the grain's turn by a hash of the tile, so no row or column repeats it
+    const variant = Math.imul(t.i + 1, 2654435761) >>> 0;
+    return tileCtx(look.side, th ? th.top[t.shade ? 1 : 0]! : top, !!t.obst, variant % GRAIN_VARIANTS);
   }
 
   /** Along every edge where an owned tile meets a tile its team does not own, a line in the

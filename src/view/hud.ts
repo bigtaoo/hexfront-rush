@@ -13,7 +13,7 @@ import type { Camera } from './camera';
 import { Num } from './digits';
 import type { Frame, Juice } from './frame';
 import { label, liveGraphics, setLabel, type LabelOpts, type Pen } from './pen';
-import { COL, teamCol, UI } from './viewConst';
+import { COL, teamCol, UI, WOOD } from './viewConst';
 
 export interface Status {
   text: string;
@@ -26,6 +26,25 @@ const GRAIN = [0.16, 0.3, 0.52, 0.74, 0.88];
 const NUM_K = 1.1;
 /** A side whose army is at the troop cap: its count and a ring round its avatar in this. */
 const CAP_COL = COL.coin;
+/** The tug bar is never wider than this (px). */
+const TUG_MAX = 600;
+/** A frame's width round its slot, px. */
+const BEZEL = 3;
+
+/** A raised wooden frame round a slot of x, y, w, h: its drop below, its face, its lit top. */
+function bezel(p: Pen, x: number, y: number, w: number, h: number, r: number): void {
+  const X = x - BEZEL, Y = y - BEZEL, W = w + 2 * BEZEL, H = h + 2 * BEZEL, R = r + BEZEL;
+  p.rrect(X, Y + 2.5, W, H, R, WOOD.rim);
+  p.rrect(X, Y, W, H, R, WOOD.face, WOOD.rim, 1.5);
+  p.rrect(X + 1.5, Y + 1, W - 3, Math.min(H * 0.4, R * 2), Math.min(R, H * 0.2), WOOD.hi);
+}
+/** An army token: a team-coloured disc in a wooden ring, with a gloss like the page's chips. */
+function token(p: Pen, x: number, y: number, r: number, col: string): void {
+  p.circle(x, y + 2.5, r + BEZEL, WOOD.rim);
+  p.circle(x, y, r + BEZEL, WOOD.face, WOOD.rim, 1.5);
+  p.circle(x, y, r, col, 'rgba(0,0,0,0.35)', 1.5);
+  p.circle(x - r * 0.28, y - r * 0.34, r * 0.42, 'rgba(255,255,255,0.26)');
+}
 
 export class Hud {
   readonly root = new Container();
@@ -89,14 +108,15 @@ export class Hud {
     this.W = W;
     this.H = H;
     this.side = me;
-    const pad = 10, av = top * 0.32;
+    const av = top * 0.32;
     const p = this.back.p.clear();
     this.rail(p, 0, top, W, 1);
     this.rail(p, H - cam.hudBot, cam.hudBot, W, -1);
-    p.circle(pad + av, top * 0.42, av, teamCol(me), UI.tokenRim, 2);
-    p.circle(W - pad - av, top * 0.42, av, teamCol(foe), UI.tokenRim, 2);
-    const { bx, by, bw, bh } = this.tugRect(cam);
-    p.rrect(bx, by, bw, bh, bh / 2, UI.groove, UI.tokenRim, 2);
+    const { bx, by, bw, bh, la, ra } = this.tugRect(cam);
+    token(p, la, top * 0.42, av, teamCol(me));
+    token(p, ra, top * 0.42, av, teamCol(foe));
+    bezel(p, bx, by, bw, bh, bh / 2);
+    p.rrect(bx, by, bw, bh, bh / 2, UI.slot);
     this.tugMask.clear();
     this.tugMask.roundRect(bx, by, bw, bh, bh / 2).fill('#ffffff');
   }
@@ -114,10 +134,13 @@ export class Hud {
     // the rail stands over the board, so it throws a shadow on it
     for (let i = 0; i < 6; i++) p.rect(0, edge + (dir > 0 ? i * 2 : -(i + 1) * 2), W, 2, `rgba(22,12,4,${(0.2 - i * 0.033).toFixed(3)})`);
   }
+  /** The tug bar, centred and at most TUG_MAX wide (across a monitor it was a metre-long strip the
+   *  eye had to travel), and the two army tokens either side of it (la, ra: their centres). */
   private tugRect(cam: Camera) {
     const top = cam.hudTop, pad = 10, av = top * 0.32;
-    const bx = pad + av * 2 + 10;
-    return { bx, by: top * 0.6, bw: cam.W - 2 * bx, bh: Math.max(14, top * 0.24) };
+    const bw = Math.min(TUG_MAX, cam.W - 2 * (pad + av * 2 + 10));
+    const bx = (cam.W - bw) / 2;
+    return { bx, by: top * 0.6, bw, bh: Math.max(14, top * 0.24), la: bx - 10 - av, ra: bx + bw + 10 + av };
   }
 
   draw(f: Frame): void {
@@ -125,26 +148,26 @@ export class Hud {
     const me = f.local, foe = enemyOf(me);
     if (cam.W !== this.W || cam.H !== this.H || me !== this.side) this.layout(cam, me);
     const W = cam.W, H = cam.H, top = cam.hudTop;
-    const pad = 10, av = top * 0.32, cx = W / 2;
+    const av = top * 0.32, cx = W / 2;
+    const { bx, by, bw, bh, la, ra } = this.tugRect(cam);
     const fs = Math.max(13, top * 0.26);
     const Tme = eng.team[me]!, Tfoe = eng.team[foe]!;
     // an army at the cap trains nothing more, so a barracks bought now is gold thrown away: the
     // count and the ring go gold while a side is full (the rule itself is said once, hints.ts)
     const cap = unitCap(eng.elapsed(), eng.siegeAt);
     const full = (n: number) => n >= cap;
-    this.num('me', String(Tme.units), pad + av, top * 0.42, { size: fs * 0.95, color: full(Tme.units) ? CAP_COL : '#fff', weight: 900 });
-    this.num('foe', String(Tfoe.units), W - pad - av, top * 0.42, { size: fs * 0.95, color: full(Tfoe.units) ? CAP_COL : '#fff', weight: 900 });
+    this.num('me', String(Tme.units), la, top * 0.42, { size: fs * 0.95, color: full(Tme.units) ? CAP_COL : '#fff', weight: 900 });
+    this.num('foe', String(Tfoe.units), ra, top * 0.42, { size: fs * 0.95, color: full(Tfoe.units) ? CAP_COL : '#fff', weight: 900 });
     // the clock: time played (no limit, the match ends when a castle falls)
     const tPlayed = Math.floor(eng.elapsed() / TICK_RATE);
     const mm = Math.floor(tPlayed / 60), ss = tPlayed % 60;
     this.num('clock', `${mm}:${String(ss).padStart(2, '0')}`, cx, top * 0.3, { size: fs * 1.15, color: '#ffffff', weight: 900 });
     // beside it: the seconds to the next wave (bigger and yellow in its last 3), and the siege once it is on
     const toWave = Math.ceil((WAVE_TICKS - (eng.elapsed() % WAVE_TICKS)) / TICK_RATE);
-    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: fs * (toWave <= 3 ? 0.78 : 0.7), color: toWave <= 3 ? COL.coin : UI.cream, weight: 800, align: 'left' });
+    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: Math.max(13, fs * (toWave <= 3 ? 0.78 : 0.7)), color: toWave <= 3 ? COL.coin : UI.cream, weight: 800, align: 'left' });
     const siege = eng.siegeLevel();
-    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: fs * 0.7, color: COL.hurt, weight: 800, align: 'right' });
+    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: Math.max(13, fs * 0.7), color: COL.hurt, weight: 800, align: 'right' });
     // the tug bar: tiles held, own side from the left
-    const { bx, by, bw, bh } = this.tugRect(cam);
     const a = Tme.tiles, b = Tfoe.tiles;
     const k = a + b ? a / (a + b) : 0.5;
     const tp = this.tug.p.clear();
@@ -165,12 +188,13 @@ export class Hud {
     const gx = W / 2 - gw / 2 + (J.goldShake > 0 ? Math.sin(J.goldShake * 60) * J.goldShake * 22 : 0);
     J.goldAt = { x: W / 2 - gw / 2 + gfs * 0.8, y: gy };
     const p = this.dyn.p.clear();
-    if (full(Tme.units)) p.circle(pad + av, top * 0.42, av + 3, null, CAP_COL, 2.5);
-    if (full(Tfoe.units)) p.circle(W - pad - av, top * 0.42, av + 3, null, CAP_COL, 2.5);
+    if (full(Tme.units)) p.circle(la, top * 0.42, av + BEZEL + 2, null, CAP_COL, 2.5);
+    if (full(Tfoe.units)) p.circle(ra, top * 0.42, av + BEZEL + 2, null, CAP_COL, 2.5);
     const gh = gfs * 1.5;
-    p.rrect(gx, gy - gfs * 0.75, gw, gh, gfs * 0.75, UI.groove, (f.ui.goldFlash ?? 0) > 0 ? '#f87171' : UI.lip, 3);
-    // the lit lip along the groove's lower rim
-    p.rrect(gx + 2, gy - gfs * 0.75 + 2, gw - 4, gh - 2, gfs * 0.75, null, 'rgba(0,0,0,0.3)', 2);
+    bezel(p, gx, gy - gfs * 0.75, gw, gh, gfs * 0.75);
+    p.rrect(gx, gy - gfs * 0.75, gw, gh, gfs * 0.75, UI.slot, (f.ui.goldFlash ?? 0) > 0 ? '#f87171' : null, 3);
+    // the slot's inner shadow under its top edge
+    p.rrect(gx + 2, gy - gfs * 0.75 + 1, gw - 4, gh * 0.3, gh * 0.15, 'rgba(0,0,0,0.25)');
     const pk = J.goldPop > 0 ? 1 + 0.35 * J.goldPop : J.goldPop < 0 ? 1 + 0.15 * J.goldPop : 1;
     coin(p, gx + gfs * 0.8, gy, gfs * 0.52 * pk);
     const gt = this.num('gold', String(gold), gx + gfs * 1.55, gy + 1, { size: gfs, color: J.goldShake > 0 ? COL.hurt : COL.coin, weight: 900, align: 'left' });
@@ -178,11 +202,13 @@ export class Hud {
 
     // the quest (left of the pill)
     const qp = questOf(eng, me);
-    const qx = 8, qw = Math.min(W / 2 - gw / 2 - 16, 240);
+    // both slots wear a bezel now: leave room for the two frames and a gap between them
+    const qx = 6 + BEZEL, qw = Math.min(W / 2 - gw / 2 - qx - 6 - 2 * BEZEL, 240);
     if (qw > 90) {
       const qfs = Math.max(11, Math.min(15, qw / 15));
       const flash = eng.tick - Tme.questT < TICK_RATE * 1.2;
-      p.rrect(qx, gy - qfs * 1.9, qw, qfs * 3.8, 10, flash ? 'rgba(34,197,94,0.6)' : UI.groove, UI.lip, 2);
+      bezel(p, qx, gy - qfs * 1.9, qw, qfs * 3.8, 10);
+      p.rrect(qx, gy - qfs * 1.9, qw, qfs * 3.8, 10, flash ? 'rgba(34,140,60,0.92)' : UI.slot);
       const pbw = qw - 20 - qfs * 3.5;
       p.rrect(qx + 10, gy + qfs * 0.35, pbw, qfs * 0.8, qfs * 0.4, 'rgba(18,10,3,0.55)');
       p.rrect(qx + 10, gy + qfs * 0.35, Math.max(qfs * 0.8, (pbw * qp.prog) / qp.q.need), qfs * 0.8, qfs * 0.4, '#4ade80');
@@ -191,8 +217,8 @@ export class Hud {
       // a long quest (Russian, on a phone held upright) shrinks to its box instead of running under the gold pill
       qt.scale.set(1);
       if (qt.width > qw - 16) qt.scale.set((qw - 16) / qt.width);
-      this.num('qprog', `${qp.prog}/${qp.q.need}`, qx + 10 + pbw / 2, gy + qfs * 0.77, { size: qfs * 0.7, color: '#fff', weight: 800 });
-      this.num('qreward', String(qp.q.reward), qx + qw - qfs * 2.0, gy + qfs * 0.78, { size: qfs * 0.85, color: COL.coin, weight: 900, align: 'left' });
+      this.num('qprog', `${qp.prog}/${qp.q.need}`, qx + 10 + pbw / 2, gy + qfs * 0.77, { size: Math.max(12, qfs * 0.7), color: '#fff', weight: 800 });
+      this.num('qreward', String(qp.q.reward), qx + qw - qfs * 2.0, gy + qfs * 0.78, { size: Math.max(12, qfs * 0.85), color: COL.coin, weight: 900, align: 'left' });
     } else {
       this.hide('quest');
       this.hide('qprog');
