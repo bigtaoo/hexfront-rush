@@ -229,7 +229,28 @@ def assemble(name: str, team: str, kind, i: int) -> float:
     pivot.location = (0, 0, lift)
     pivot.rotation_euler = (0, 0, math.radians(YAW.get(name, 0) * pose.yaw_mul(kind, i)))
     bpy.context.view_layer.update()
+    if kind == 'd':
+        # a piece going over backwards on its heels swings its back under the board: set it
+        # down on whatever part of it is lowest, so the fallen frames lie on the boards the
+        # standing ones stand on
+        pivot.location = (0, 0, lift - min(0.0, floor_z()))
+        bpy.context.view_layer.update()
     return span
+
+
+def floor_z() -> float:
+    """The lowest point of the posed model, in world z."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    lo = 0.0
+    for o in bpy.context.scene.objects:
+        if o.type != 'MESH':
+            continue
+        ev = o.evaluated_get(dg)
+        me = ev.to_mesh()
+        for v in me.vertices:
+            lo = min(lo, (o.matrix_world @ v.co).z)
+        ev.to_mesh_clear()
+    return lo
 
 
 def build(name: str, team: str, out: Path, kind=None):
@@ -243,11 +264,12 @@ def build(name: str, team: str, out: Path, kind=None):
         fit = (x0, x1, y0, y1) if fit is None else (min(fit[0], x0), max(fit[1], x1),
                                                     min(fit[2], y0), max(fit[3], y1))
     grow = 1.0
-    if kind == 't':
-        # the board cuts straight from the still into a turn frame, so these are drawn at the
-        # still's own scale and centre, or the piece would jump a size mid-swing. A pose that
-        # reaches wider than the still (a drake turning its wingspan towards us) gets a wider
-        # film instead of a smaller model; sprite.py lines the canvases up by their centres.
+    if kind in ('t', 'd'):
+        # the board cuts straight from the still into a turn or a death frame, so these are drawn
+        # at the still's own scale and centre, or the piece would jump a size mid-swing. A pose
+        # that reaches wider than the still (a drake turning its wingspan towards us, anything
+        # lying down) gets a wider film instead of a smaller model; sprite.py lines the canvases
+        # up by their centres.
         assemble(name, team, None, 0)
         sx0, sx1, sy0, sy1 = extent(unit)
         cx, cy = (sx0 + sx1) / 2, (sy0 + sy1) / 2

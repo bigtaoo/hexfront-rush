@@ -159,9 +159,15 @@ def make(paths, height: int, px: int, want=None, geos=None):
     ims, geos = centred(ims, geos)
     box = union_box(ims)
     crop = [im.crop(box) for im in ims]
-    lo = height - 2 * (px + 1)
+    # Heights are the figure's, not the shared canvas's. A cycle's box carries empty pixels for
+    # whatever the widest/tallest frame reaches (a toppled piece sweeps its club or its wings well
+    # above where it stands); measuring the box would shrink the figure by that padding, and at
+    # MAX_GROW cap it before it ever reached the old sprite's mass. k is 1 for a lone still.
+    b0 = crop[0].getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
+    k = (box[3] - box[1]) / max(1, b0[3] - b0[1])
+    lo = round(height * k) - 2 * (px + 1)
     if want is not None:
-        lo, hi = lo // 2, round(height * MAX_GROW) - 2 * (px + 1)
+        lo, hi = lo // 2, round(height * MAX_GROW * k) - 2 * (px + 1)
         while lo < hi:  # the smallest height whose outlined area reaches the old sprite's
             mid = (lo + hi) // 2
             if area(sized(crop[0], mid, px)) < want:

@@ -44,8 +44,9 @@ castle never reads smaller than the soldiers standing next to it.
 A carved piece never deforms. Nothing squashes or stretches: the old volume-preserving squash
 (`sx = 2 - sy`) read as a sheet of paper being crumpled, so every transform is now a rigid move or
 a tip about the foot the piece stands on. The troops themselves walk, strike and turn in **rendered
-frames** baked offline (ANIMATION.md: 9 troops x 2 teams x 13 frames = still + 6 walk + 4 attack +
-2 turn), so the knees a transform could not give them are drawn. Everything else stays a transform:
+frames** baked offline (ANIMATION.md: 9 troops x 2 teams x 16 frames = still + 6 walk + 4 attack +
+2 turn + 3 fall), so the knees a transform could not give them are drawn. The castle guard is one of
+those models and plays the same frames. Everything else stays a transform:
 - walking: the drawn 6-frame cycle, with the piece hopping and leaning onto the foot it lands on
   (the castle guard too); a slight sway while standing; the drake hovers and bobs;
 - turning: five full-width steps (side -> half -> front -> half -> side) from the `_t0`/`_t1`
@@ -55,8 +56,9 @@ frames** baked offline (ANIMATION.md: 9 troops x 2 teams x 13 frames = still + 6
 - attack: the drawn 4-frame swing, played out in seconds (not in sim ticks, so it is smooth at any
   frame rate); a shooter (anything with a missile) rocks back on its heels instead;
 - hit: a white flash, and it leans back and gives ground;
-- death: it tips over backwards on its feet, sinks out of sight and fades, base and shadow with it
-  (0.5 s, DEATH_S); off screen it simply goes;
+- death: the drawn 3-frame topple - it stands for an instant, then goes over backwards on its heels
+  as the carved whole it is (the picture itself never rotates), fades and sinks out of sight, base
+  and shadow with it (0.5 s, DEATH_S); off screen it simply goes;
 - buildings rise into place when built, flash when hit, shake the screen and leave rubble when
   they fall; map events bob;
 - the cast shadow tightens and fades with height, so a piece that leaves the board is seen to.

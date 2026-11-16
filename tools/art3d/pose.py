@@ -21,10 +21,14 @@ SWING = math.radians(45)         # how far a leg swings fore and aft: at 40 px a
 ARM = math.radians(26)
 WALK, STRIKE = 6, 4              # frames in each cycle
 TURN = 2                         # and the two the figure passes through as it turns round
+FALL = 3                         # and the three it topples through when it is killed
 
 # the big troops are not built on the chibi body, so their joints sit where their own legs and
 # shoulders are: (hip z, shoulder z). Anything missing here is a foot troop.
 JOINTS = {'ogre': (0.42, 0.77), 'colossus': (0.50, 0.95), 'drake': (0.33, 0.60)}
+# y of the heel each model goes over backwards on (the figure faces -y, so its heels are at +y):
+# a foot troop's boot is a 0.076 drum, the big ones stand on their own feet
+HEEL = {'ogre': 0.105, 'colossus': 0.135, 'drake': 0.115}
 # how much of the standard swing a model takes, and how far it bobs: weight reads as a short
 # stride under a heavy roll, not as a long one
 GAIT = {'ogre': 0.74, 'colossus': 0.60, 'drake': 0.88}
@@ -129,10 +133,30 @@ def swivel(i: int, name: str):
     return [], 0.0
 
 
+# how far past upright the piece has gone over in each frame of the topple. Negative is
+# backwards here (positive is forward, as for a limb), and the last one is a few degrees past
+# flat: a struck toy does not crumple into a heap, it goes over on its heels and settles.
+FALL_TILT = _ramp((-36, -72, -96))
+
+
+def fall(i: int, name: str):
+    """One frame of a death: the whole carved piece tips over backwards on its heels.
+
+    The old death was the still sprite spun in the picture plane - the piece stayed its standing
+    self and the picture rotated, which is the sheet of paper again. Turning the model instead
+    gives the foreshortening a real topple has: the figure shortens as it goes over, the face
+    turns up at the sky, and the soles come towards us.
+
+    Nothing bends and nothing splays: one group holding every part, one pivot at the heels.
+    toys.py lifts whatever ends up under the board back onto it.
+    """
+    return [('*', (0.0, HEEL.get(name, 0.076), 0.0), FALL_TILT[i])], 0.0
+
+
 # how much of a model's own yaw each turn frame keeps: 0 is dead front, 1 is the still
 TURN_YAW = (0.0, 0.5)
 
-CYCLES = {'w': (walk, WALK), 'a': (strike, STRIKE), 't': (swivel, TURN)}
+CYCLES = {'w': (walk, WALK), 'a': (strike, STRIKE), 't': (swivel, TURN), 'd': (fall, FALL)}
 
 
 def yaw_mul(kind, i: int) -> float:
@@ -146,9 +170,12 @@ def apply(groups: dict, kind: str, i: int, name: str = 'militia') -> float:
     for turn in turns:
         gname, z, angle = turn[0], turn[1], turn[2]
         axis = AXIS[turn[3]] if len(turn) > 3 else 0
-        objs = groups.get(gname)
+        # a pivot is a height on the model's axis, or a whole point where a joint sits off it
+        # (the heels a dying piece goes over on); '*' turns every part as one carved whole
+        at = tuple(z) if isinstance(z, (tuple, list)) else (0.0, 0.0, z)
+        objs = [o for g in groups.values() for o in g] if gname == '*' else groups.get(gname)
         if objs:
             rot = [0.0, 0.0, 0.0]
             rot[axis] = angle
-            joint(objs, (0, 0, z), tuple(rot))
+            joint(objs, at, tuple(rot))
     return lift

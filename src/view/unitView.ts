@@ -9,7 +9,7 @@
 import { Container, Graphics, Texture, type Sprite } from 'pixi.js';
 import { TICK_RATE } from '../sim/fixed';
 import { LUNGE_TICKS, type UnitKey } from '../sim/rules';
-import { artH, artSprite, castSprite, PPU, setCast, unitAnim, unitTex, unitTurn } from './art';
+import { artH, artSprite, castSprite, PPU, setCast, unitAnim, unitFall, unitTex, unitTurn } from './art';
 import { hpBar, shadowCtx } from './bodies';
 import { CAST, LOOK_B, LOOKB_UNIT_K } from './lookB';
 import { liveGraphics, sharedCtx, type Pen } from './pen';
@@ -68,7 +68,24 @@ export const unitFoot = (s: number): number => s * 0.85;
 /** How high the drake flies over its shadow. */
 const DRAKE_LIFT = 0.22;
 /** Frames in the rendered walk cycle (tools/art3d/pose.py WALK) and in the strike (STRIKE). */
-const WALK_FRAMES = 6;
+export const WALK_FRAMES = 6;
+/** Frames in the rendered strike (tools/art3d/pose.py STRIKE). */
+export const STRIKE_FRAMES = 4;
+/** Frames in the rendered topple (tools/art3d/pose.py FALL), and the share of DEATH_S they play
+ *  over: the piece is down well before it has finished fading out. */
+export const FALL_FRAMES = 3, FALL_S = 0.55;
+/** The share of the topple the piece spends still on its feet. The first drawn frame is already
+ *  a third of the way over, so cutting to it on the frame of death snapped the figure into a
+ *  lean; a struck toy stands for an instant, then goes. */
+const FALL_HOLD = 0.18;
+/** Which topple frame a piece `k` (0..1 of DEATH_S) into its death shows, '' while it still
+ *  stands. A fall accelerates, so the three frames are spaced by p squared rather than evenly:
+ *  it hangs on the first and goes over through the other two. Shared with the castle guard
+ *  (sprites.ts), which topples the same way. */
+export function fallTag(k: number): string {
+  const p = (Math.min(1, k / FALL_S) - FALL_HOLD) / (1 - FALL_HOLD);
+  return p <= 0 ? '' : `_d${Math.min(FALL_FRAMES - 1, Math.floor(p * p * FALL_FRAMES))}`;
+}
 /** Picture scale over the art's own size (lookB draws troops bigger). */
 const PIC_K = LOOK_B ? LOOKB_UNIT_K : 1;
 /** The drop-in after training: a fall for the first DROP of it, then a squash and settle. */
@@ -78,7 +95,7 @@ export const DEATH_S = 0.5;
 /** The blow lasts LUNGE_TICKS in the sim; the view plays it out in seconds so it is smooth at any
  *  frame rate. The sim's flag is on or off, and reading it straight put the piece into the lunge
  *  pose on one frame and yanked it out of it on another — a pop in both directions. */
-const LUNGE_S = LUNGE_TICKS / TICK_RATE;
+export const LUNGE_S = LUNGE_TICKS / TICK_RATE;
 /** How fast a piece turns round, in `face` per second: a wooden figure pivots on its base, and
  *  the straight mirror flip this replaces popped from one profile to the other on a single frame.
  *  Without turn frames in the atlas it goes edge-on instead, never thinner than TURN_MIN of its
@@ -101,7 +118,7 @@ export function turnTag(faceCur: number): string {
   return m >= TURN_SIDE ? '' : m < TURN_FRONT ? '_t0' : '_t1';
 }
 /** The blow's shape: out fast over the first third, back over the rest, 0 at both ends. */
-function lungeK(k: number): number {
+export function lungeK(k: number): number {
   return k < 0.3 ? Math.sin((k / 0.3) * (Math.PI / 2)) : Math.cos((((k - 0.3) / 0.7) * Math.PI) / 2);
 }
 
@@ -129,6 +146,8 @@ export class UnitView {
   private anim = false;
   /** Whether the atlas carries this troop's two turn views as well as its cycles. */
   private turns = false;
+  /** Whether it carries the three frames it topples through when killed. */
+  private falls = false;
   /** The still this troop falls back to (the strike and walk frames are read off the atlas). */
   private still = Texture.EMPTY;
   /** Picture height, view units. */
@@ -170,6 +189,7 @@ export class UnitView {
       this.kTag = '';
       this.anim = unitAnim(u.type, u.team);
       this.turns = this.anim && unitTurn(u.type, u.team);
+      this.falls = this.anim && unitFall(u.type, u.team);
       this.body.texture = t;
       this.flash.texture = t;
       if (this.cast) this.cast.texture = t;
@@ -305,25 +325,46 @@ export class UnitView {
     if (turn) return turn;
     if (this.lungeAt >= 0) {
       const k = (u.time - this.lungeAt) / LUNGE_S;
-      if (k < 1) return `_a${Math.min(3, Math.floor(k * 4))}`;
+      if (k < 1) return `_a${Math.min(STRIKE_FRAMES - 1, Math.floor(k * STRIKE_FRAMES))}`;
     }
     const ph = u.phase ?? -1;
     return ph < 0 ? '' : `_w${Math.min(WALK_FRAMES - 1, Math.floor(ph * WALK_FRAMES))}`;
   }
 
-  /** The troop has fallen: `k` 0..1 over DEATH_S. It tips over backwards on its feet, as a knocked
-   *  piece does, sinks a little and fades; its base and shadow go with it. */
+  /** The troop has fallen: `k` 0..1 over DEATH_S. It goes over backwards on its heels, as a
+   *  knocked piece does, and fades; its base and shadow go with it.
+   *
+   *  With the topple rendered (`_d0.._d2`) the model itself is what turns, so the piece
+   *  foreshortens as it goes down, its soles come round towards us and its face ends up at the
+   *  sky. Spinning the standing picture in its own plane - what this did, and all it could do
+   *  with one drawn view - kept the figure standing while the photograph of it rotated, which is
+   *  the sheet of paper again. That is still the fallback for a troop with no frames in the
+   *  atlas (?only3's stand-ins). */
   dieFrame(k: number, face: number): void {
     const e = 1 - (1 - k) * (1 - k);
     const fade = k < 0.45 ? 1 : 1 - (k - 0.45) / 0.55;
     this.flash.visible = false;
     this.hp.g.visible = false;
-    if (this.kTag) {                  // it falls as the carved piece it is, not mid-stride
-      this.kTag = '';
-      this.body.texture = this.still;
-      if (this.cast) this.cast.texture = this.still;
+    if (this.falls) {
+      const tag = fallTag(k);
+      if (tag !== this.kTag) {
+        this.kTag = tag;
+        const t = unitTex(this.kType as UnitKey, this.kTeam, tag);
+        this.body.texture = t;
+        if (this.cast) this.cast.texture = t;
+      }
+      // the drawn frames carry the tip, so the sprite is left upright and at its full width:
+      // all that is left for the transform is which way it faces
+      this.body.rotation = 0;
+      this.body.scale.x = ((face < 0 ? -1 : 1) * PIC_K) / PPU;
+    } else {
+      if (this.kTag) {                // it falls as the carved piece it is, not mid-stride
+        this.kTag = '';
+        this.body.texture = this.still;
+        if (this.cast) this.cast.texture = this.still;
+      }
+      this.body.rotation = -face * 1.35 * e;
     }
-    this.body.rotation = -face * 1.35 * e;
     this.body.alpha = fade;
     this.shadow.alpha = fade;
     if (this.cast) this.cast.alpha = CAST.alpha * fade * (1 - e);

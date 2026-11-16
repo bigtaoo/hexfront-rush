@@ -56,6 +56,13 @@ export const unitAnim = (type: UnitKey, team: number): boolean =>
 /** Whether the atlas carries the two views a troop turns through (tools/art3d/pose.py TURN). */
 export const unitTurn = (type: UnitKey, team: number): boolean =>
   !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_t0`];
+/** Whether the atlas carries the frames a troop topples through when it is killed
+ *  (tools/art3d/pose.py FALL): without them a fallen piece is the still, spun in the picture. */
+export const unitFall = (type: UnitKey, team: number): boolean =>
+  !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_d0`];
+/** Whether the atlas carries the castle guard's rendered cycles (walk, strike, topple): it is a
+ *  troop model like the rest, so one check stands for all three. */
+export const guardAnim = (team: number): boolean => !!frames?.[`guard_${side(team)}_w0`];
 export const guardTex = (team: number, frame = ''): Texture =>
   (frame && frames?.[`guard_${side(team)}${frame}`]) || tex(`guard_${side(team)}`);
 
