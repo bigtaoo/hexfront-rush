@@ -74,4 +74,40 @@ describe('renderer', () => {
     expect(r.cam.scale).toBeCloseTo(play, 9);
     r.destroy();
   });
+
+  it('takes the match furniture off the screen while a panel covers it', () => {
+    // The result card used to come up with the clock still reading 1:30, "wave in 15s" counting
+    // down, the gold pill, the quest box and the edge markers all lit around it -- the board under
+    // a panel is a backdrop, like the menu's demo match, and none of that belongs over the card.
+    const r = new Renderer(fakeApp());
+    const eng = engine();
+    r.setView(eng, TEAM_BLUE);
+    const view = r as unknown as {
+      hud: { root: Container };
+      edges: { root: Container };
+      overlays: { dmgBox: Container };
+    };
+    const shown = (): boolean[] => [view.hud.root.visible, view.edges.root.visible, view.overlays.dmgBox.visible];
+
+    r.draw(eng, 0, 0.016);
+    expect(shown()).toEqual([true, true, true]);
+
+    r.draw(eng, 0, 0.016, { covered: true });
+    expect(shown()).toEqual([false, false, false]);
+
+    // and back, so a pause does not cost the match its bars
+    r.draw(eng, 0, 0.016);
+    expect(shown()).toEqual([true, true, true]);
+  });
+
+  it("keeps the menu's demo match free of bars, panel or not", () => {
+    const r = new Renderer(fakeApp());
+    const eng = engine();
+    r.setView(eng, TEAM_BLUE);
+    const view = r as unknown as { hud: { root: Container } };
+    r.draw(eng, 0, 0.016, { demo: true, covered: true });
+    expect(view.hud.root.visible).toBe(false);
+    r.draw(eng, 0, 0.016, { demo: true });
+    expect(view.hud.root.visible).toBe(false);
+  });
 });

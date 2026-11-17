@@ -184,6 +184,9 @@ export class Overlays {
     J.goldPop = J.goldPop > 0 ? Math.max(0, J.goldPop - dt * 5) : Math.min(0, Math.max(-0.5, J.goldPop + dt * 4));
     if (J.goldShake > 0) J.goldShake = Math.max(0, J.goldShake - dt);
     // damage numbers
+    // under a panel they are match furniture like the bars: they age out of sight rather
+    // than floating over the result card
+    this.dmgBox.visible = !f.ui.covered;
     const dsize = Math.max(14, cam.scale * 0.5);
     for (const [id, d] of this.dmg) {
       d.t += dt;

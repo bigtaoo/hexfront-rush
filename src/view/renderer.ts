@@ -264,9 +264,14 @@ export class Renderer {
     this.sprites.draw(f);
     this.effects.draw(f);
     this.edges.draw(f, ui.look ?? false);
-    // behind the menu the match is a backdrop: no bars, no hand (the menu has its own buttons)
-    this.hud.root.visible = !ui.demo;
-    if (!ui.demo) this.hud.draw(f);
+    // Behind the menu the match is a backdrop: no bars, no hand (the menu has its own buttons).
+    // A panel over a match is the same backdrop: the result card used to come up with the clock,
+    // "wave in 15s", the gold pill and the quest box still lit around it, and the edge markers
+    // still pointing at armies nobody can send any more.
+    const covered = !!ui.covered;
+    this.hud.root.visible = !ui.demo && !covered;
+    this.edges.root.visible = !covered;
+    if (this.hud.root.visible) this.hud.draw(f);
     this.overlays.draw(f);
   }
 
