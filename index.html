@@ -121,6 +121,10 @@
   @media (max-height: 560px) and (min-aspect-ratio: 5/4) {
     .menuGrid { width: min(760px, 100%); }
     .menuGrid > .btn { flex: 1 1 0; }
+    /* the four modes on one row leaves the menu one column, and on a 320 px-tall landscape phone
+       that column is all the screen there is: the rows close up so the tools row keeps its place
+       on it in every language (English had nothing to spare, Japanese was 19 px over) */
+    #menu { gap: 8px; }
   }
   @media (min-width: 700px) { #settings .card { max-width: 460px; } }
   /* the brief's rewarded-ad offer: labelled as an ad (the screen icon and the text say so) */

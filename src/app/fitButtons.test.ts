@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fitFont, squeeze } from './dom';
+import { fitFont, squeeze, wordRoom } from './dom';
 import { LANGS, T, loadLang, setLang } from './i18n';
 
 // A row of buttons shares its width between them (index.html, `.btn { flex: 1 1 0 }` on the narrow
@@ -75,5 +75,28 @@ describe('a row counts what its children were squeezed by', () => {
     // scrollWidth and clientWidth are whole pixels of sub-pixel boxes: counted, that pixel kept
     // the fit stepping and shrank every language to its floor
     expect(squeeze(row([[81, 80], [61, 60]]))).toBe(0);
+  });
+});
+
+// The other way a word misses its room, and the reason the fit now measures the word itself: a
+// label with a space in it does not cross its rim, it wraps, and a wrapped button is as wide as it
+// ever was. On a 320 px-tall landscape phone the menu's four mode buttons each grew a second line
+// in Chinese, Japanese, Russian, French and Italian, and the difficulty, the medals and the gear
+// went off the bottom of the screen, where `overflow: hidden` cut them off -- with every one of
+// those buttons reporting a scrollWidth as tidy as its clientWidth. wordRoom asks the question the
+// width could not: laid on one line, is there room for the word at all?
+describe('a button is measured by the room its word needs, not by the width it ended up', () => {
+  it('sees the word that only fits by wrapping', () => {
+    // #dailyBtn at 568x320: a 117 px button, 8 px of padding each side, and a label that draws
+    // 110 px on one line -- the width said 118 of 117, a pixel, which the fit forgives
+    expect(wordRoom(117, 8, 8, 110)).toBeLessThan(0);
+  });
+
+  it('leaves alone the word that has its room', () => {
+    expect(wordRoom(117, 8, 8, 95)).toBeGreaterThanOrEqual(0);
+  });
+
+  it('forgives the pixel that is the rounding of boxes that are not whole', () => {
+    expect(wordRoom(100, 8, 8, 85)).toBe(0);
   });
 });

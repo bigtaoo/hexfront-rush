@@ -102,18 +102,42 @@ export function fitSteps(room: number, fs0: number, pad0: number, width: (fs: nu
  *  (flex: 1 1 0), so one language's long word does not wrap -- it crosses the button's painted
  *  rim: Italian's "All'attacco!" asked 110 px of the brief's 100 px button and sat on the green
  *  frame at both ends. Such a word steps down until it fits; every other button is left alone,
- *  and no button's box, height or tap target moves. */
+ *  and no button's box, height or tap target moves.
+ *
+ *  The word is measured on one line, because the other way a word misses its room leaves no
+ *  width behind at all: a label with a space in it breaks at the space and the button grows a
+ *  second line instead, its scrollWidth as tidy as its clientWidth. Four of those on the menu of
+ *  a 320 px-tall landscape phone carried the difficulty, the medals and the gear off the bottom
+ *  of the screen, where the body's `overflow: hidden` cut them off; Chinese, Japanese, Russian,
+ *  French and Italian each lost the whole row. What a word does when it still does not fit at
+ *  the smallest size -- wrap, or cross the rim -- is the button's own business: the measuring
+ *  line is taken off again before the fit returns. */
 export function fitButtons(panel: HTMLElement): void {
   for (const b of panel.querySelectorAll<HTMLElement>('.btn')) {
     b.style.removeProperty('font-size');
     if (!b.getClientRects().length) continue;
     const fs0 = parseFloat(getComputedStyle(b).fontSize) || 16;
+    b.style.whiteSpace = 'nowrap';
     const fs = fitFont(fs0, (f) => {
       b.style.fontSize = `${f}px`;
-      return b.scrollWidth <= b.clientWidth + 1;
+      const cs = getComputedStyle(b);
+      return wordRoom(b.clientWidth, parseFloat(cs.paddingLeft), parseFloat(cs.paddingRight), wordWidth(b)) >= 0;
     });
+    b.style.removeProperty('white-space');
     if (fs >= fs0) b.style.removeProperty('font-size');
   }
+}
+
+/** The pixels a button's own words have to spare on one line: the room inside its padding, less
+ *  what the words need. Negative, and they do not fit. A pixel is given away to rounding, as
+ *  everywhere else here: these are fractional boxes reported as whole numbers. */
+export const wordRoom = (client: number, padL: number, padR: number, need: number): number => client - padL - padR + 1 - need;
+
+/** The width a button's contents draw, whatever they are -- words, a count, a gear. */
+function wordWidth(b: HTMLElement): number {
+  const r = document.createRange();
+  r.selectNodeContents(b);
+  return r.getBoundingClientRect().width;
 }
 
 /** The button fit's own arithmetic, the measuring left to the caller so a test can do it without
@@ -161,6 +185,39 @@ export function refit(id: Panel | null): void {
   if (id === 'menu') fitTools();
   fitButtons(panel);
   fitTabs(panel);
+  if (id === 'menu') tuckCorners();
+}
+
+/** Two boxes sharing any of the screen. The corner check's own arithmetic, so a test can do it
+ *  without a browser; a DOMRect is one of these. */
+export const boxesTouch = (a: Box, b: Box): boolean => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+export type Box = { left: number; right: number; top: number; bottom: number };
+
+/** The room kept clear around the corner tokens, so a row that merely grazes them is moved apart
+ *  too: at a pixel's distance the gear and the switch read as one smudged knob. */
+const CORNER_GAP = 6;
+
+/** The menu is the one panel that keeps the sound and the music switch on the screen, and the
+ *  menu's own bottom row -- the difficulty, the medals, the gear -- ends in the same corner they
+ *  sit in. On a tall phone they are far apart. On a short one they are not: at 640x360 the music
+ *  switch covered the right half of the gear, at 568x320 both switches lay over it completely,
+ *  and a tap meant for the settings turned the music off instead. The switches step off the
+ *  screen where they would touch the row. Nothing is lost by it: the settings hold both, one tap
+ *  away on the gear that is now reachable, which is already how every other panel does without
+ *  them. They are put back the moment the screen has the room again (boot.ts refits on resize),
+ *  so a turned phone shows them again. */
+function tuckCorners(): void {
+  const row = $('menu').querySelector('.row.tools');
+  const mute = $('muteBtn'), music = $('musicBtn');
+  if (!row) return;
+  // measured where they would be, not where the last screen left them: hidden, they have no box
+  mute.classList.remove('hidden');
+  music.classList.remove('hidden');
+  const r = row.getBoundingClientRect();
+  const near = { left: r.left - CORNER_GAP, right: r.right + CORNER_GAP, top: r.top - CORNER_GAP, bottom: r.bottom + CORNER_GAP };
+  const clash = boxesTouch(near, mute.getBoundingClientRect()) || boxesTouch(near, music.getBoundingClientRect());
+  mute.classList.toggle('hidden', clash);
+  music.classList.toggle('hidden', clash);
 }
 
 export function applyTexts(save: Save): void {
