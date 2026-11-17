@@ -131,6 +131,23 @@ describe('screen and world', () => {
     c.setView({ tiles: [] } as unknown as Engine, TEAM_BLUE);
     expect([c.cam, c.camGoal, c.overview, c.zoomK]).toEqual([null, null, false, 0]);
   });
+
+  it('starts the next match at play zoom even if the last one ended zoomed out', () => {
+    // retry or next stage from the result screen: no menu in between, so nothing else resets the
+    // zoom. The glide only runs while zoomK is away from its goal, and setView put both at 0.
+    const c = fresh(390, 844);
+    c.setView(engine(), TEAM_BLUE);
+    c.update(engine(), 0.016, false);
+    const play = c.scale;
+    c.setOverview(true);
+    for (let i = 0; i < 200; i++) c.update(engine(), 0.016, false);
+    expect(c.scale).toBeCloseTo(c.fitScale, 9);
+    c.setView(engine(), TEAM_BLUE);
+    expect(c.scale).toBeCloseTo(play, 9);
+    c.update(engine(), 0.016, false);
+    expect(c.scale).toBeCloseTo(play, 9);
+    expect(c.fitAll).toBe(false); // so the camera pans and the edge markers come back
+  });
 });
 
 describe('keeping the board on screen', () => {

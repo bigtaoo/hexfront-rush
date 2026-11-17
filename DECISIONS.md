@@ -1142,3 +1142,24 @@ Playgama 包 **4.2 MB → 3.9 MB**。
 `campaignUi.test.ts`（14 个：星级累计、困难与普通分账、每日挑战的连胜与当日只计一次、42 关的
 twists 文案不漏键）、`matchStats.test.ts`（5 个：事件归属、峰值军力、传奇旗标、重置）。
 `npm run check` 全绿（507 个测试 / 58 个文件），`src/sim/**` 与 `ENGINE_VERSION`（14）未动。
+
+## D59 — 从结算界面直接再来一局，整局都停在俯视缩放上
+
+**症状。** 比赛中按空格（或双指捏合）拉出全局俯视图，打完后在结算界面点"重试"或"下一关"，
+新的一局从头到尾都以俯视的比例绘制：镜头不再跟随、拖不动，边缘指示箭头也全部消失，直到玩家
+改变窗口大小或再按一次空格为止。
+
+**原因。** `Camera.setView` 会把 `overview` 和 `zoomK` 一起清零，却没有重算由它们导出的
+`scale`。而 `update` 里的缩放过渡只在 `zoomK !== want` 时才调用 `setScale`——此时两者都是 0，
+过渡一次也不跑，`scale` 便一直留在上一局俯视图的数值上。从菜单进入比赛时碰巧没事：那条路上
+`demo` 由 true 变 false，`update` 的另一个分支顺手重算了缩放。只有结算界面直接开下一局（
+`mode` 始终是 `solo`）才会露馅。
+
+**改动。** `setView` 末尾补一句 `this.setScale(this.zoomScale())`，并注明缩放一旦重置，由它
+导出的比例也必须跟着重置。
+
+**验证。** `camera.test.ts` 新增回归测试"上一局以俯视结束，下一局仍从 play zoom 开始"：俯视
+稳定后 `scale === fitScale`，`setView` 后立刻回到 play zoom，且 `fitAll` 为 false（镜头能跟
+随、箭头回来）。实机复现同一条路径（quick → 俯视 → 再 beginMatch），修前 12.13、修后 32.98，
+控制台无错误。`npm run check` 全绿（508 个测试 / 58 个文件），`src/sim/**` 与 `ENGINE_VERSION`
+（14）未动。

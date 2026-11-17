@@ -70,6 +70,11 @@ export class Camera {
     this.camGoal = null;
     this.overview = false;
     this.zoomK = 0;
+    // The zoom is reset, so the scale drawn from it has to be too. The glide in `update` only runs
+    // while zoomK is away from its goal, and both are 0 here: a match begun straight from the
+    // result screen with the overview still open would otherwise be played out at the overview's
+    // scale, with no panning and no edge markers, until the next resize.
+    this.setScale(this.zoomScale());
   }
 
   /** The overview is worth having: the play zoom leaves part of the map off screen. */
