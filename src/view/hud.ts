@@ -38,6 +38,13 @@ function bezel(p: Pen, x: number, y: number, w: number, h: number, r: number): v
   p.rrect(X, Y, W, H, R, WOOD.face, WOOD.rim, 1.5);
   p.rrect(X + 1.5, Y + 1, W - 3, Math.min(H * 0.4, R * 2), Math.min(R, H * 0.2), WOOD.hi);
 }
+/** A text pinned to a spot shrinks to the room it has, rather than running off the screen: the
+ *  clock's two side notes sit a fixed step from the middle, and a narrow frame (a portal's preview
+ *  panel) or a long language ran the wave countdown past the right edge. */
+function fitWidth(t: Text, room: number): void {
+  t.scale.set(1);
+  if (room > 0 && t.width > room) t.scale.set(Math.max(0.45, room / t.width));
+}
 /** An army token: a team-coloured disc in a wooden ring, with a gloss like the page's chips. */
 function token(p: Pen, x: number, y: number, r: number, col: string): void {
   p.circle(x, y + 2.5, r + BEZEL, WOOD.rim);
@@ -165,9 +172,11 @@ export class Hud {
     this.num('clock', `${mm}:${String(ss).padStart(2, '0')}`, cx, top * 0.3, { size: fs * 1.15, color: '#ffffff', weight: 900 });
     // beside it: the seconds to the next wave (bigger and yellow in its last 3), and the siege once it is on
     const toWave = Math.ceil((WAVE_TICKS - (eng.elapsed() % WAVE_TICKS)) / TICK_RATE);
-    this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: Math.max(13, fs * (toWave <= 3 ? 0.78 : 0.7)), color: toWave <= 3 ? COL.coin : UI.cream, weight: 800, align: 'left' });
+    const wv = this.text('wave', T('waveIn', { n: toWave }), cx + fs * 2.4, top * 0.3, { size: Math.max(13, fs * (toWave <= 3 ? 0.78 : 0.7)), color: toWave <= 3 ? COL.coin : UI.cream, weight: 800, align: 'left' });
+    fitWidth(wv, W - 6 - (cx + fs * 2.4));
     const siege = eng.siegeLevel();
-    this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: Math.max(13, fs * 0.7), color: COL.hurt, weight: 800, align: 'right' });
+    const sg = this.text('siege', siege ? T('siegeTag', { n: siegePct(eng.elapsed(), eng.siegeAt) - 100 }) : '', cx - fs * 2.4, top * 0.3, { size: Math.max(13, fs * 0.7), color: COL.hurt, weight: 800, align: 'right' });
+    fitWidth(sg, cx - fs * 2.4 - 6);
     // the tug bar: tiles held, own side from the left
     const a = Tme.tiles, b = Tfoe.tiles;
     const k = a + b ? a / (a + b) : 0.5;
@@ -206,7 +215,9 @@ export class Hud {
     // both slots wear a bezel now: leave room for the two frames and a gap between them
     const qx = 6 + BEZEL, qw = Math.min(W / 2 - gw / 2 - qx - 6 - 2 * BEZEL, 240);
     if (qw > 90) {
-      const qfs = Math.max(11, Math.min(15, qw / 15));
+      // the slot and its wooden frame stay inside the bar: the frame's drop hung off the bottom of
+      // the screen on every phone held sideways (a 64 px bar), and by more on a preview panel
+      const qfs = Math.min(Math.max(11, Math.min(15, qw / 15)), (cam.hudBot / 2 - BEZEL - 2.5) / 1.9);
       const flash = eng.tick - Tme.questT < TICK_RATE * 1.2;
       bezel(p, qx, gy - qfs * 1.9, qw, qfs * 3.8, 10);
       p.rrect(qx, gy - qfs * 1.9, qw, qfs * 3.8, 10, flash ? 'rgba(34,140,60,0.92)' : UI.slot);
@@ -214,10 +225,8 @@ export class Hud {
       p.rrect(qx + 10, gy + qfs * 0.35, pbw, qfs * 0.8, qfs * 0.4, 'rgba(18,10,3,0.55)');
       p.rrect(qx + 10, gy + qfs * 0.35, Math.max(qfs * 0.8, (pbw * qp.prog) / qp.q.need), qfs * 0.8, qfs * 0.4, '#4ade80');
       coin(p, qx + qw - qfs * 2.6, gy + qfs * 0.75, qfs * 0.45);
-      const qt = this.text('quest', T('quest_' + qp.q.id, { n: qp.q.need }), qx + 10, gy - qfs * 0.75, { size: qfs, color: '#ffffff', weight: 800, align: 'left' });
       // a long quest (Russian, on a phone held upright) shrinks to its box instead of running under the gold pill
-      qt.scale.set(1);
-      if (qt.width > qw - 16) qt.scale.set((qw - 16) / qt.width);
+      fitWidth(this.text('quest', T('quest_' + qp.q.id, { n: qp.q.need }), qx + 10, gy - qfs * 0.75, { size: qfs, color: '#ffffff', weight: 800, align: 'left' }), qw - 16);
       this.num('qprog', `${qp.prog}/${qp.q.need}`, qx + 10 + pbw / 2, gy + qfs * 0.77, { size: Math.max(12, qfs * 0.7), color: '#fff', weight: 800 });
       this.num('qreward', String(qp.q.reward), qx + qw - qfs * 2.0, gy + qfs * 0.78, { size: Math.max(12, qfs * 0.85), color: COL.coin, weight: 900, align: 'left' });
     } else {
