@@ -146,6 +146,13 @@
   #howto .howScroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 0 10px 10px 0; /* the right pad keeps a phone's overlay scrollbar off the picture */
     -webkit-mask-image: linear-gradient(#000 calc(100% - 30px), transparent); mask-image: linear-gradient(#000 calc(100% - 30px), transparent); }
   #howto ol { margin-bottom: 0; }
+  /* the brief, the same way: its rival card, twists, goals and tip scroll, and "Fight!" stays on
+     the card. Two columns alone were not enough -- on a 568x320 phone held sideways every one of
+     the 42 stages pushed the button row 24 to 41 px below the card's bottom edge */
+  #brief .card { display: flex; flex-direction: column; }
+  #brief .briefScroll { flex: 0 1 auto; min-height: 0; overflow-y: auto; padding-right: 6px; /* clear of a phone's overlay scrollbar */ }
+  #brief .card > .boost { flex: none; align-self: center; }
+  #brief .card > .row { flex: none; }
   /* scroll bars on the cream cards are a thin walnut groove, not the system's grey */
   .card * { scrollbar-width: thin; scrollbar-color: #a8763f rgba(110,67,32,.12); }
   .card *::-webkit-scrollbar { width: 8px; }
@@ -244,16 +251,24 @@
     #ach .sub { margin-left: 12px; }
     #ach .achGrid .a { padding: 3px 4px; gap: 1px; }
     #ach .achGrid .medal { width: 24px; height: 24px; }
-    /* the brief in two columns: the rival and the twists on the left; the goals, the tip and the buttons on the right
-       (a late stage has five twists: the buttons under both columns would fall below a phone's edge) */
-    #brief .card { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto auto auto auto 1fr; column-gap: 18px; align-content: start; max-width: 760px; }
-    #brief .card > * { grid-column: 1 / -1; }
-    #brief .card > .rival { grid-column: 1; grid-row: 4; margin: 6px 0 2px; }
-    #brief .card > .twists { grid-column: 1; grid-row: 5 / span 3; margin: 4px 0; font-size: 13px; line-height: 1.22; }
-    #brief .card > .goals { grid-column: 2; grid-row: 4; margin: 6px 0; align-self: center; }
-    #brief .card > .tip { grid-column: 2; grid-row: 5; margin: 2px 0 6px; }
-    #brief .card > .boost { grid-column: 2; grid-row: 6; justify-self: center; }
-    #brief .card > .row { grid-column: 2; grid-row: 7; align-self: end; margin-top: 4px; flex-wrap: nowrap; gap: 10px; }
+    /* the brief in two columns: the rival and the twists on the left, the goals and the tip on the
+       right; "Fight!" sits under both, held there by the scrolling body above (a late stage has
+       five twists, and even an early one was taller than a sideways phone) */
+    #brief .card { max-width: 760px; }
+    #brief .briefScroll { display: grid; grid-template-columns: 1fr 1fr; column-gap: 18px; align-content: start; }
+    #brief .briefScroll > * { grid-column: 1 / -1; }
+    #brief .briefScroll > .rival { grid-column: 1; grid-row: 1; margin: 6px 0 2px; }
+    #brief .briefScroll > .twists { grid-column: 1; grid-row: 2 / span 2; margin: 4px 0; font-size: 13px; line-height: 1.22; }
+    #brief .briefScroll > .goals { grid-column: 2; grid-row: 1; margin: 6px 0; align-self: center; }
+    #brief .briefScroll > .tip { grid-column: 2; grid-row: 2; margin: 2px 0 6px; }
+    /* the stage's name beside its number and a smaller rival portrait: every pixel saved here is
+       one more line of the twists the player reads without scrolling */
+    #brief .briefHead { display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+    #brief .briefHead h2, #brief .briefHead .sub { margin: 0; }
+    #brief .rival { margin: 4px 0 2px; padding: 5px 10px; }
+    #brief .rival .pic { width: clamp(40px, 9vmin, 52px); }
+    #brief .card > .boost { margin-bottom: 6px; }
+    #brief .card > .row { margin-top: 4px; flex-wrap: nowrap; gap: 10px; }
     #brief .card > .row .btn { min-width: 0; flex: 1 1 0; padding: 8px 12px; }
     /* how to play: the five rules in two columns, so "Got it" stays on screen */
     #howto .card { max-width: 780px; }
@@ -511,13 +526,17 @@
 
 <div id="brief" class="panel hidden">
   <div class="card">
-    <h2 id="briefTitle"></h2>
-    <div class="sub" id="briefSub"></div>
+    <div class="briefHead">
+      <h2 id="briefTitle"></h2>
+      <div class="sub" id="briefSub"></div>
+    </div>
     <div class="sub hidden" id="briefBest"></div>
-    <div class="rival" id="briefRival"></div>
-    <ul class="twists" id="briefTwists"></ul>
-    <ul class="goals" id="briefGoals"></ul>
-    <div class="tip" id="briefTip"></div>
+    <div class="briefScroll">
+      <div class="rival" id="briefRival"></div>
+      <ul class="twists" id="briefTwists"></ul>
+      <ul class="goals" id="briefGoals"></ul>
+      <div class="tip" id="briefTip"></div>
+    </div>
     <button class="btn small boost hidden" id="boostBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M10 9v6l5-3z" fill="currentColor"/></svg><span></span></button>
     <div class="row">
       <button class="btn" id="briefGo" data-t="go"></button>
