@@ -21,7 +21,21 @@ import { COL, RARITY_COLOR } from './viewConst';
 /** A built mine's or barracks' badge: a dark disc at the building's foot showing what it makes (a
  *  coin, or the troop it trains) inside a ring that fills toward the next coin or troop. The badge
  *  and the full-colour picture are what tell a building from an offer's flat symbol (offers.ts). */
-const BADGE_Y = LOOK_B ? 0.24 : 0.2, BADGE_R = LOOK_B ? 0.2 : 0.27;
+const BADGE_Y = LOOK_B ? 0.24 : 0.2;
+export const BADGE_R = LOOK_B ? 0.2 : 0.27;
+/** Where the badge sits on a castle, out from the middle (view units). A barracks or a mine wears
+ *  its badge centred at its feet, over nothing but its own base. The castle cannot: it is the
+ *  widest picture on the board and its gate -- the one part of it the eye reads as a door, and
+ *  what the whole sprite is built around -- sits exactly where the middle lands, so the coin and
+ *  its ring were stamped on the arch. It moves out to the castle's right-hand foot, onto plain
+ *  wall. It stays well inside the tile (0.45 + the badge's 0.26 against a half-width of 0.87), so
+ *  it never covers a neighbouring tile's offer. */
+const BADGE_X_BASE = 0.45;
+
+/** Where a building's badge, and the ring around it, are drawn (view units from its foot). */
+export function badgeSpot(type: string): { x: number; y: number } {
+  return { x: type === 'base' ? BADGE_X_BASE : 0, y: BADGE_Y };
+}
 /** The widest and tallest a building's picture is drawn (view units; a tile is 1.73 wide). lookB
  *  had them smaller, but next to the 1.3x troops the painted toy buildings (wide footprints) then
  *  read smaller than a soldier, so they fill most of their tile again. */
@@ -35,7 +49,8 @@ const portraitMaskCtx = () => sharedCtx('badge|mask', (p) => p.circle(0, 0, BADG
 
 function makeBadge(b: Building): Container {
   const c = new Container();
-  c.position.set(0, BADGE_Y);
+  const at = badgeSpot(b.type);
+  c.position.set(at.x, at.y);
   c.addChild(new Graphics(badgeCtx()));
   if (b.type === 'barracks' && b.unit) {
     // the troop's upper body, cut round
@@ -49,10 +64,11 @@ function makeBadge(b: Building): Container {
   return c;
 }
 
-/** The badge's ring, filled to k (0..1). */
-function badgeRing(p: Pen, k: number, color: string): void {
+/** The badge's ring, filled to k (0..1), around that building's badge. */
+function badgeRing(p: Pen, type: string, k: number, color: string): void {
   k = Math.max(0, Math.min(1, k));
-  if (k > 0.001) p.arc(0, BADGE_Y, BADGE_R + 0.025, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2, color, 0.055);
+  const at = badgeSpot(type);
+  if (k > 0.001) p.arc(at.x, at.y, BADGE_R + 0.025, -Math.PI / 2, -Math.PI / 2 + k * Math.PI * 2, color, 0.055);
 }
 
 /** Low stone walls along every edge of a tile with a building on it (an edge two such tiles share
@@ -179,16 +195,16 @@ export class BuildingView {
     const p = this.dyn.p.clear();
     switch (b.type) {
       case 'base':
-        badgeRing(p, b.timer / BUILD.base.incomeEvery!, COL.coin);
+        badgeRing(p, 'base', b.timer / BUILD.base.incomeEvery!, COL.coin);
         break;
       case 'mine':
-        badgeRing(p, b.timer / BUILD.mine.incomeEvery!, COL.coin);
+        badgeRing(p, 'mine', b.timer / BUILD.mine.incomeEvery!, COL.coin);
         break;
       case 'barracks': {
         // training; grey while the team is at the troop cap and the next troop waits
         const full = b.spawnT <= 0;
         const k = full ? 1 : 1 - b.spawnT / UNITS[b.unit as keyof typeof UNITS].spawn;
-        badgeRing(p, k, full ? '#9ca3af' : RARITY_COLOR[b.rarity] ?? '#9aa5b1');
+        badgeRing(p, 'barracks', k, full ? '#9ca3af' : RARITY_COLOR[b.rarity] ?? '#9aa5b1');
         break;
       }
     }
