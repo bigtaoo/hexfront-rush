@@ -252,7 +252,7 @@ export function showBrief(save: Save, m: Exclude<MatchKind, { kind: 'quick' }>):
   $('briefBest').classList.toggle('hidden', !best);
 }
 
-const LOSS_TIPS = 6;
+export const LOSS_TIPS = 6;
 
 /** The line under the results' stars: the campaign's end on winning its last stage, a tip
  *  (a different one each loss) on losing a stage, the daily or a quick match. */

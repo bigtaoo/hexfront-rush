@@ -126,15 +126,41 @@ export function fitFont(fs0: number, fits: (fs: number) => boolean): number {
   return fs;
 }
 
-/** Both fits, for the panel just shown (dom.show) and again when the screen or the font changes
+/** A row of tabs whose words are wider than the row. The tabs share it (index.html
+ *  `.opt.q .tab { flex: 1 }`) and a flex item never shrinks below its longest word, so the row
+ *  grows instead: in Russian and Turkish the settings' three graphics modes pushed their row two
+ *  and five pixels past the card. The three words step down together, so the row stays even. */
+export function fitTabs(panel: HTMLElement): void {
+  for (const row of panel.querySelectorAll<HTMLElement>('.tabs')) {
+    const tabs = [...row.querySelectorAll<HTMLElement>('.tab')];
+    for (const t of tabs) t.style.removeProperty('font-size');
+    if (!tabs.length || !row.getClientRects().length) continue;
+    const fs0 = parseFloat(getComputedStyle(tabs[0]!).fontSize) || 14;
+    const fs = fitFont(fs0, (f) => {
+      for (const t of tabs) t.style.fontSize = `${f}px`;
+      return row.scrollWidth <= row.clientWidth + 1;
+    });
+    if (fs >= fs0) for (const t of tabs) t.style.removeProperty('font-size');
+  }
+}
+
+/** Every button whose word a fit measures and may shrink: the wooden buttons (fitButtons), the
+ *  tab rows' tabs (fitTabs) and the menu's difficulty segments (fitTools). A button in index.html
+ *  that carries a word and is none of these is fitted by nothing, and its longest translation
+ *  crosses its rim unseen -- which is what the graphics tabs did. buttonFit.test.ts holds the page
+ *  to this list. */
+export const FITTED = '.btn, .tab, .seg button';
+
+/** Every fit, for the panel just shown (dom.show) and again when the screen or the font changes
  *  under it (boot.ts). */
 export function refit(id: Panel | null): void {
   if (!id) return;
   const panel = $(id);
   // what the last screen's fit left behind is not what this one is measured against
-  for (const b of panel.querySelectorAll<HTMLElement>('.btn')) b.style.removeProperty('font-size');
+  for (const b of panel.querySelectorAll<HTMLElement>(FITTED)) b.style.removeProperty('font-size');
   if (id === 'menu') fitTools();
   fitButtons(panel);
+  fitTabs(panel);
 }
 
 export function applyTexts(save: Save): void {
