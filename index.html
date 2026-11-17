@@ -100,7 +100,6 @@
     #menu .row.tools { gap: 6px; }
     #menu .row.tools .seg { --segPad: 5px; --segFs: 13px; }
     #menu .row.tools .btn { padding-left: 9px; padding-right: 9px; }
-    #achBtn { gap: 5px; }
     /* a stage four to a row: the padlock and "1-2" on one line (the number broke at the dash) */
     #stageGrid .stage { font-size: 16px; padding-inline: 2px; }
     #stageGrid .stage svg.lock { width: .9em; height: .9em; }
@@ -201,6 +200,9 @@
   /* the achievements */
   #achBtn { display: inline-flex; align-items: center; gap: 8px; }
   #achBtn .medal { width: 1.3em; height: 1.3em; }
+  /* and its gap on the narrowest menu, which the block above cannot set from over the base rule:
+     three pixels the tools row needs for the gear */
+  @media (max-width: 380px) { #achBtn { gap: 5px; } }
   .achGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0 16px; }
   .achGrid .a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 12px; background: rgba(120,72,30,.09); }
   .achGrid .medal { width: 40px; height: 40px; filter: grayscale(1); opacity: .3; }
@@ -275,8 +277,6 @@
   @media (max-height: 560px) {
     #resultTitle { font-size: clamp(30px, 9vmin, 44px); }
     .card.res { gap: 6px; }
-    .score { font-size: 22px; } .chip { min-width: 70px; padding: 4px 10px; }
-    .stars b { font-size: 32px; }
     .stats th, .stats td { padding: 1px 10px; }
     .achGrid .medal { width: 28px; height: 28px; }
     .achGrid { gap: 5px; margin: 6px 0 10px; }
@@ -391,6 +391,12 @@
   #codeIn::placeholder { color: rgba(59,36,18,.35); letter-spacing: 2px; }
   .row.join { align-items: center; flex-wrap: nowrap; }
   #joinBtn { min-width: 0; padding-inline: 28px; } /* beside the code box a full-width button pushed the row out of a phone's card */
+  /* and on the narrowest phone the box and Join together still drew 253 px of a 236 px card: the
+     row cannot wrap and neither child may shrink, so the card scrolled sideways under them. The
+     box gives up the letter-spacing and the padding it does not need; four letters still fit it. */
+  @media (max-width: 360px) {
+    #codeIn { font-size: 20px; width: 4.4em; letter-spacing: 2px; padding-inline: 6px; }
+  }
   .row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
   .st { color: var(--star); letter-spacing: 1px; }
   .panel > .sub .st, .btn .st { text-shadow: 0 1px 0 var(--ink); }
@@ -447,6 +453,15 @@
   .stars b { font-size: clamp(40px, 9vmin, 60px); font-weight: 400; line-height: 1; color: rgba(255,255,255,.2); }
   .stars .had b { color: rgba(242,176,30,.5); }
   .stars .on b { color: var(--star); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; text-shadow: 0 3px 0 var(--ink); }
+  /* the short-screen block above cannot hold these three: their base rules are written further down,
+     at the same specificity, and the later rule wins -- so on a 320x480 phone the result card kept
+     its 26 px score and its 90 px chips, the two chips drew 266 px inside a 254 px card, and both
+     rims and the Menu button were cut off by the card's edge. They override from here, below. */
+  @media (max-height: 560px) {
+    .score { font-size: 22px; }
+    .chip { min-width: 70px; padding: 4px 10px; }
+    .stars b { font-size: 32px; }
+  }
 </style>
 </head>
 <body>

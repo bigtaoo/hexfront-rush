@@ -269,8 +269,12 @@ export class PlaygamaBridge {
         );
       }
       try {
-        if (kind === 'interstitial') ad.showInterstitial?.(PLACEMENT.interstitial);
-        else ad.showRewarded?.(PLACEMENT.rewarded);
+        const asked: unknown = kind === 'interstitial' ? ad.showInterstitial?.(PLACEMENT.interstitial) : ad.showRewarded?.(PLACEMENT.rewarded);
+        // a show() answering with a rejected promise is the SDK saying no, as much as a throw is:
+        // uncaught, that rejection went to the page, the ad sat there until AD_START_MS, and its
+        // give-up then shut every later ad out for five minutes -- the head start among them
+        const then = (asked as Promise<unknown> | undefined)?.then;
+        if (typeof then === 'function') void then.call(asked, undefined, () => void (shown || listen('failed')));
       } catch {
         listen('failed');
       }

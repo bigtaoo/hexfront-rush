@@ -16,7 +16,7 @@ export interface FakeBridge {
   emit(event: string, value: unknown): void;
 }
 
-export function fakeBridge(opts: { id?: string; stored?: Record<string, unknown>; adblock?: boolean; audio?: boolean; interstitial?: boolean; rewarded?: boolean; language?: string; board?: string; entries?: unknown } = {}): FakeBridge {
+export function fakeBridge(opts: { id?: string; stored?: Record<string, unknown>; adblock?: boolean; audio?: boolean; interstitial?: boolean; rewarded?: boolean; refuse?: boolean; language?: string; board?: string; entries?: unknown } = {}): FakeBridge {
   const listeners = new Map<string, ((v: unknown) => void)[]>();
   const on = (event: string, cb: (v: unknown) => void) => void listeners.set(event, [...(listeners.get(event) ?? []), cb]);
   const fake: FakeBridge = {
@@ -39,9 +39,15 @@ export function fakeBridge(opts: { id?: string; stored?: Record<string, unknown>
     advertisement: {
       isInterstitialSupported: opts.interstitial ?? true,
       checkAdBlock: async () => opts.adblock === true,
-      showInterstitial: () => void fake.shown++,
+      showInterstitial: () => {
+        fake.shown++;
+        return opts.refuse === true ? Promise.reject(new Error('no ad')) : undefined;
+      },
       isRewardedSupported: opts.rewarded ?? true,
-      showRewarded: () => void fake.rewards++,
+      showRewarded: () => {
+        fake.rewards++;
+        return opts.refuse === true ? Promise.reject(new Error('no ad')) : undefined;
+      },
       on,
     },
     leaderboards: {

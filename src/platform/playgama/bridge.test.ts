@@ -150,6 +150,43 @@ describe('PlaygamaBridge', () => {
     expect(await third).toBe(false);
   });
 
+  // The SDK's show() may answer with a rejected promise rather than a throw (a placement it has
+  // no fill for, a platform that refuses at once). That rejection used to go nowhere: the page got
+  // an unhandled rejection, the ad sat there for the whole AD_START_MS, and the give-up that
+  // followed shut every later ad out for five minutes -- so the brief's head start, the one ad the
+  // player asks for himself, went dead with it.
+  it('takes a refused ad as a failure, at once, and lets the next one through', async () => {
+    const f = fakeBridge({ refuse: true });
+    const t = handTimers();
+    const b = new PlaygamaBridge(f.global, noWait, t);
+    await b.init();
+    let started = 0;
+    expect(await b.rewarded(() => started++)).toBe(false);
+    expect(started).toBe(0);
+    expect(f.rewards).toBe(1);
+    // nothing was given up, so no stray window: the player's next tap asks for its own ad
+    expect(await b.rewarded()).toBe(false);
+    expect(f.rewards).toBe(2);
+    // and the interstitial after the match is not shut out either
+    expect(await b.interstitial()).toBe(false);
+    expect(f.shown).toBe(1);
+  });
+
+  it('keeps an ad that did open, whatever show() answers afterwards', async () => {
+    const f = fakeBridge({ refuse: true });
+    const t = handTimers();
+    const b = new PlaygamaBridge(f.global, noWait, t);
+    await b.init();
+    // it is on screen before show()'s answer comes back: the reward it then earns is still the
+    // player's, and the ad is not ended under him by a late rejection
+    const p = b.rewarded();
+    f.emit('rewarded_state_changed', 'opened');
+    await Promise.resolve();
+    f.emit('rewarded_state_changed', 'rewarded');
+    f.emit('rewarded_state_changed', 'closed');
+    expect(await p).toBe(true);
+  });
+
   it('gives up an ad that opened but never closes', async () => {
     const f = fakeBridge();
     const t = handTimers();
