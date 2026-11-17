@@ -416,10 +416,14 @@ export class SpriteLayer {
       let gv = this.guards[tm];
       if (g.dead) {
         if (gv) {                       // it goes over where it stood, then waits out of sight
+          // the topple is timed, not drawn on demand: `down` runs even while the guard is off
+          // screen, or one that fell out of sight would still be standing when the camera
+          // arrived and would go over again, long after the sim had it dead
+          const live = gv.down(f.time);
           const p = cam.lerpPos(g, f.alpha);
           gv.root.position.set(p.x, p.y);
           gv.root.zIndex = p.y + 0.01;
-          gv.root.visible = inView(vis, p.x, p.y) && gv.down(f.time);
+          gv.root.visible = live && inView(vis, p.x, p.y);
         }
         continue;
       }

@@ -354,9 +354,12 @@ export class UnitView {
         if (this.cast) this.cast.texture = t;
       }
       // the drawn frames carry the tip, so the sprite is left upright and at its full width:
-      // all that is left for the transform is which way it faces
+      // all that is left for the transform is which way it faces - the way it is turned right
+      // now, not the way it was turning to. A piece killed mid-turn is drawn head-on (`_t0`),
+      // and reading the target would mirror it to the far profile on the frame it died, with
+      // its cast shadow left facing the other way.
       this.body.rotation = 0;
-      this.body.scale.x = ((face < 0 ? -1 : 1) * PIC_K) / PPU;
+      this.body.scale.x = ((this.faceCur < 0 ? -1 : 1) * PIC_K) / PPU;
     } else {
       if (this.kTag) {                // it falls as the carved piece it is, not mid-stride
         this.kTag = '';
