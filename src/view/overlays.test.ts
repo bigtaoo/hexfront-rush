@@ -5,6 +5,7 @@ import { Engine } from '../sim/engine';
 import { TEAM_BLUE, UNITS, type UnitKey } from '../sim/rules';
 import { installCanvas } from '../test/canvasFakes';
 import { Renderer } from './renderer';
+import { DMG_LIFE, DMG_POP_K, dmgLook } from './overlays';
 
 // The screen-space juice drawn headless (canvasFakes.ts). Two things here are laid out in fixed
 // pixels and so are the ones that break: the "new troop" card, whose three lines share the card's
@@ -98,5 +99,50 @@ describe('overlays layout', () => {
       }
     }
     r.hint = null;
+  });
+});
+
+// A damage number belongs to the tile it was dealt on. A besieged castle takes the biggest hits
+// of the match, and the two offer cards hang in the row right above it: the number used to float
+// a whole row up and cover the prices the player had to read at exactly that moment.
+describe('damage numbers', () => {
+  /** The row pitch, and how far an offer card's plaque reaches below its own tile centre
+   *  (offers.ts: PLQ cy -0.07, h 1.08). A card above a target therefore ends at -1.03. */
+  const ROW = 1.5, PLAQUE_BOTTOM = 0.47;
+  const CARD_ABOVE = -ROW + PLAQUE_BOTTOM;
+  /** A camera zoomed in far enough that the pixel floor never applies. */
+  const SCALE = 120;
+
+  /** The top edge of the number, in view units above its target. The pop is drawn as Overlays
+   *  draws it: full at the hit (or at a merge, which resets the age too) and gone 1/6 s later. */
+  const topEdge = (age: number, scale: number) => {
+    const look = dmgLook(age, scale);
+    const pop = Math.max(0, 1 - age * 6);
+    return -look.lift - ((look.px / scale) * (1 + DMG_POP_K * pop)) / 2;
+  };
+
+  it('stays clear of the offer cards in the row above, at every zoom and all through its life', () => {
+    // 15 px a tile is the overview scale on a phone; the pixel floor bites hardest below it
+    for (const scale of [8, 12, 15.3, 19.3, 29.1, 60, SCALE]) {
+      for (let age = 0; age <= DMG_LIFE + 1e-9; age += 0.02) {
+        expect(topEdge(age, scale)).toBeGreaterThan(CARD_ABOVE);
+      }
+    }
+  });
+
+  it('floats upward off its target and never falls back onto the tile below', () => {
+    const a = dmgLook(0, SCALE).lift, b = dmgLook(DMG_LIFE, SCALE).lift;
+    expect(b).toBeGreaterThan(a);
+    expect(a).toBeGreaterThan(0);
+    // past its life the rise is held, so a stray frame cannot push it into the row above
+    expect(dmgLook(DMG_LIFE * 3, SCALE).lift).toBe(b);
+  });
+
+  it('holds a pixel floor so a small board still shows the number, but never over the cap', () => {
+    // a board drawn small: the floor lifts the number back to a readable size
+    expect(dmgLook(0, 25).px).toBe(13);
+    expect(dmgLook(0, SCALE).px).toBe(SCALE * 0.4);
+    // zoomed further out the floor would be two thirds of a tile; the cap wins
+    for (const scale of [8, 12, 15.3]) expect(dmgLook(0, scale).px / scale).toBeLessThanOrEqual(0.62);
   });
 });

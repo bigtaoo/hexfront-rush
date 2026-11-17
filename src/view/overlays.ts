@@ -109,6 +109,31 @@ class CardView {
 /** The hint slip's paper, ink and wooden rim (the panels' own colours, index.html). */
 const HINT_PAPER = '#fff6e2', HINT_INK = '#3b2412', HINT_RIM = '#6e4320';
 
+/** A damage number's life (seconds); it fades out over the last third of it. */
+export const DMG_LIFE = 0.9;
+/** How a damage number floats and how big it is drawn (view units, and pixels per view unit).
+ *  It used to lift 0.9 and rise another 0.63 at half a tile tall, which put it a whole row above
+ *  the thing it belonged to -- over a besieged castle that is exactly where the two offer cards
+ *  hang, so the biggest numbers of the match covered the prices the player had to read right then.
+ *  Now it stays on its own tile: at its tallest, mid-pop, its top edge is still clear of the card
+ *  bottom in the row above (-1.5 + 0.47 = -1.03 in the target's own units). */
+const DMG_LIFT = 0.4, DMG_RISE = 0.33, DMG_H = 0.4, DMG_MIN_PX = 13;
+/** The tallest a number may be drawn, whatever the zoom. The 13 px floor keeps it readable on a
+ *  board drawn small, but on the overview scale (about 15 px a tile) that floor alone was two
+ *  thirds of a tile and walked back into the row above; the cap wins over it. */
+const DMG_H_MAX = 0.62;
+/** The pop's extra size at the moment of a hit, and the pixel height of a number. */
+export const DMG_POP_K = 0.4;
+
+/** How far above its target a damage number floats, and how tall it is drawn, `age` seconds
+ *  after the hit on a camera of `scale` pixels per view unit. */
+export function dmgLook(age: number, scale: number): { lift: number; px: number } {
+  return {
+    lift: DMG_LIFT + Math.min(Math.max(age, 0), DMG_LIFE) * DMG_RISE,
+    px: Math.min(Math.max(DMG_MIN_PX, scale * DMG_H), scale * DMG_H_MAX),
+  };
+}
+
 export class Overlays {
   readonly root = new Container();
   private dmgBox = new Container();
@@ -187,23 +212,23 @@ export class Overlays {
     // under a panel they are match furniture like the bars: they age out of sight rather
     // than floating over the result card
     this.dmgBox.visible = !f.ui.covered;
-    const dsize = Math.max(14, cam.scale * 0.5);
     for (const [id, d] of this.dmg) {
       d.t += dt;
       d.pop = Math.max(0, d.pop - dt * 6);
-      if (d.t > 0.9) {
+      if (d.t > DMG_LIFE) {
         d.view.destroy();
         this.dmg.delete(id);
         continue;
       }
-      const p = cam.worldToScreen(d.x, d.y - 0.9 - d.t * 0.7);
+      const look = dmgLook(d.t, cam.scale);
+      const p = cam.worldToScreen(d.x, d.y - look.lift);
       // this layer is over the HUD: a fight at the field's top edge floated its numbers onto the
       // clock and the tug bar, so a number shows only over the field
-      d.view.visible = p.y > cam.hudTop + dsize * 0.6 && p.y < H - cam.hudBot - dsize * 0.6;
+      d.view.visible = p.y > cam.hudTop + look.px * 0.6 && p.y < H - cam.hudBot - look.px * 0.6;
       if (!d.view.visible) continue;
-      d.view.set(String(Math.round(d.v)), { h: dsize * 1.1, tint: d.color });
+      d.view.set(String(Math.round(d.v)), { h: look.px, tint: d.color });
       d.view.position.set(snapPx(p.x), snapPx(p.y));
-      d.view.scale.set(1 + 0.4 * d.pop);
+      d.view.scale.set(1 + DMG_POP_K * d.pop);
       d.view.alpha = d.t > 0.6 ? (0.9 - d.t) / 0.3 : 1;
     }
     this.flyCoins(f);
