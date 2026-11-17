@@ -112,7 +112,12 @@ export class Renderer {
     this.effects.reset();
     this.edges.reset();
   }
-  /** Clears per-match juice. */
+  /** Clears per-match juice. The camera is not juice, so it is left alone: a new match goes
+   *  through `setView`, which resets the zoom and the scale together, and the online catch-up jump
+   *  (game.ts) keeps the player looking where they were. Clearing `overview` and `zoomK` here left
+   *  the drawn scale at the overview's - the glide in `Camera.update` only runs while `zoomK` is
+   *  away from its goal, and this put both at 0 - so one lag spike stranded an online match zoomed
+   *  out for good, with no panning and no edge markers. */
   reset(): void {
     this.overlays.reset();
     this.effects.reset();
@@ -120,10 +125,6 @@ export class Renderer {
     this.juice.reset();
     this.hud.status = null;
     this.edges.reset();
-    this.cam.cam = null;
-    this.cam.camGoal = null;
-    this.cam.overview = false;
-    this.cam.zoomK = 0;
   }
   resize(): void {
     this.cam.resize(this.app.screen.width, this.app.screen.height);

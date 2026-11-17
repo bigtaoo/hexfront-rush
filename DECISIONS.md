@@ -1163,3 +1163,27 @@ twists 文案不漏键）、`matchStats.test.ts`（5 个：事件归属、峰值
 随、箭头回来）。实机复现同一条路径（quick → 俯视 → 再 beginMatch），修前 12.13、修后 32.98，
 控制台无错误。`npm run check` 全绿（508 个测试 / 58 个文件），`src/sim/**` 与 `ENGINE_VERSION`
 （14）未动。
+
+## D60 — 联机卡顿追帧一次，整局就再也退不出俯视图
+
+**症状。** 联机对局中拉出全局俯视图，这时网络抖动、落后的帧堆到阈值以上，客户端会快进补帧。
+补完之后画面仍停在俯视比例，但摄像机自己以为回到了 play zoom：`fitAll` 为真，于是拖动无效、
+边缘指示箭头消失，直到玩家把俯视按钮连按两次（或改变窗口大小）才恢复。这条路上比 D59 更糟，
+因为受影响的是正在联机的玩家，而且他未必想得到要连按两次。
+
+**原因。** `Renderer.reset()`（它的注释写的是"清掉本局的特效"）顺手把 `cam.cam`、
+`cam.camGoal`、`cam.overview`、`cam.zoomK` 四个字段直接清零，却没有重算 `scale`——和 D59 同
+一个陷阱：`Camera.update` 的缩放过渡只在 `zoomK !== want` 时才跑，而这里两者都是 0。
+`setupEngine` 那条路侥幸无事（紧接着的 `setView` 会把缩放一起重置），只有 `game.ts` 里
+`back > JUMP_BACKLOG` 的追帧分支会单独调用 `reset()`。
+
+**改动。** `reset()` 不再碰摄像机。开新一局走的是 `setView`，它本来就会把 zoom 和 scale 一起
+重置；联机追帧则保留玩家原来的视角——卡顿本就不该把玩家从俯视图里拽出来。
+
+**验证。** 新增 `renderer.test.ts`（配套的 `src/test/canvasFakes.ts` 让 view 层能在 node 环境
+里无 GPU 构建与推帧）：一是"清掉本局特效但不动摄像机"——`status`/`hint` 被清空，俯视图保留，
+缩放仍等于 `fitScale`，再按一次俯视能准确回到 play zoom 且 `fitAll` 为 false；二是"下一局从
+play zoom 开始"。回退修复后第一条测试确实失败。实机沿同一条路径复现（quick → 俯视 →
+`renderer.reset()`）：play 43.36 → 俯视 15.95 → reset 后仍 15.95 且 `overview` 为真 → 退出俯视
+回到 43.36，`fitAll` 为 false，控制台无额外报错。`npm run check` 全绿（510 个测试 / 59 个
+文件），`src/sim/**` 与 `ENGINE_VERSION`（14）未动。
