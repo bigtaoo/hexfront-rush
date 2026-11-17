@@ -149,6 +149,8 @@ After Potion Siege and Holy Kicker:
 - **Frame gate:** Pixi's ticker is stopped and stepped from our own `requestAnimationFrame` loop behind a `FrameGate`. Pixi's `maxFPS` cannot be used, because it measures each delta from the last skipped frame.
   - Calm screens (menu, results, paused) get a lower cap and stay out of the quality governor's measure.
   - A `FrameClock` advances by whole display refreshes, so late callbacks (iOS) do not make motion judder.
+    Rounding up is only safe if the surplus comes back: the clock carries up to 8 refreshes of lag and
+    gives it back a thirty-second at a time, or a phone drawing a heavy scene runs the whole game fast.
 - **Quality levels (`quality.ts`):**
   - The start level is picked from the device (desktop or phone, cores, memory, GPU name).
   - The governor steps down quickly when frames run slow and climbs slowly after a stable stretch, never above the start level.

@@ -14,8 +14,12 @@
 // seeds it and tells a changed display; it wanders a few percent either side, and a clock
 // stepping a few percent short of real time catches up with a double step every second or so.
 // Whatever real time the clock is behind or ahead (its lag) it gains or gives back a few percent
-// of every frame, under a millisecond, so it stays locked to real time both ways. A screen whose
-// stamps are already even (desktop Chrome) gets them back as they are. Pure.
+// of every frame, under a millisecond, so it comes back to real time both ways. The lag is kept
+// over CARRY refreshes: a frame's refresh count rounds up and never down (every frame draws at
+// least one), so clipping the lag at a single refresh threw away the surplus that rounding handed
+// the clock, and a display that runs late frame after frame - a phone drawing a heavy scene - saw
+// the game speed up, seconds an hour. A screen whose stamps are already even (desktop Chrome)
+// gets them back as they are. Pure.
 
 /** A gap this long is a pause or a stall: taken as it is, and the count starts again. */
 const PAUSE_MS = 100;
@@ -29,12 +33,15 @@ const ONE = 0.3;
 const AVERAGE = 1 / 16;
 /** Share of the lag a frame's step takes up. */
 const PULL = 1 / 32;
+/** Refreshes of lag the clock remembers: enough to hold the surplus a run of late frames rounds
+ *  up, far more than the one frame of slip it gives back at a time. */
+const CARRY = 8;
 
 export class FrameClock {
   /** The current frame's time, ms. */
   time = 0;
   private last = -Infinity;
-  /** Real time not yet given to the clock (negative: given ahead), at most a refresh either way. */
+  /** Real time not yet given to the clock (negative: given ahead), at most CARRY refreshes either way. */
   private lag = 0;
   /** The measured refresh, ms. */
   private refresh = 0;
@@ -54,7 +61,8 @@ export class FrameClock {
     const refresh = this.refresh;
     if (Math.abs(gap / refresh - 1) <= ONE) this.refresh += (gap - refresh) * AVERAGE;
     const step = Math.max(1, Math.floor((gap + this.lag) / refresh + 1 - LATE)) * refresh + this.lag * PULL;
-    this.lag = Math.max(-refresh, Math.min(refresh, this.lag + gap - step));
+    const hold = CARRY * refresh;
+    this.lag = Math.max(-hold, Math.min(hold, this.lag + gap - step));
     this.time += step;
     return this.time;
   }
