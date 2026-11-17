@@ -13,7 +13,7 @@ import { QualityRuntime, gpuName } from '../view/qualityRuntime';
 import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER } from './campaign';
 import { allStars, updateMenu } from './campaignUi';
 import { devSwitches, LOCAL_HOST } from './dev';
-import { $, applyTexts, fitTools, openPanel, updateMuteIcon, updateShare } from './dom';
+import { $, applyTexts, openPanel, refit, updateMuteIcon, updateShare } from './dom';
 import { wirePause } from './pauseMenu';
 import { Game, WATCH_SPEEDS } from './game';
 import { LANG, loadLang, setLang } from './i18n';
@@ -137,16 +137,12 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
   S.installUnlock();
   applyTexts(g.save);
   updateMuteIcon(g.save);
-  // the menu's one-line tools row is measured against the screen it is on, so a turned phone
-  // (or a resized window) measures it again
-  window.addEventListener('resize', () => {
-    if (openPanel() === 'menu') fitTools();
-  });
-  // the words are measured in the game's own font, which can land after the menu does: measured
-  // against the fallback font the row came out four pixels wider than the screen
-  void document.fonts.ready.then(() => {
-    if (openPanel() === 'menu') fitTools();
-  });
+  // a panel's words are measured against the screen it is on, so a turned phone (or a resized
+  // window) measures them again
+  window.addEventListener('resize', () => refit(openPanel()));
+  // and they are measured in the game's own font, which can land after the panel does: measured
+  // against the fallback font the menu's tools row came out four pixels wider than the screen
+  void document.fonts.ready.then(() => refit(openPanel()));
 
   g.controls.install(g.app.canvas);
   document.addEventListener('contextmenu', (e) => e.preventDefault());

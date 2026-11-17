@@ -110,7 +110,10 @@
   /* the two knobs the fit turns (dom.ts fitTools): a long set of difficulty words shrinks to the
      room the row has instead of carrying the gear off the screen. Set them, never font-size or
      padding on the button itself, or the fit has nothing to turn. */
-  .seg button { font: inherit; font-size: var(--segFs, clamp(13px, 3vmin, 17px)); color: var(--ink); background: none; border: 0; padding: 0 var(--segPad, 10px); min-height: 44px; cursor: pointer; }
+  /* one word per segment, never broken: Japanese and Chinese may be broken between any two
+     characters, so the row squeezed the words onto two lines instead of letting the fit shrink
+     them, and "muzukashii" read as two half words */
+  .seg button { font: inherit; font-size: var(--segFs, clamp(13px, 3vmin, 17px)); color: var(--ink); background: none; border: 0; padding: 0 var(--segPad, 10px); min-height: 44px; cursor: pointer; white-space: nowrap; }
   .seg button + button { border-left: 2px solid rgba(168,116,61,.45); }
   .seg button.on { background: var(--gloss), linear-gradient(var(--gold-hi), var(--gold)); }
   /* a destructive button asking for a second tap */

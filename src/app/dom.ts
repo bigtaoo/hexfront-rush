@@ -37,7 +37,7 @@ export function show(id: Panel | null, leave: boolean, watch: boolean, pause: bo
   $('pauseBtn').classList.toggle('hidden', !(id === null && pause));
   $('muteBtn').classList.toggle('hidden', !(id === null || id === 'menu' || id === 'pause'));
   $('musicBtn').classList.toggle('hidden', id !== 'menu');
-  if (id === 'menu') fitTools();
+  refit(id);
   settleFocus(id);
 }
 
@@ -61,11 +61,28 @@ export function fitTools(): void {
   // the row may sit a little wider than the panel's own padding, which is cut for cards; what it
   // may not do is leave the screen, so the wider of the two is the room it has
   const room = Math.max(hold.clientWidth - parseFloat(hs.paddingLeft) - parseFloat(hs.paddingRight), document.documentElement.clientWidth - 12);
-  fitSteps(room, fs0, pad0, (fs, pad) => {
+  // two things go wrong here and they are measured against different things: the row leaving the
+  // room it has, and the row handing its own children less than their words need. The fit is
+  // given the worse of the two as one overflow to drive to nothing.
+  fitSteps(0, fs0, pad0, (fs, pad) => {
     seg.style.setProperty('--segFs', `${fs}px`);
     seg.style.setProperty('--segPad', `${pad}px`);
-    return row.getBoundingClientRect().width;
+    return Math.max(row.getBoundingClientRect().width - room, squeeze(row));
   });
+}
+
+/** The pixels a row's own children are short of: what their words need past the room the row
+ *  handed them. A flex row never measures wider than the box it sits in, so a row whose children
+ *  shrank looks fitted while their letters cross their wooden rims -- in Japanese the difficulty
+ *  words squeezed the menu's medal button until its "3/10" sat past the button's edge, with the
+ *  row itself measuring a tidy 280 px of 280. Counted into the fit, that squeeze shrinks the
+ *  words instead. */
+export function squeeze(row: Element): number {
+  let over = 0;
+  // scrollWidth and clientWidth are whole pixels of boxes that are not: a pixel apart is the
+  // rounding, not a word that does not fit, and chasing it shrank every language to the floor
+  for (const el of row.children) over += Math.max(0, el.scrollWidth - el.clientWidth - 1);
+  return over;
 }
 
 /** The fit's own arithmetic, with the measuring left to the caller so a test can do it without a
@@ -79,6 +96,45 @@ export function fitSteps(room: number, fs0: number, pad0: number, width: (fs: nu
     pad = Math.max(3, pad - 0.7);
   }
   return { fs, pad };
+}
+
+/** A button holding a word it has no room for. The buttons of a row share that row's width
+ *  (flex: 1 1 0), so one language's long word does not wrap -- it crosses the button's painted
+ *  rim: Italian's "All'attacco!" asked 110 px of the brief's 100 px button and sat on the green
+ *  frame at both ends. Such a word steps down until it fits; every other button is left alone,
+ *  and no button's box, height or tap target moves. */
+export function fitButtons(panel: HTMLElement): void {
+  for (const b of panel.querySelectorAll<HTMLElement>('.btn')) {
+    b.style.removeProperty('font-size');
+    if (!b.getClientRects().length) continue;
+    const fs0 = parseFloat(getComputedStyle(b).fontSize) || 16;
+    const fs = fitFont(fs0, (f) => {
+      b.style.fontSize = `${f}px`;
+      return b.scrollWidth <= b.clientWidth + 1;
+    });
+    if (fs >= fs0) b.style.removeProperty('font-size');
+  }
+}
+
+/** The button fit's own arithmetic, the measuring left to the caller so a test can do it without
+ *  a browser: a pixel a step, down to seven tenths of the size the stylesheet asked for and never
+ *  below eleven pixels -- a word too small to read is worse than one touching its frame. */
+export function fitFont(fs0: number, fits: (fs: number) => boolean): number {
+  const floor = Math.max(11, fs0 * 0.7);
+  let fs = fs0;
+  while (fs > floor && !fits(fs)) fs = Math.max(floor, fs - 1);
+  return fs;
+}
+
+/** Both fits, for the panel just shown (dom.show) and again when the screen or the font changes
+ *  under it (boot.ts). */
+export function refit(id: Panel | null): void {
+  if (!id) return;
+  const panel = $(id);
+  // what the last screen's fit left behind is not what this one is measured against
+  for (const b of panel.querySelectorAll<HTMLElement>('.btn')) b.style.removeProperty('font-size');
+  if (id === 'menu') fitTools();
+  fitButtons(panel);
 }
 
 export function applyTexts(save: Save): void {
