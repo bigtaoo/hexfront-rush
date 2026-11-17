@@ -24,10 +24,22 @@ const GLYPH_K = LOOK_B ? 0.85 : 1.3, GLYPH_Y = LOOK_B ? -0.14 : -0.22, PRICE_Y =
 const PRICE_H = LOOK_B ? 0.3 : 0.46;
 /** The price is never drawn shorter than this on screen (px): at a phone's zoom PRICE_H alone came
  *  to about 9 px, too small to read at a glance. It grows only so far, or it would leave the plaque. */
-const PRICE_MIN_PX = 12, PRICE_MAX_H = PRICE_H * 1.45;
-/** An offer the player cannot pay for: its price turns a dull clay colour and its coin greys a
- *  little (a faded price was unreadable, a red one on every card early on read as an alarm). */
-const POOR_TINT = '#b9a487', POOR_ALPHA = 0.6;
+const PRICE_MIN_PX = 13, PRICE_MAX_H = PRICE_H * 1.45;
+/** An offer the player cannot pay for: its price turns a strong rust red and its coin dims. It was
+ *  a dull clay (#b9a487) on the cream plaque -- within a shade of the plaque's own tone, so the one
+ *  number the player had to read was the hardest one on the board and the warning warned nobody.
+ *  Red is read at a glance, the digits' own dark outline carries it on cream, and it is deeper than
+ *  the red team's own colour (COL.red), so a price never reads as somebody's side. */
+const POOR_TINT = '#a81f12', POOR_ALPHA = 0.55;
+/** A price the player can pay, with no rebate on it. */
+const PRICE_TINT = '#ffffff';
+
+/** How a price is drawn: red when it cannot be paid, green when a rebate cut it, white otherwise.
+ *  Cannot-pay wins over the rebate -- a cut price the player still cannot meet is not an offer yet. */
+export function priceLook(gold: number, cost: number, reb: number): { tint: string; coinAlpha: number } {
+  if (gold < cost) return { tint: POOR_TINT, coinAlpha: POOR_ALPHA };
+  return { tint: reb > 0 ? COL.rebate : PRICE_TINT, coinAlpha: 1 };
+}
 
 /** The stamp's two colours: a light cream face and a dark brown ink rim. */
 // lookB: a stamp in the ground's own light tone with a soft brown rim, not white on black
@@ -197,7 +209,6 @@ export class OfferLayer {
       if (!inView(f.vis, v.x, v.y)) continue;
       const off = OFFER_LIST[oi]!;
       const cost = cardCost(oi, standing, reb);
-      const afford = Tm.gold >= cost;
       const c = this.card(i);
       c.seen = n;
       const ft = this.flips.get(i);
@@ -224,12 +235,13 @@ export class OfferLayer {
         c.key = off.key;
         c.glyph.context = glyphCtx(off.key);
       }
-      // what the player cannot pay for keeps its symbol and its price at full strength; the price
-      // turns clay instead of white (a faded one could not be read) and the coin greys a little.
+      // what the player cannot pay for keeps its symbol at full strength; only the price row says
+      // so (priceLook), so a board nothing on it can be bought from still reads as a board.
       // a cut price is green, so the trailing side can see the 退路价 on the board itself
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
-      c.cost.set(String(cost), { h: ph, tint: !afford ? POOR_TINT : reb > 0 ? COL.rebate : '#ffffff', align: 'left', screen: zoom });
-      c.coin.alpha = afford ? 1 : POOR_ALPHA;
+      const look = priceLook(Tm.gold, cost, reb);
+      c.cost.set(String(cost), { h: ph, tint: look.tint, align: 'left', screen: zoom });
+      c.coin.alpha = look.coinAlpha;
     }
     for (const [i, c] of this.cards) {
       if (c.seen === n) continue;
