@@ -93,12 +93,12 @@
   /* the difficulty, medals and gear stay on one line: on a phone the gear wrapped to a row of its own */
   @media (max-width: 480px) {
     #menu .row.tools { flex-wrap: nowrap; gap: 8px; }
-    #menu .row.tools .seg button { padding: 0 7px; }
+    #menu .row.tools .seg { --segPad: 7px; }
     #menu .row.tools .btn { padding-left: 12px; padding-right: 12px; }
   }
   @media (max-width: 380px) {
     #menu .row.tools { gap: 6px; }
-    #menu .row.tools .seg button { padding: 0 5px; font-size: 13px; }
+    #menu .row.tools .seg { --segPad: 5px; --segFs: 13px; }
     #menu .row.tools .btn { padding-left: 9px; padding-right: 9px; }
     #achBtn { gap: 5px; }
     /* a stage four to a row: the padlock and "1-2" on one line (the number broke at the dash) */
@@ -107,7 +107,10 @@
   }
   /* the quick match's difficulty: every level in sight, the chosen one filled gold */
   .seg { display: inline-flex; border: 3px solid var(--gold-rim); border-radius: 14px; overflow: hidden; box-shadow: 0 4px 0 var(--gold-rim); background: #fffaf0; }
-  .seg button { font: inherit; font-size: clamp(13px, 3vmin, 17px); color: var(--ink); background: none; border: 0; padding: 0 10px; min-height: 44px; cursor: pointer; }
+  /* the two knobs the fit turns (dom.ts fitTools): a long set of difficulty words shrinks to the
+     room the row has instead of carrying the gear off the screen. Set them, never font-size or
+     padding on the button itself, or the fit has nothing to turn. */
+  .seg button { font: inherit; font-size: var(--segFs, clamp(13px, 3vmin, 17px)); color: var(--ink); background: none; border: 0; padding: 0 var(--segPad, 10px); min-height: 44px; cursor: pointer; }
   .seg button + button { border-left: 2px solid rgba(168,116,61,.45); }
   .seg button.on { background: var(--gloss), linear-gradient(var(--gold-hi), var(--gold)); }
   /* a destructive button asking for a second tap */
