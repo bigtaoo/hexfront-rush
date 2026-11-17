@@ -11,7 +11,7 @@ import { PHASE_PLAY, RARITY, UNITS, type UnitKey } from '../sim/rules';
 import { coin } from './bodies';
 import type { Frame, Juice } from './frame';
 import { Num, snapPx } from './digits';
-import { label, liveGraphics, setLabel } from './pen';
+import { fitWidth, label, liveGraphics, setLabel } from './pen';
 import { UnitView } from './unitView';
 import { RARITY_COLOR, UI } from './viewConst';
 
@@ -90,11 +90,17 @@ class CardView {
       const fk = Math.min(72 / Math.max(0.01, b.width), 76 / Math.max(0.01, b.height));
       this.fig.scale.set(fk);
       this.fig.position.set(44 - (b.x + b.width / 2) * fk, ch / 2 - (b.y + b.height / 2) * fk);
+      // the three lines live in the card's right half: a long troop name (Portuguese's
+      // "Mago da Tempestade", French's "Colosse de pierre") ran off the card and over the field
+      const room = cw - 88 - 10;
       setLabel(this.name, T('u_' + cd.unit), { size: 17, color: '#ffffff', weight: 900, align: 'left' });
+      fitWidth(this.name, room);
       this.name.position.set(88, 24);
       setLabel(this.rar, T('r_' + RARITY[cd.rarity]), { size: 14, color: rc, weight: 900, align: 'left' });
+      fitWidth(this.rar, room);
       this.rar.position.set(88, 48);
       setLabel(this.what, cd.n ? T('squad', { n: cd.n }) : T('barracks'), { size: 13, color: UI.dim, weight: 800, align: 'left' });
+      fitWidth(this.what, room);
       this.what.position.set(88, 70);
     }
   }

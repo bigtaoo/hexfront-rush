@@ -168,6 +168,13 @@ export function label(text: string, o: LabelOpts): Text {
   t.anchor.set(o.align === 'left' ? 0 : o.align === 'right' ? 1 : 0.5, 0.5);
   return t;
 }
+/** A text pinned to a spot shrinks to the room it has, rather than running off the thing it sits
+ *  on: the clock's two side notes sit a fixed step from the middle, and a card's troop name has
+ *  only the card's right half (18 characters of Portuguese ran past both).  */
+export function fitWidth(t: Text, room: number): void {
+  t.scale.set(1);
+  if (room > 0 && t.width > room) t.scale.set(Math.max(0.45, room / t.width));
+}
 /** Restyle a label only when something changed (Pixi re-rasterises a Text on every style write). */
 export function setLabel(t: Text, text: string, o: LabelOpts): void {
   const key = `${o.size.toFixed(2)}|${o.color}|${o.weight ?? 800}|${o.stroke ?? ''}|${o.align ?? 'center'}`;

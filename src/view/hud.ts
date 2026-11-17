@@ -12,7 +12,7 @@ import { coin } from './bodies';
 import type { Camera } from './camera';
 import { Num, snapPx } from './digits';
 import type { Frame, Juice } from './frame';
-import { label, liveGraphics, setLabel, type LabelOpts, type Pen } from './pen';
+import { fitWidth, label, liveGraphics, setLabel, type LabelOpts, type Pen } from './pen';
 import { COL, teamCol, UI, WOOD } from './viewConst';
 
 export interface Status {
@@ -37,13 +37,6 @@ function bezel(p: Pen, x: number, y: number, w: number, h: number, r: number): v
   p.rrect(X, Y + 2.5, W, H, R, WOOD.rim);
   p.rrect(X, Y, W, H, R, WOOD.face, WOOD.rim, 1.5);
   p.rrect(X + 1.5, Y + 1, W - 3, Math.min(H * 0.4, R * 2), Math.min(R, H * 0.2), WOOD.hi);
-}
-/** A text pinned to a spot shrinks to the room it has, rather than running off the screen: the
- *  clock's two side notes sit a fixed step from the middle, and a narrow frame (a portal's preview
- *  panel) or a long language ran the wave countdown past the right edge. */
-function fitWidth(t: Text, room: number): void {
-  t.scale.set(1);
-  if (room > 0 && t.width > room) t.scale.set(Math.max(0.45, room / t.width));
 }
 /** An army token: a team-coloured disc in a wooden ring, with a gloss like the page's chips. */
 function token(p: Pen, x: number, y: number, r: number, col: string): void {
