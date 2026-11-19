@@ -42,13 +42,15 @@ UNITS = {
               'royal blue cap and a royal blue short cape, brown leather jerkin and boots, a quiver of '
               'arrows on the back, standing with feet apart and holding a big wooden longbow upright in '
               'the left hand at the side.',
-    'adept': 'A storm wizard toy figure: a young chibi wizard about two heads tall with a big head, blond '
-             'hair and a happy face, a tall pointy royal blue hat and a royal blue robe with gold star '
-             'patterns, standing and holding up a wooden staff topped with a big glowing yellow crystal.',
-    'colossus': 'A stone golem toy figure: a huge heavy golem built of big rounded grey boulders, massive '
-                'arms hanging down with fists near the ground, short thick legs, a small blocky head with '
-                'two glowing yellow eyes, a royal blue cloth banner tied around its waist hanging to the '
-                'knees. Much bulkier than a soldier.',
+    'adept': 'A hired court magician toy figure: a chibi middle-aged man about two heads tall with a big '
+             'head and a calm unhurried face looking slightly down, a tall pointy royal blue hat with a '
+             'narrow brim and a knee-length royal blue robe with gold star patterns, standing upright and '
+             'holding a perfectly vertical wooden staff out at his side, topped with a glowing yellow '
+             'crystal above the brim of the hat.',
+    'colossus': 'A wooden battering ram siege engine toy: a long log with a carved ram head at the '
+                'front end hanging on ropes under an A-frame of crossed wooden posts, mounted on a '
+                'royal blue painted wooden cart with four studded wooden wheels, no crew, no roof. '
+                'Much bulkier than a soldier.',
     'drake': 'A baby dragon toy figure: a small fat round orange baby dragon with a cream belly, big cute '
              'eyes, two little horns, small stubby wings folded up, a short curled tail, standing on its '
              'hind legs, wearing a royal blue saddle blanket with gold trim.',

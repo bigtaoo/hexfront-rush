@@ -60,15 +60,17 @@ def torso(mat='team', belt='leather', buckle='gold'):
         block((0.040, 0.014, 0.032), buckle, (0, -0.154, 0.315), bevel=0.004, name='buckle')
 
 
-def strap(mat='leather', n=49, top=(0.040, 0.536), bot=(-0.100, 0.314)):
+def strap(mat='leather', n=49, top=(0.040, 0.536), bot=(-0.100, 0.314), w=0.026):
     """One strap over the chest, laid on the tunic's own curve: beads, not blocks, or the seams
-    read as a saw blade. Default is the militia's fork strap, shoulder down to the far hip."""
+    read as a saw blade. Default is the militia's fork strap, shoulder down to the far hip.
+    `w` is the bead radius: a strap carrying the team colour has to survive the downscale, and
+    at 0.026 it came out under 2 CSS px on the board - a seam, not a sash."""
     for i in range(n):
         f = i / (n - 1)
         bx = top[0] + (bot[0] - top[0]) * f
         bz = top[1] + (bot[1] - top[1]) * f
         r = on_curve(TUNIC, bz) + 0.002           # laid 2 mm proud of the cloth, not sunk in it
-        ball(0.026, mat, (bx, -(max(r * r - bx * bx, 1e-4) ** 0.5), bz),
+        ball(w, mat, (bx, -(max(r * r - bx * bx, 1e-4) ** 0.5), bz),
              scale=(1.0, 0.34, 0.78), name='strap')
 
 
@@ -115,18 +117,68 @@ def mop(mat='hair'):
         ball(0.038, mat, (x, -0.016, 0.752), scale=(0.62, 1.0, 1.05), name='lock')
 
 
-def arm(x, sleeve='team', out=0.0, hy=-0.016, hand=True, thumb=False, skin='skin'):
+ELBOW = 0.405                    # z where the sleeve ends and the bare forearm starts
+FIST = 0.252                     # z of the fist on a hanging arm; pose.py keeps the same number
+
+
+def arm(x, sleeve='team', out=0.0, hy=-0.016, hand=True, thumb=False, skin='skin', hz=None,
+        fore=None, fr=0.042, elb=None):
     """One arm, in its own group: short sleeve, bare forearm, a fist. `out` reaches the hand away
-    from the body (towards a shaft it has to close on), `hy` brings it forward."""
+    from the body (towards a shaft it has to close on), `hy` brings it forward.
+
+    `fore` paints the forearm (a long SLEEVE rather than a bare arm) and `fr` thins it. An arm
+    that reaches right across the chest is twice the length of a hanging one, and at bare-skin
+    width and bare-skin value it comes out as a pale log lying exactly where the weapon is - the
+    guard's first chest-high pass lost the whole crossbow behind his own forearms.
+
+    `hz` RAISES the fist off the hanging height, for a weapon carried at the chest rather than at
+    the waist. It is not just a different number for the hand: with the fist moved, the forearm has
+    to be aimed at it, or the hand floats off the end of an arm that still points at the floor -
+    which is exactly what a crossbow held level at the waist looked like. So when hz is given the
+    forearm is built as one rod from the elbow TO the fist, however far and in whatever direction
+    that is. Everyone else keeps the original straight-down forearm untouched.
+    """
     with group('armL' if x < 0 else 'armR'):
         lathe([(0.056, 0.400), (0.060, 0.520), (0.0, 0.546)], sleeve, loc=(x, 0, 0), name='sleeve')
-        tilt = math.radians(-26) if out else 0.0
-        rod(0.042, 0.158, skin, (x + out / 2, (hy - 0.014) / 2, 0.326),
-            rot=(0, tilt * (1 if x > 0 else -1), 0), name='forearm')
+        fz = FIST if hz is None else hz
+        if hz is None:
+            tilt = math.radians(-26) if out else 0.0
+            rod(0.042, 0.158, skin, (x + out / 2, (hy - 0.014) / 2, 0.326),
+                rot=(0, tilt * (1 if x > 0 else -1), 0), name='forearm')
+        else:
+            def _rod(a, b, name):
+                d = tuple(b[k] - a[k] for k in range(3))
+                L = math.sqrt(sum(c * c for c in d)) or 1e-6
+                u = tuple(c / L for c in d)
+                rod(fr, L + 0.052, fore or skin, tuple(a[k] + d[k] / 2 for k in range(3)),
+                    rot=(math.asin(max(-1.0, min(1.0, -u[1]))), math.atan2(u[0], u[2]), 0),
+                    name=name, seg=14)
+
+            b = (x + out, hy, fz)
+            if elb is None:
+                _rod((x, 0.0, ELBOW), b, 'forearm')
+            else:
+                # An arm that reaches ACROSS the body cannot be one straight rod from the
+                # shoulder: the shoulder sits at |x| = 0.15 while the coat is 0.175 wide, so a
+                # rod drawn straight from there to a hand on the far side spends its whole
+                # middle INSIDE the torso, and what comes out of the render is a shoulder, a
+                # gap, and a hand floating on its own - the arm reads as broken off.
+                # With `elb` the limb is built in two pieces through an elbow placed OUTSIDE
+                # the coat and in front of it, so every part of it is in open air.
+                # The sleeve is a lathe whose bottom is an OPEN FLAT RIM at z 0.400, r 0.056,
+                # and the upper arm is a rod of r 0.030 leaving it at an angle: where the thin
+                # rod crosses the wide flat rim the silhouette steps in, and that step is the
+                # notch you can see at the shoulder. A ball the width of the rim, sunk at the
+                # rim, closes it and gives the rod a round socket to come out of, so the arm
+                # tapers out of the sleeve instead of being cut off by it.
+                ball(0.058, sleeve, (x, 0.0, 0.404), scale=(1.0, 1.0, 0.86), name='shoulder')
+                _rod((x, 0.0, 0.500), elb, 'upperarm')
+                _rod(elb, b, 'forearm')
+                ball(fr * 1.08, fore or skin, elb, name='elbow')
         if hand:
-            ball(0.048, skin, (x + out, hy, 0.252), name='hand')
+            ball(0.048, skin, (x + out, hy, fz), name='hand')
         if thumb:
-            ball(0.019, skin, (x + out - 0.006 * (1 if x > 0 else -1), hy - 0.040, 0.272),
+            ball(0.019, skin, (x + out - 0.006 * (1 if x > 0 else -1), hy - 0.040, fz + 0.020),
                  scale=(1.0, 1.0, 1.5), name='thumb')
 
 
@@ -163,10 +215,13 @@ def pointy_hat(mat='team', trim='gold', h=1.26):
     with group('head'):
         # the brim stops short of the shoulders: wider, and the 42 deg camera put the whole
         # face in its shadow, which at 40 px is a hat with no one under it
-        lathe([(0.216, 0.800), (0.218, 0.824), (0.150, 0.846), (0.0, 0.850)], mat, name='brim')
+        # 0.218 was wider than his own shoulders, and it cost twice: the 42 deg camera dropped
+        # the whole brim shadow across the eyes, and it reached out to exactly where the staff
+        # has to stand, so the crystal fused into it. 0.198 keeps the disc and buys both back.
+        lathe([(0.196, 0.806), (0.198, 0.830), (0.138, 0.850), (0.0, 0.854)], mat, name='brim')
         lathe([(0.156, 0.840), (0.136, 0.930), (0.096, 1.080), (0.040, h - 0.06), (0.0, h)],
               mat, loc=(0.0, 0.052, 0), name='cone')
-        lathe([(0.164, 0.834), (0.166, 0.866)], trim, name='hatband')
+        lathe([(0.150, 0.838), (0.152, 0.870)], trim, name='hatband')
         ball(0.030, trim, (0.030, 0.090, h - 0.02), name='tip')
 
 

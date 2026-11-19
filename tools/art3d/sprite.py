@@ -30,7 +30,11 @@ from scipy import ndimage
 # texture px per CSS px: 3 since 2026-11-15 (a 3x phone draws a sprite 1:1; at 2 it was stretched
 # 1.2-1.6x on phones and desktops and looked soft). The outline grows with it (OUTLINE_PX).
 TEX_K = 3
-OUTLINE_PX = 2 * TEX_K
+# 4, not 2 * TEX_K: at TEX_K = 3 the board draws a troop at PIC_K = 1.3, so a 6 px outline came
+# out 2.6 CSS px on a 62 px figure - thick enough that the hat merged into the hair and the belt
+# into the tunic. The area match (old_area) holds the sprite's visual mass fixed, so a thinner
+# edge is spent on the figure instead of on ink: same weight on the board, more of it readable.
+OUTLINE_PX = 4
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
 from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's sizes and groups
 

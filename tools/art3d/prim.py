@@ -15,7 +15,9 @@ PART = [None]   # the movable group every primitive made right now belongs to (s
 @contextmanager
 def group(name):
     """Tag every part built inside with a group name, so a pose can move them as one piece."""
-    PART.append(name)
+    # nested groups make a path - 'armR.gear' is the weapon in the right hand, which a pose can
+    # turn on its own (it drags behind the arm) or leave to follow 'armR' with the rest of the arm
+    PART.append('.'.join(p for p in (PART[-1], name) if p))
     try:
         yield
     finally:
