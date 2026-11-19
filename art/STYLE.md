@@ -6,34 +6,64 @@ Since 2026-11-10 the whole cast (units, buildings, props, map events) is one set
 players who click, find the first screen cheap and leave, so the opening frame's finish comes first,
 and the old mix of flat stickers and a few 3D renders read as clip art from different hands.
 
-## Pipeline (refs -> sprites)
+## Pipeline (code -> sprites)
 
-1. `python tools/art3d/refs.py [name ...]` writes `art/tripo/ref/<name>.txt`: one subject line plus
-   the shared style line (TOY: chunky carved forms, matte enamel paint, visible grain, worn edges,
-   warm earthy colours, simple silhouette) and composition line (single object, three-quarter
-   from above, forty degrees for buildings and props, even studio light, no shadow or ground,
-   pure white background). Royal blue is the team colour and appears only where the subject
-   line says; props have no blue at all.
-2. `MISTRAL_KEY=... bash tools/art/generate_image.sh art/tripo/ref/<name>.png art/tripo/ref/<name>.txt`
-   (1184x896).
-3. `python tools/art3d/fromref.py art/tripo/render_ref` cuts each ref from its white (enclosed white
-   pockets too, except for snow and ice), un-blends the rim from the paper white, relights it like
-   the board (lit upper left, ground side darker, foot in shade) and writes `_blue` + `_red`
-   (team_recolor.py) or the teamless picture.
-4. `python tools/art3d/paint.py art/tripo/render_ref art/tripo/render_ref_paint 3`, then
-   `python tools/art3d/sprite.py art/tripo/render_ref_paint art/tripo/sprites_ref`: painterly pass,
-   a 4 px dark outline, sized to the same opaque area as the sprite it replaces.
-5. Copy `art/tripo/sprites_ref/<group>/out/*.png` to `art/<group>/out/`, then `python tools/art/pack.py`
-   (src/assets/atlas.webp/.json).
+Since 2026-11-19 nothing in the cast is painted from a reference image any more. Every piece -
+the nine troops, the eight buildings and the twelve props - is **built in code** inside headless
+Blender out of the same handful of turned and carved primitives, and rendered with one camera,
+one set of lights and one outline, which is what makes the set read as one hand.
 
-Troops no longer come from this route. Since the move to rendered frames (D56, ANIMATION.md) each
-of the nine troops is **built in code** inside headless Blender - `tools/art3d/troops.py` for the
-six humanoids, `beasts.py` for ogre, colossus and drake, on the shared parts in `body.py`,
-`prim.py` and `pose.py` - and rendered through `sprite.py` with the same camera, lights and
-outline. That is what makes 13 frames per troop per team affordable; a painted ref cannot be posed.
-Buildings, props and map events are still steps 1-5. The Tripo route
-(tools/art3d/tripo.py -> paint.py -> sprite.py) is kept for a one-off model, but Tripo's free plan
-exports only three (guard, ogre, mine, all spent).
+1. `tools/art3d/prim.py` holds the primitives (`lathe`, `block`, `ball`, `rod`, `prism`, `fan`,
+   `flag`, `windows`) and the palette. A model is a function that calls them and returns the
+   height in view units it should be framed to.
+2. The models live in four files, each registering `MODELS`, `YAW`, and where it differs from the
+   default, `ELEVS` and `TEAMLESS`: `troops.py` (six humanoids) and `beasts.py` (ogre, colossus,
+   drake) on the shared `body.py` / `pose.py`; `builds.py` (castle, barracks 1-4, tower, mine,
+   rubble); `props.py` (trees, rocks, ice, arch, cactus, chest, hoard, camp, warband, mystery).
+   `toys.py` merges the four and holds only the render machinery.
+3. Render: `HF_TEAMS=blue,red blender -b -P tools/art3d/toys.py -- <renderdir> <name> [...]`.
+   Env overrides: `HF_TEAMS`, `HF_YAW="name=deg"`, `HF_WALK=scissor`, `HF_ELEV`.
+4. `python tools/art3d/sprite.py <renderdir> art` trims each frame, scales it to the same opaque
+   area as the sprite it replaces, and lays the dark ink outline on: writes `art/<group>/out/*.png`.
+5. `python tools/art/pack.py` -> `src/assets/atlas.webp` + `atlas.json`.
+
+The camera elevation is per model, because a prop is read from much further above than a soldier:
+`UNIT_ELEV` 18 for troops, 26-36 for buildings, 30-44 for props (`builds.ELEVS`, `props.ELEVS`).
+
+The old painted-reference route (`refs.py` -> `tools/art/generate_image.sh` -> `fromref.py` ->
+`paint.py`) and the Tripo route (`tripo.py` -> `paint.py` -> `sprite.py`) are gone from the cast.
+They stay in the tree for the UI art, which is still painted (see the UI section below).
+
+### The cast (tools/art3d/builds.py, props.py)
+
+Buildings, blue and red: **base** a walled castle, three cone-roofed towers over an arched gate;
+**barracks 1-4** an upgrade chain the player can read at a glance - a one-room hut, a timbered
+two-storey house, a crenellated wall fort, a domed palace; **tower** a round watchtower on a
+stone plinth; **mine** a faceted rock with the adit cut into it, a lamp, rails and a cart of
+nuggets; **rubble** (teamless) broken beams and stone where a building fell.
+
+Props, all teamless: **oak**, **pine**, **snowpine**, **cactus**, **rocks** (a boulder with
+splinters at its foot), **ice**, **arch**, and the five map events - **chest**, **hoard**,
+**camp** (tent, fire, log), **warband** (three spears and a shield), **mystery** (a ? board).
+
+### What a model has to do to read at 40-60 px
+
+Each of these was learned by rendering the thing and looking at it, not by reasoning:
+
+* One silhouette per piece, and two values in every mass - a single flat colour is a blob.
+* The top carries the colour and the detail: at 30-44 degrees of elevation anything put on the
+  back or on a lower rear face is simply not there (the oak's dark leaves had to move to the
+  front underside before the crown stopped reading as one flat green).
+* A box is a crate however much it is tilted. A rock is a five-sided lathe, not a slab.
+* A small dark patch on a wall or a curved face is a window, whatever colour it is - that is how
+  the arch's moss and the boulder's moss both failed. Moss has to lie flat on a ledge, or go.
+* A door, a doorway, an opening has to touch the ground; stopped short it is a window.
+* A flat turned mound of metal is a puddle of light: a hoard is overlapping nuggets with the
+  coins standing in stacks.
+* Team colour goes on roofs and merlon caps only, never on walls.
+* Thin crossed shapes (two swords, a crossed banner) collapse into a bow tie: use one bold shape.
+* `flag(pole_top, ...)` takes the TOP of the pole and `pole_h` runs DOWNWARD - lengthening the
+  pole drives it into the ground, it does not raise the flag.
 
 Scale on the board (lookB): troops are drawn 1.3x their hit size (LOOKB_UNIT_K); a building fills
 most of its tile (buildingView.ts BLD_W 1.45 / BLD_H 1.75 view units, a tile is 1.73 wide), so the

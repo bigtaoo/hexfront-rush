@@ -39,6 +39,9 @@ PAL = {
     'darkwood': '#4a3020', 'skin': '#e9b98b', 'green': '#5f8a3a', 'moss': '#7d9a48',
     'tan': '#c6a56e', 'stone': '#a99b85', 'grey': '#8a857d', 'yellow': '#f2c14e', 'pink': '#e89a8c',
     'opening': '#1b1410', 'slate': '#5d5a57',
+    # the terrain props (props.py): a colder blue-white for ice, and a second,
+    # darker green so a tree's crown has two values and does not read as one blob
+    'ice': '#9fd8e8', 'frost': '#dff2f7', 'deepgreen': '#44682a',
     # the militia's own colours: 'hair' and 'mouth' stay clear of INK (#2b1d14), or at
     # 40 px the outline swallows them; 'cloth' is the work trousers, 'leather' boots/belt
     'hair': '#6d4526', 'mouth': '#5a241c', 'leather': '#55361f', 'cloth': '#9a7a46',
