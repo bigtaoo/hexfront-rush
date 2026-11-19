@@ -221,7 +221,15 @@ export class UnitView {
     // `2 - sy` width) is what made a solid, fully drawn picture read as a sheet of paper being
     // crumpled: the whole figure, head included, widened exactly as much as it shortened.
     // A still breath is a sway of under a degree, not a pulse.
-    let lift = u.bob, rot = Math.sin(u.time * 0.9 + u.id * 1.7) * 0.014, bx = 0, alpha = 1;
+    // the hop goes the same way as the rock above: the walk frames already carry a bounce of
+    // their own (pose.py walk_rock, 0.011-0.018 of a tile, highest where the legs pass), and
+    // this one is 0.06 and in ANTIPHASE with it - it lifts the piece on the frames whose legs
+    // are spread and drops it on the frames that are already at the top. Two bounces a step,
+    // against each other, is the shake. The frames keep theirs; the view stops adding one.
+    let lift = this.anim ? 0 : u.bob,
+      rot = Math.sin(u.time * 0.9 + u.id * 1.7) * 0.014,
+      bx = 0,
+      alpha = 1;
     if (u.type === 'drake') {
       lift = DRAKE_LIFT + Math.sin(u.time * 5 + u.id) * 0.05;
       rot = Math.sin(u.time * 2.3 + u.id) * 0.05;

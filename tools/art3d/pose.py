@@ -452,7 +452,13 @@ def walk_rock(i: int, name: str):
     # the stance scales with the model: a colossus does not stand on a boy's footprint, and its
     # hip height is the only measure of its size this file keeps
     foot = ROCK_FOOT * (hip / HIP) * (1 if roll >= 0 else -1)
-    turns.append(('^', (foot, 0.0, 0.0), roll + math.radians(q('tilt', 0.0)), 'y'))
+    # ...and it turns about the BELLY, not about the ground. A tip about the sole swings the whole
+    # figure one way: every part at height z moves z*sin(roll), so at the ogre's 16 degrees his
+    # head went a third of a tile sideways and the piece visibly walked off the hex it is standing
+    # on, while the coordinate underneath it went straight. About the belly the top goes one way
+    # and the feet the other - the ANGLE, which is the whole of what reads as a rock at 40 px, is
+    # untouched, and the piece as a whole stays over its own coordinate.
+    turns.append(('^', (foot, 0.0, (hip + sh) / 2), roll + math.radians(q('tilt', 0.0)), 'y'))
     # bounce rises twice a step, where the legs pass; limp rises on ONE step of the two and not
     # the other, which is the difference between a walk and a hobble. Its sign picks which step,
     # not which way: a lift that went negative would push the soles through the board.

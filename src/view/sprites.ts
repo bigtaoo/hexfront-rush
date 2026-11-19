@@ -120,7 +120,9 @@ class GuardView {
     }
     const ph = g.moving ? walkPhase(f.time + g.id, g.aim ? GUARD.chaseSpeed : GUARD.speed) : -1;
     const step = ph < 0 ? 0 : Math.sin(ph * 2 * Math.PI);
-    const bob = Math.abs(step) * 0.06;
+    // no hop here either once the frames are drawn (unitView.ts): theirs runs twice a step and
+    // in the opposite phase to this one, and the two beating against each other is the shake
+    const bob = this.anim ? 0 : Math.abs(step) * 0.06;
     const face = g.face || 1;
     // written out, like the troops' (unitView.ts): no array per frame. The guard keeps its shape
     // too (unitView.ts): it hops and tips, it never squashes.

@@ -164,12 +164,15 @@ def build(name: str, team: str, out: Path, kind=None):
         fit = (x0, x1, y0, y1) if fit is None else (min(fit[0], x0), max(fit[1], x1),
                                                     min(fit[2], y0), max(fit[3], y1))
     grow = 1.0
-    if kind in ('t', 'd'):
-        # the board cuts straight from the still into a turn or a death frame, so these are drawn
-        # at the still's own scale and centre, or the piece would jump a size mid-swing. A pose
-        # that reaches wider than the still (a drake turning its wingspan towards us, anything
-        # lying down) gets a wider film instead of a smaller model; sprite.py lines the canvases
-        # up by their centres.
+    if kind:
+        # EVERY cycle is drawn at the still's own scale and centre, never at its own box's. The
+        # board cuts straight from the still into a walk, a swing, a turn or a death frame, and
+        # sprite.py lines a group's frames up by their canvas centres and scales them all by one
+        # factor solved on the still - so a cycle fitted to its own box comes out both shifted
+        # (its box's centre is not the still's) and shrunk (its box is wider, so a world unit is
+        # fewer pixels). That is the walk sliding off the coordinate it stands on. A pose that
+        # reaches wider than the still (a drake turning its wingspan towards us, a club at the
+        # top of its swing, anything lying down) gets a wider film instead of a smaller model.
         assemble(name, team, None, 0)
         sx0, sx1, sy0, sy1 = extent(elev)
         cx, cy = (sx0 + sx1) / 2, (sy0 + sy1) / 2
