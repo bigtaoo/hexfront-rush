@@ -28,11 +28,19 @@ def model_militia():
     The smock is the lightest thing any troop wears, which is now how you pick him out of the row.
     """
     B.legs()
-    B.torso(mat='cream')
-    B.strap(mat='team', w=0.042)      # wide enough to read as a sash and not as a seam
+    B.torso(mat='cream', belt='team')
+    B.strap(mat='team', w=0.058)      # wide enough to read as a sash and not as a seam
     B.face()
     B.arm(-0.146, sleeve='cream')
     B.arm(0.146, sleeve='cream', out=0.066, hy=-0.046, thumb=True)
+    with group('armL'):
+        # the third patch of team colour, on the near sleeve: a sash alone came out at 4.3% of
+        # his board-size pixels against a cast median of 16%, and a clump of militia read as one
+        # beige crowd whoever owned it. A band tied round the arm is the same story as the sash -
+        # something somebody knotted on him this morning - so it buys the legibility without
+        # issuing him a uniform, which is the whole of what he is not.
+        lathe([(0.062, 0.428), (0.064, 0.452), (0.063, 0.488)], 'team',
+              loc=(-0.146, 0, 0), name='armband')
     with group('armR'), group('gear'):  # the pitchfork goes with the hand, leaning back
         tilt = math.radians(14)           # away from the head: the ink would bridge a small gap
         rod(0.019, 0.700, 'darkwood', (0.245, -0.046, 0.390), rot=(0, tilt, 0), name='shaft')
@@ -57,7 +65,7 @@ def model_slinger():
     # dark jerkin between light trousers and bare arms: three bands of value down the figure,
     # where brown over tan was one brown mass at 40 px. A dark torso is safe where a dark BOOT
     # is not - it is ringed by skin and cloth, so it reads as a shape, not as a hole in the ink
-    B.torso(mat='leather', belt='boot', buckle='gold')
+    B.torso(mat='leather', belt='team', buckle='gold')
     B.face()
     with group('head'):                   # a soft cap down to the brow. A full hood put
         lathe([(0.178, 0.790), (0.188, 0.824), (0.168, 0.866), (0.090, 0.894), (0.0, 0.900)],
