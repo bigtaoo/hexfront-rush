@@ -60,7 +60,7 @@ def model_ogre():
         #                             below the belt the kilt is wider than the belly, and a sash
         #                             drawn on the belly down there is simply inside the kilt
         r = B.on_curve(belly, bz) + 0.004
-        ball(0.062, 'team', (bx, -(max(r * r - bx * bx, 1e-4) ** 0.5), bz),
+        ball(0.076, 'team', (bx, -(max(r * r - bx * bx, 1e-4) ** 0.5), bz),
              scale=(1.0, 0.22, 0.74), name='sash')
     with group('head'):                     # a narrower head than the shoulders, so there is a
         lathe([(0.130, 0.790), (0.196, 0.850), (0.206, 0.930), (0.178, 0.996), (0.098, 1.030),
@@ -141,6 +141,17 @@ def model_ogre():
         #    460 px wide and shrank him below the colossus; DLOG is 50 degrees for that reason.
         butt, tip = along(-0.55), along(0.56)   # 1.11 of timber, through the fist and out both ends
         B.line(butt, tip, 'wood', 30, bead=0.105, name='log')
+        # a rag knotted round the upper end. Measured at board size he carried only 10.5% team
+        # colour - the kilt and the sash are big flats, but they sit on a body that is bigger
+        # still, and half of the kilt is behind the near thigh at this yaw. This band is out past
+        # his head with nothing behind it but the tile, which is the cheapest colour on the whole
+        # unit: no pixel of it is ever occluded, in any frame of any cycle. It is also the only
+        # mark on him that somebody could have tied on this morning - he is not a soldier, and a
+        # rag on the log says whose he is without promoting him.
+        # kept SHORT and off the end: run up to the tip and the timber reads as painted
+        # rather than bound, and a painted log is a prop issued by a quartermaster, which
+        # is the one thing this unit is not. A hand's width, with bare wood above it.
+        B.line(along(0.17), along(0.29), 'team', 7, bead=0.114, name='logband')
         # end grain on the TOP end, which is the end that clears his head and is therefore the
         # only end anyone sees. A plain brown cylinder has no end, so at 40 px it reads as a bar
         # of something; the pale disc is what makes it a sawn tree. It was on the butt for three

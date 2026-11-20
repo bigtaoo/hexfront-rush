@@ -136,7 +136,12 @@ def model_shield():
         # carries a device; a cross is the one device that survives 40 px, because it runs edge
         # to edge and needs no detail to be read. It is also where his team colour now lives:
         # the shield covers his shirt, so the shirt alone can no longer say whose man he is.
-        for sz in ((2 * R - 0.040, 0.030, 0.082), (0.082, 0.030, 2 * R - 0.040)):
+        # the bars were 0.082 on a 0.584 disc and he still measured only 10.9% team colour at
+        # board size: the shield covers his shirt, so a thin cross is nearly all the colour he
+        # has. 0.118 keeps the four quarters of bare board showing - a cross that eats its own
+        # field stops being a device and becomes a painted disc - while carrying half again as
+        # many pixels on the largest flat any of the nine troops owns.
+        for sz in ((2 * R - 0.040, 0.030, 0.118), (0.118, 0.030, 2 * R - 0.040)):
             block(sz, 'team', on_face(0, 0, 0.062), rot=(0, 0, face), bevel=0.006, name='cross')
         ball(0.082, 'silver', on_face(0, 0, 0.082), scale=(1.0, 0.55, 1.0), name='boss')
         for a in range(8):                # studs round the rim, on the face's own axes
