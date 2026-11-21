@@ -117,21 +117,35 @@ export function goalTrack(m: MatchKind, taken: number): { text: string; color?: 
 
 // ---------------- the screens ----------------
 
-/** Which menu buttons are not there yet. Before the first match the menu is just Play, the gear
- *  and How to play: a quick match, a difficulty, achievements, the daily challenge and online all
- *  mean nothing to someone who has not played a match, and seven controls on the first screen is
- *  the loudest the game ever is. They come with the tutorial being done, in one go. (Online also
- *  needs a relay to talk to.) */
+/** Which menu buttons are not there yet. Before the first match the lobby is just Play, the gear
+ *  and How to play: a quick match, achievements, the daily challenge and online all mean nothing
+ *  to someone who has not played a match, and seven controls on the first screen is the loudest
+ *  the game ever is. They come with the tutorial being done, in one go. (Online also needs a
+ *  relay to talk to.) The difficulty is not on this list any more: it lives in the quick match's
+ *  own tray, which only the quick match button opens. */
 export function menuHidden(save: Save, onlineOk: boolean): Record<string, boolean> {
   const first = !save.tutorialDone;
-  return { quickBtn: first, diffBtn: first, achBtn: first, dailyBtn: first, onlineBtn: first || !onlineOk };
+  return { quickBtn: first, achBtn: first, dailyBtn: first, onlineBtn: first || !onlineOk };
 }
 
-/** The menu's campaign, quick match and daily buttons. */
+/** A flame for the daily button's run of days, drawn rather than written: the lobby's font has no
+ *  emoji, and a word would be one more string to translate. */
+const FLAME = '<svg class="fl" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4-3 5-3 9a3 3 0 0 0 6 0c0-1-.4-2-.4-2 2 1.4 3.4 3.6 3.4 6a6 6 0 0 1-12 0c0-5 4-7 6-13z" fill="currentColor"/></svg>';
+
+/** The lobby's play card, its mode buttons and the difficulty inside the quick match's tray.
+ *  The play card is the one green thing on the screen and it says where it goes: the word
+ *  Campaign, the stage, and the chapter that stage is in. Before the tutorial it is the bare word
+ *  Play, with nothing under it to explain. The daily button wears the day's stars and, while the
+ *  run is still alive (won today or yesterday), the days won in a row -- which is the whole
+ *  reason to come back tomorrow. */
 export function updateMenu(save: Save, onlineOk: boolean): void {
   for (const [id, hide] of Object.entries(menuHidden(save, onlineOk))) $(id).classList.toggle('hidden', hide);
   const id = nextStage(save.stages);
-  $('playBtn').textContent = save.tutorialDone ? `${T('campaign')} · ${stageLabel(id)}` : T('play');
+  const ch = Math.floor(id / STAGES_PER_CHAPTER);
+  const chapter = T('chapterN', { n: ch + 1, name: T(`ch_${CHAPTERS[ch]?.key ?? ''}`) });
+  $('playBtn').innerHTML = save.tutorialDone
+    ? `<span class="pe">${T('campaign')}</span><span class="pn">${stageLabel(id)}</span><span class="pc">${chapter}</span>`
+    : `<span class="pn">${T('play')}</span>`;
   for (const b of $('diffBtn').querySelectorAll<HTMLElement>('button')) {
     const on = Number(b.dataset.d) === save.skirmish;
     b.classList.toggle('on', on);
@@ -139,7 +153,9 @@ export function updateMenu(save: Save, onlineOk: boolean): void {
   }
   const today = dayNumber(Date.now());
   const done = save.dailyDay === today ? save.dailyGoals : 0;
-  $('dailyBtn').innerHTML = `${T('daily')} <span class="st">${starsHtml(done)}</span>`;
+  const alive = save.streak > 0 && save.streakDay >= today - 1;
+  const streak = alive ? `<span class="tag">${FLAME}${save.streak}</span>` : '';
+  $('dailyBtn').innerHTML = `${T('daily')} <span class="st">${starsHtml(done)}</span>${streak}`;
   $('achN').textContent = `${achCount(save.ach)}/${ACHIEVEMENTS.length}`;
 }
 

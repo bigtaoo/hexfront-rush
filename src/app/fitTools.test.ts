@@ -2,21 +2,23 @@ import { describe, expect, it } from 'vitest';
 import { fitSteps } from './dom';
 import { LANGS, T, loadLang, setLang } from './i18n';
 
-// The menu's tools row (index.html, .row.tools) holds the four difficulty words, the medals and
-// the gear on one line, by design -- the gear on a row of its own looked lost. Four long words
-// then carry the row off both edges of a narrow phone: Polish's "Łatwy Normalny Trudny Brutalny"
-// measured 384 px of a 360 px screen, with the gear past the right edge where the body's
-// `overflow: hidden` cut it off. dom.ts fitTools shrinks the words to the room the row has; this
-// is its arithmetic, run over the real words of all thirteen languages.
+// The quick match's difficulty words live in a tray that opens under the mode planks
+// (index.html, #quickPop). Four long words carry the row off both edges of a narrow phone:
+// Polish's "Latwy Normalny Trudny Brutalny" measured 384 px of a 360 px screen, with the last
+// word past the right edge where the body's `overflow: hidden` cut it off. dom.ts fitTools
+// shrinks the words to the room the row has; this is its arithmetic, run over the real words of
+// all thirteen languages.
 //
 // The widths here are a stand-in for the browser's: the row's own width was measured live in
-// Chrome at 360 px (Polish 384 px at 13 px, 344 px at 11 px) and the two numbers below were fitted
-// to it. A stand-in is enough for what this guards -- that no language's words, however long,
-// leave the row wider than the phone it is on -- but a change to the row's furniture belongs in
-// FIXED, and the real check stays a look at the menu in the browser.
+// Chrome at 360 px (Polish 384 px at 13 px, 344 px at 11 px) and the two numbers below were
+// fitted to it, back when the medals and the gear shared the row -- they are corner tokens of
+// their own since D78, so the only width the words do not scale is the segment frame itself. A
+// stand-in is enough for what this guards -- that no language's words, however long, leave the
+// row wider than the phone it is on -- but a change to the row's furniture belongs in FIXED, and
+// the real check stays a look at the menu in the browser.
 
-/** The row's width that the words do not scale: the medals button, the gear, the gaps, the frames. */
-const FIXED = 130;
+/** The row's width that the words do not scale: the segment frame's own border and gaps. */
+const FIXED = 16;
 /** A word's width in the game's font, per character per pixel of font size. */
 const K = 0.62;
 

@@ -13,7 +13,7 @@ import { QualityRuntime, gpuName } from '../view/qualityRuntime';
 import { CHAPTERS, dayNumber, SKIRMISH, STAGES_PER_CHAPTER } from './campaign';
 import { allStars, updateMenu } from './campaignUi';
 import { devSwitches, LOCAL_HOST } from './dev';
-import { $, applyTexts, openPanel, refit, updateMuteIcon, updateShare } from './dom';
+import { $, applyTexts, fitTools, openPanel, refit, updateMuteIcon, updateShare } from './dom';
 import { wirePause } from './pauseMenu';
 import { Game, WATCH_SPEEDS } from './game';
 import { LANG, loadLang, setLang } from './i18n';
@@ -165,18 +165,29 @@ function wire(g: Game, platform: Platform, settings: (tap: () => void) => void):
     g.show('menu');
     updateMenu(g.save, g.online.available());
   };
+  // The quick match asks for its difficulty on the way in: the button opens a tray with the four
+  // levels and the one picked starts the match. The tray used to be a row of white segments
+  // standing on the lobby at all times -- the loudest thing on the first screen, for a setting
+  // that means nothing until a quick match is actually wanted.
+  const quickTray = (open: boolean) => {
+    $('quickPop').classList.toggle('hidden', !open);
+    $('quickBtn').setAttribute('aria-expanded', String(open));
+    if (open) fitTools();
+  };
   $('quickBtn').addEventListener('click', () => {
     tap();
-    g.beginMatch({ kind: 'quick' });
+    quickTray($('quickPop').classList.contains('hidden'));
   });
-  // the quick match's difficulty: a segmented control, one segment per level (it was one button
-  // that stepped through four levels, so the choice could not be seen before it was made)
+  // one segment per level (it was one button that stepped through four levels, so the choice
+  // could not be seen before it was made)
   for (const b of $('diffBtn').querySelectorAll<HTMLButtonElement>('button')) {
     b.addEventListener('click', () => {
       tap();
       g.save.skirmish = Math.min(SKIRMISH.length - 1, Number(b.dataset.d) || 0);
       g.persist();
       updateMenu(g.save, g.online.available());
+      quickTray(false);
+      g.beginMatch({ kind: 'quick' });
     });
   }
   $('dailyBtn').addEventListener('click', () => {

@@ -1,6 +1,7 @@
 // The HTML panels over the canvas (index.html): menu, how-to, online lobby, campaign, brief, leaderboard, results, the
 // pause menu, the achievements and the settings, and the corner buttons (sound, music, pause, leave, replay speed). Every text comes from i18n through data-t attributes, and the icon buttons' aria-labels through data-ta.
 
+import { STAGE_COUNT, totalStars } from './campaign';
 import { T } from './i18n';
 import { settleFocus } from './panelKeys';
 import type { Save } from './save';
@@ -32,6 +33,9 @@ export function show(id: Panel | null, leave: boolean, watch: boolean, pause: bo
     el.textContent = T(el.getAttribute('data-t') ?? '');
   }
   for (const p of PANELS) $(p).classList.toggle('hidden', p !== id);
+  // the quick match's difficulty tray is open only while it is being asked for (boot.ts)
+  $('quickPop').classList.add('hidden');
+  $('quickBtn').setAttribute('aria-expanded', 'false');
   $('leaveBtn').classList.toggle('hidden', !(id === null && leave));
   $('speedBtn').classList.toggle('hidden', !(id === null && watch));
   $('pauseBtn').classList.toggle('hidden', !(id === null && pause));
@@ -200,17 +204,18 @@ export type Box = { left: number; right: number; top: number; bottom: number };
  *  too: at a pixel's distance the gear and the switch read as one smudged knob. */
 const CORNER_GAP = 6;
 
-/** The menu is the one panel that keeps the sound and the music switch on the screen, and the
- *  menu's own bottom row -- the difficulty, the medals, the gear -- ends in the same corner they
- *  sit in. On a tall phone they are far apart. On a short one they are not: at 640x360 the music
- *  switch covered the right half of the gear, at 568x320 both switches lay over it completely,
- *  and a tap meant for the settings turned the music off instead. The switches step off the
- *  screen where they would touch the row. Nothing is lost by it: the settings hold both, one tap
- *  away on the gear that is now reachable, which is already how every other panel does without
- *  them. They are put back the moment the screen has the room again (boot.ts refits on resize),
- *  so a turned phone shows them again. */
+/** The menu is the one panel that keeps the sound and the music switch on the screen, and its own
+ *  tokens -- how to play, the medals, the gear -- sit in the opposite top corner. Facing corners
+ *  do not meet on any phone, but they did when both were at the bottom right: at 640x360 the
+ *  music switch covered the right half of the gear, at 568x320 both switches lay over it
+ *  completely, and a tap meant for the settings turned the music off instead. The check stays,
+ *  pointed at the tokens where they are now: the switches step off the screen where they would
+ *  touch them. Nothing is lost by it: the settings hold both, one tap away on the gear that is
+ *  now reachable, which is already how every other panel does without them. They are put back the
+ *  moment the screen has the room again (boot.ts refits on resize), so a turned phone shows them
+ *  again. */
 function tuckCorners(): void {
-  const row = $('menu').querySelector('.row.tools');
+  const row = $('menu').querySelector('.menuTools');
   const mute = $('muteBtn'), music = $('musicBtn');
   if (!row) return;
   // measured where they would be, not where the last screen left them: hidden, they have no box
@@ -233,10 +238,12 @@ export function applyTexts(save: Save): void {
   updateShare(save);
 }
 
-/** The menu's record line; kept invisible (its room kept) until the first match is over. */
+/** The lobby's line under the signboard: the campaign stars won of all there are, which is what
+ *  the player is actually collecting, and the match record after it in a quieter hand. Kept
+ *  invisible (its room kept) until the first match is over. */
 export function updateRecord(save: Save): void {
   const el = $('record');
-  el.textContent = T('record', { w: save.wins, l: save.losses });
+  el.innerHTML = `<span class="g">★</span> ${totalStars(save.stages)}/${STAGE_COUNT * 3} <i>${T('record', { w: save.wins, l: save.losses })}</i>`;
   el.style.visibility = save.wins + save.losses + save.draws ? '' : 'hidden';
 }
 

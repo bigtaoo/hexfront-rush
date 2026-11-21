@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { boxesTouch } from './dom';
 
-// The menu is the one panel that keeps the sound and the music switch on the screen, and the
-// menu's own bottom row -- the difficulty, the medals, the gear -- ends in the same corner the two
-// wooden tokens sit in. On a tall phone they are far apart; on a short one they are not, and the
-// tokens are fixed over the row, so the gear's own taps went to the music switch instead. dom.ts
-// tuckCorners takes the two switches off the screen where they would touch the row, and this is
-// the arithmetic it decides by, run over the boxes measured in Chrome on the screens it was found
-// on. The look at the menu stays a live one; what this guards is that the rule still reads those
-// boxes the same way.
+// The menu is the one panel that keeps the sound and the music switch on the screen. Since D78
+// the two switches take the lobby's top left corner and the lobby's own tokens -- how to play,
+// the medals, the gear -- take its top right; on a 320 px phone, with a long medal count, the two
+// groups still meet in the middle, and the tokens are fixed over the switches, so the gear's own
+// taps went to the music switch instead. dom.ts tuckCorners takes the two switches off the screen
+// where they would touch the tokens, and this is the arithmetic it decides by, run over the boxes
+// measured in Chrome on the screens it was found on. The look at the menu stays a live one; what
+// this guards is that the rule still reads those boxes the same way.
 
 /** A box as the browser hands it over (left, top, right, bottom), in that order. */
 const box = (left: number, top: number, right: number, bottom: number) => ({ left, top, right, bottom });
