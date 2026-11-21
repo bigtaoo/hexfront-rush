@@ -50,40 +50,40 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
   - Each gold mine gives +10 every 5 s.
   - Map events (below) pay gold or troops to whoever flips their card first.
 - **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a type and price. Tapping a card you can afford builds it. The price fades when you can't afford it.
-- **Falling behind pays (the first four minutes):** count the tiles. Past a slack of 3 tiles behind, each further tile makes your mines pay **+5 % more** (up to +60 %, shown as a green `+N +X%` over the mine) and takes **3 % off every card** (up to −40 %, the price drawn green). A watchtower never goes on sale: the discount buys a way back into the match, not a cheaper wall. Both fade out linearly and are gone by 4:00 — the comeback window is the part of a match still being played for.
+- **Falling behind pays (the first four minutes):** count the tiles. Past a slack of 3 tiles behind, each further tile makes your mines pay **+5 % more** (up to +60 %, shown as a green `+N +X%` over the mine). It fades out linearly and is gone by 4:00 — the comeback window is the part of a match still being played for. It is the trailing side's only outlet: prices themselves never move (below).
 - **Network:** every flip, a building or a mystery, extends your network and reveals the offers around it.
-- **Rising prices:** each card costs its base price plus a step for every building of its kind the team has standing (a mystery stays 25). Losing a building makes the next one cheaper again.
+- **Fixed prices:** a price is a property of the ground, not of what you already own. Every card costs the same at minute one and at minute ten, and the same to both sides, all match long. Three grades of land (50 / 100 / 200) and a 25 gamble: what the dearer ground buys is **better odds**, and the odds are the only thing the price promises.
 
-| Offer | Base | Step | Effect |
-|---|---|---|---|
-| Gold mine | 50 | +15 | +10 gold every 5 s |
-| Watchtower | 50 | +25 | Shoots enemies within 2.8 tiles (22 dmg every 0.8 s) |
-| Barracks I | 50 | +5 | Common, 20 % rare (or a hidden jackpot, below) |
-| Barracks II | 100 | +5 | Rare 65 %, else common (or a hidden jackpot) |
-| Barracks III | 200 | +5 | Always epic or legendary |
-| Mystery "?" | 25 | — | 60 % nothing. A squad that sets off at once: 10 % three common units, 12 % two epic, 4 % two legendary. A barracks on the tile that trains for good: 9 % rare, 4 % epic, 1 % legendary |
+| Offer | Price | Effect |
+|---|---|---|
+| Gold mine | 50 | +10 gold every 5 s |
+| Watchtower | 100 | Shoots enemies within 2.8 tiles (22 dmg every 0.8 s) |
+| Barracks I (first-grade land) | 50 | 80 % common, 20 % rare |
+| Barracks II (second grade) | 100 | 15 % common, 55 % rare, 30 % epic |
+| Barracks III (third grade) | 200 | 20 % rare, 40 % epic, 40 % legendary |
+| Mystery "?" | 25 | 60 % nothing. A squad that sets off at once: 10 % three common units, 12 % two epic, 4 % two legendary. A barracks on the tile that trains for good: 9 % rare, 4 % epic, 1 % legendary |
 
-- **Barracks:** a barracks trains one unit type on a fixed timer for the rest of the match (each unit its own: 5–9 s common and rare, 13–14 s epic, 24–25 s legendary). Its troops gather by it and set off together on the **wave**: every 15 s both teams' troops march at once (the HUD counts down to it), so armies meet armies, not a trickle. A team can have at most 50 troops alive; at the cap a barracks waits with its timer full (grey), and a freed slot goes to the rarest troop waiting. Mystery troops come on top of the cap and set off at once. A barracks from a mystery is a barracks like any other: it claims the ground around it, counts toward the barracks price and the barracks quest, and the rival's epic or legendary one pings an edge marker. A card shows what you rolled (the unit, its rarity, and whether it is a squad marching now or a barracks); a legendary roll gets a full banner.
+- **Barracks:** a barracks trains one unit type on a fixed timer for the rest of the match (each unit its own: 5–9 s common and rare, 13–14 s epic, 24–25 s legendary). Its troops gather by it and set off together on the **wave**: every 15 s both teams' troops march at once (the HUD counts down to it), so armies meet armies, not a trickle. A team can have at most 65 troops alive; at the cap a barracks waits with its timer full (grey), and a freed slot goes to the rarest troop waiting. Mystery troops come on top of the cap and set off at once. A barracks from a mystery is a barracks like any other: it claims the ground around it and counts toward the barracks quest, and the rival's epic or legendary one pings an edge marker. A card shows what you rolled (the unit, its rarity, and whether it is a squad marching now or a barracks); a legendary roll gets a full banner.
 
 ## Card layout (cardLayout.ts)
 Every card on the map is laid out when the match starts, from the match seed: the same seed is the same map, card for card (the tutorial always plays seed 2). The layout is made for blue and mirrored for red, so both find the same cards at the same distance from their own castle. Cards stay face-down until they are next to a tile you have flipped, so finding the good ones is luck and the way you spread is the plan.
 
 Zones count hex distance from your own castle:
 
-| Zone | Distance | Gold mines | Epic barracks | Legendary barracks |
+| Zone | Distance | Gold mines | Second-grade land | Third-grade land |
 |---|---|---|---|---|
 | Home | 1–2 | 2 | 0 | 0 |
 | Near | 3–4 | 3 | 1 | 0 |
-| Middle | 5–7 | 3 | 2 | 1 |
+| Middle | 5–7 | 3 | 2 | 2 |
 | Far (enemy half) | 8+ | 3 | 2 | 1 |
-| **Cap per match** | | **11** | **5** | **2** |
+| **Cap per match** | | **11** | **5** | **3** |
 
 - The six cards around the castle always hold a mine, a Barracks I and a mystery (in a seeded order); that mine is one of the home zone's two.
-- Mines never stand next to each other, and the epic and legendary spots keep apart the same way.
-- An epic or legendary spot shows a Barracks I (15 %), II (25 %) or III (60 %) card: a cheap card can hide a jackpot, and a Barracks III card is always one.
-- Every other tile gets a filler card by weight: tower 28, Barracks I 34, Barracks II 22, mystery 16. A filler barracks is common or rare, rolled with the layout.
+- Mines never stand next to each other, and the dearer grades of land keep apart the same way.
+- The quota spots plant the ground itself: a third-grade spot shows a **Barracks III card (200)**, a second-grade spot a **Barracks II card (100)**. The dear ground is ground you have to walk to — and the price on the card is the whole promise, so nothing is hidden behind a cheap one.
+- Every other tile gets a filler card by weight: tower 28, Barracks I 34, Barracks II 22, mystery 16 (third-grade land is quota-only). What a filler barracks trains is rolled from its own card's odds, with the layout.
 - A mystery is still a gamble: what it gives is rolled when it is flipped.
-- A tile that comes free again after its building fell (rubble) gets a fresh filler card, never a mine or a jackpot: a lost mine is gone for good.
+- A tile that comes free again after its building fell (rubble) gets a fresh filler card, never a mine or third-grade land: a lost mine is gone for good.
 - The map events are laid out with the cards, from the same stream after them (so adding them moved no card): see Map events.
 - Numbers from 300 AI-vs-AI matches (before the map events): per side, 4.2 of the 11 mines are seen and 3.8 flipped; 1.6 of the 7 jackpot barracks are seen and 0.9 built. The side with more mines at 1:30 wins 70 % (81 % before the layout), the side with more epic+legendary barracks 89 %, more mystery jackpots 72 %; 30 % of winners were behind on tiles (under 40 %) after the first minute.
 - Mystery barracks (120 AI-vs-AI matches, with the map events): about 1.7 barracks per side per match come from mysteries (14 % of mystery flips). Matches run as long as before (median 3:36), and they open a way back: the side with more epic+legendary barracks from the cards won 83 % (94 % without them), the side with more mystery barracks 76 %.

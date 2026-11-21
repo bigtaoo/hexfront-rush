@@ -1,14 +1,14 @@
 // Gold, map events, quests and buying: what a flipped card does.
 
-import { fillerRarity } from './cardLayout';
+import { rollRarity } from './cardLayout';
 import type { Engine } from './engine';
 import { baseTile, type Tile } from './map';
 import {
-  BEHIND_SLACK, BUILD, comebackPct, enemyOf, EVENT_LIST, MYSTERY, MYSTERY_W_TOTAL, OFFER_LIST, QUEST_LOOP, QUESTS, REBATE_MAX, REBATE_PER_TILE, SURGE_MAX, SURGE_PER_TILE,
+  BEHIND_SLACK, BUILD, comebackPct, enemyOf, EVENT_LIST, MYSTERY, MYSTERY_W_TOTAL, OFFER_LIST, QUEST_LOOP, QUESTS, SURGE_MAX, SURGE_PER_TILE,
   TEAM_BLUE, TEAM_RED, TEAMS, type BuildingType, type OfferKind, type Quest,
 } from './rules';
 
-/** How many buildings of each card kind a team has standing (what card prices go up with). */
+/** How many buildings of each card kind a team has standing. */
 export type Standing = Record<OfferKind, number>;
 
 export function standingOf(e: Engine, team: number): Standing {
@@ -17,17 +17,11 @@ export function standingOf(e: Engine, team: number): Standing {
   return s;
 }
 
-/** What card oi costs a team with `s` standing: its base price, plus its step for each building
- *  of its kind standing, so the tenth mine pays back far slower than the first. `rebate` is the
- *  trailing side's 退路价 in percent (§13 P1.5), taken off the whole price. */
-export function cardCost(oi: number, s: Standing, rebate = 0): number {
-  const off = OFFER_LIST[oi];
-  const full = off.cost + off.step * s[off.kind];
-  // a tower never goes on sale. The rebate buys a way back into the match — mines, barracks, the
-  // mystery — not a cheaper wall: a discounted wall is what turns a lost match into a long one.
-  if (rebate <= 0 || off.kind === 'tower') return full;
-  return Math.max(1, Math.trunc((full * (100 - rebate)) / 100));
-}
+/** What card oi costs. A fixed number: the same for both teams, the same at minute one and at
+ *  minute ten. The price a tile shows is the thing the player plans against, and a price that
+ *  walks — up with what you own, down when you fall behind — is a plan that cannot be made. What
+ *  the ground is worth is written on it: 50, 100, 200, and 25 for a gamble. */
+export const cardCost = (oi: number): number => OFFER_LIST[oi].cost;
 
 /** How many tiles a team is behind on, past the slack where a lead is still noise. 0 when level
  *  or ahead. Ground is the one measure both players can read straight off the map, which is why
@@ -38,24 +32,15 @@ export function behindBy(e: Engine, team: number): number {
 }
 
 /** 矿脉涌动: percent on top of what this team's mines pay, while it is behind on ground. It is
- *  something to act on, not a hidden hand — being behind makes a mine the best card on the board. */
+ *  something to act on, not a hidden hand — being behind makes a mine the best card on the board.
+ *  Since D81 it is the trailing side's only outlet: the 退路价 rebate used to cut every price,
+ *  which is what a fixed price cannot allow. */
 export function surgePct(e: Engine, team: number): number {
   return taper(e, Math.min(behindBy(e, team) * SURGE_PER_TILE, SURGE_MAX));
 }
 /** What is left of an outlet at this point in the match (§13 P1.5's comeback window). */
 function taper(e: Engine, pct: number): number {
   return Math.trunc((pct * comebackPct(e.playT)) / 100);
-}
-
-/** 退路价: percent off every card, while behind. §1.2's catch-up path only exists if the cards
- *  that rebuild a board are reachable on a trailing side's income. */
-export function rebatePct(e: Engine, team: number): number {
-  return taper(e, Math.min(behindBy(e, team) * REBATE_PER_TILE, REBATE_MAX));
-}
-
-/** What card oi actually costs this team right now, rebate and all. */
-export function costFor(e: Engine, team: number, oi: number): number {
-  return cardCost(oi, standingOf(e, team), rebatePct(e, team));
 }
 
 /** The quest the team is on and how far it has come (capped at the goal). The match's listed
@@ -131,7 +116,7 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
   const tile = e.tiles[ti];
   if (tile.bld || tile.obst) return false;
   const off = OFFER_LIST[oi];
-  const cost = costFor(e, team, oi);
+  const cost = cardCost(oi);
   if (T.gold < cost) {
     e.emit('needGold', { team, x: tile.x, y: tile.y });
     return false;
@@ -173,7 +158,7 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
   if (off.kind === 'barracks') {
     // the layout's barracks, or a filler one on rubble
     const lay = e.layout;
-    const rarity = !tile.rubble && lay.card[team]![ti] === oi ? lay.rarity[team]![ti]! : fillerRarity(e.rng.loot, oi);
+    const rarity = !tile.rubble && lay.card[team]![ti] === oi ? lay.rarity[team]![ti]! : rollRarity(e.rng.loot, oi);
     const unit = e.pickUnit(rarity);
     e.addBuilding(team, 'barracks', ti, { unit, rarity });
     e.emit('barracks', { team, unit, rarity, x: tile.x, y: tile.y });

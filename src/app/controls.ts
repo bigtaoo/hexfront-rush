@@ -6,7 +6,7 @@
 
 import { idx, inMap, worldToHex } from '../sim/hex';
 import type { Tile } from '../sim/map';
-import { costFor } from '../sim/economy';
+import { cardCost } from '../sim/economy';
 import { $, openPanel } from './dom';
 import { keyboardFocused, noteInput, panelButton, usableButton } from './panelKeys';
 import { DRAG_PX, KEY_PAN, dragSlop, panKey, panVector, pinchStep, wheelPan } from './gesture';
@@ -158,7 +158,7 @@ export class Controls {
   private flipCard(ti: number): void {
     const g = this.g;
     const tm = g.eng.team[g.localTeam]!;
-    const cost = costFor(g.eng, g.localTeam, tm.offers[ti]!);
+    const cost = cardCost(tm.offers[ti]!);
     g.collector.flipTile(ti);
     if (tm.gold >= cost) g.renderer.flipCard(ti);
     g.renderer.markTile(ti);

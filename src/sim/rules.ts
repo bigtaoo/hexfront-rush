@@ -6,7 +6,7 @@ import { perTick, TICK_RATE, ticks, toFp } from './fixed';
 import { TILE } from './hex';
 
 /** Bump when a rules change alters the outcome of a replay. */
-export const ENGINE_VERSION = 15;
+export const ENGINE_VERSION = 16;
 
 /** No clock: a match ends when a castle falls (or a player leaves). This is only a safety valve
  *  for a stalemate, far past any real match; then the tiles decide. */
@@ -45,9 +45,7 @@ export interface BuildingDef {
 export const BEHIND_SLACK = 3;
 /** 矿脉涌动: percent added to a mine's payout per tile behind, and its ceiling. */
 export const SURGE_PER_TILE = 5, SURGE_MAX = 60;
-/** 退路价: percent off every card per tile behind, and its ceiling. */
-export const REBATE_PER_TILE = 3, REBATE_MAX = 40;
-/** Both outlets fade out linearly and are gone when the siege starts: the comeback window is the
+/** The outlet fades out linearly and are gone when the siege starts: the comeback window is the
  *  part of a match that is still being played for, and after it the match is being closed. A
  *  subsidy that never ends is what turns an even fight into a 17-minute one. */
 export const COMEBACK_END = ticks(4 * 60);
@@ -62,50 +60,56 @@ export const BUILD: Record<BuildingType, BuildingDef> = {
   barracks: { hp: 300 },
 };
 export const BLD_RADIUS = 800;
+/** Elbow room between two troops of the same side, on top of the two bodies (troops.ts
+ *  `separate`). Bodies alone put a squad in a heap: eight militia round a barracks were one
+ *  blob with legs, and the board is read at a glance from above, where a blob says nothing about
+ *  how many are in it. A flat bubble, not a factor, so it opens up the small troops — the ones
+ *  that come in tens — far more than the giants, which already stand in their own ground.
+ *  Enemies are not given it: it would push a melee troop out of its own reach. */
+export const ALLY_BUBBLE = 250;
 
 // ---------- offers: a fixed order, the index is what the sim stores per tile ----------
 export type OfferKind = 'mine' | 'tower' | 'barracks' | 'mystery';
 export interface Offer {
   key: string;
   kind: OfferKind;
-  /** The price with none of its kind standing. */
+  /** What the card costs. A fixed number: the price is a property of the land, not of what the
+   *  team already owns, so a card shows the same price all match to both sides. */
   cost: number;
-  /** Added to the price for each building of its kind the team has standing (a mystery: 0). */
-  step: number;
   /** Weight among the filler cards (cardLayout.ts): every tile that is not a quota spot, and a
-   *  tile that comes free again (rubble). 0: only on quota spots (mines, the best barracks). */
+   *  tile that comes free again (rubble). 0: only on quota spots (the mines, the dearest land). */
   w: number;
-  /** A barracks on a filler tile: percent rare (the rest common). Epic and legendary barracks
-   *  stand only on the quota spots of CARD_LAYOUT. */
-  rare?: number;
+  /** A barracks card: what it trains, as weights over the four rarities (common, rare, epic,
+   *  legendary). This is what the three grades of land are for — the dearer the ground, the
+   *  better the odds — and it is the only thing that decides a barracks' rarity. */
+  rar?: readonly [number, number, number, number];
 }
 export const OFFER_LIST: readonly Offer[] = [
-  { key: 'mine', kind: 'mine', cost: 50, step: 15, w: 0 },
-  { key: 'tower', kind: 'tower', cost: 50, step: 25, w: 28 },
-  { key: 'bar1', kind: 'barracks', cost: 50, step: 5, w: 34, rare: 20 },
-  { key: 'bar2', kind: 'barracks', cost: 100, step: 5, w: 22, rare: 65 },
-  { key: 'bar3', kind: 'barracks', cost: 200, step: 5, w: 0 },
-  { key: 'myst', kind: 'mystery', cost: 25, step: 0, w: 16 },
+  { key: 'mine', kind: 'mine', cost: 50, w: 0 },
+  { key: 'tower', kind: 'tower', cost: 100, w: 28 },
+  { key: 'bar1', kind: 'barracks', cost: 50, w: 34, rar: [80, 20, 0, 0] },
+  { key: 'bar2', kind: 'barracks', cost: 100, w: 22, rar: [15, 55, 30, 0] },
+  { key: 'bar3', kind: 'barracks', cost: 200, w: 0, rar: [0, 20, 40, 40] },
+  { key: 'myst', kind: 'mystery', cost: 25, w: 16 },
 ];
 export const OF_MINE = 0, OF_TOWER = 1, OF_BAR1 = 2, OF_BAR2 = 3, OF_BAR3 = 4, OF_MYST = 5;
 export const OFFER_W_TOTAL = OFFER_LIST.reduce((sum, o) => sum + o.w, 0);
 
 /** The cards are laid out when the match starts, from its seed (cardLayout.ts): the same seed is
  *  the same map, card for card, and both teams get the same layout mirrored. The gold mines and
- *  the epic and legendary barracks go on quota spots, counted per zone by hex distance from the
- *  team's own castle; every other tile gets a filler card by weight (OFFER_LIST.w).
+ *  the better grades of land go on quota spots, counted per zone by hex distance from the team's
+ *  own castle; every other tile gets a filler card by weight (OFFER_LIST.w).
  *    zones   upper bound of each zone: home, near, middle, far (the far zone is the enemy's half)
- *    mine, epic, legend   how many per zone (their sum is the cap for the match)
- *    gap     quota spots of one kind keep at least this hex distance from each other
- *    card    which card an epic / legendary spot shows: weights for bar1, bar2, bar3 (a cheap card
- *            can hide a jackpot; a bar3 card is always epic or better) */
+ *    mine, g2, g3   how many per zone (their sum is the cap for the match). g2 and g3 are the
+ *            second- and third-grade land: a 100 and a 200 card, planted deep so that the ground
+ *            worth having is ground worth walking to. What they train is still a roll (OFFER.rar)
+ *    gap     quota spots of one kind keep at least this hex distance from each other */
 export const CARD_LAYOUT = {
   zones: [2, 4, 7, 99],
   mine: [2, 3, 3, 3],
-  epic: [0, 1, 2, 2],
-  legend: [0, 0, 1, 1],
+  g2: [0, 1, 2, 2],
+  g3: [0, 0, 2, 1],
   gap: 2,
-  card: [15, 25, 60],
   /** The six tiles around the castle (the first cards a team sees) always hold these, in a seeded
    *  order; the mine counts toward the home zone's mines. */
   opening: [OF_MINE, OF_BAR1, OF_MYST],
@@ -219,7 +223,7 @@ export interface UnitDef {
  *  together, both teams at once, every WAVE_TICKS of play: armies meet armies, not a trickle. */
 export const WAVE_TICKS = ticks(15);
 /** Troops alive per team; barracks wait (timer full) while the team is at the cap. */
-export const UNIT_CAP = 50;
+export const UNIT_CAP = 65;
 /** The troop cap after `playT` ticks of play (it rises in a siege). */
 export const unitCap = (playT: number, after: number = SIEGE.after): number => UNIT_CAP + SIEGE.capStep * siegeLevel(playT, after);
 export const UNITS = {} as Record<UnitKey, UnitDef>;

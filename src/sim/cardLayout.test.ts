@@ -6,7 +6,7 @@ import { cardLayout, mirrorTile, zoneOf } from './cardLayout';
 import { Engine } from './engine';
 import { hexDist, NTILES } from './hex';
 import { baseTile, generateMap } from './map';
-import { CARD_LAYOUT, OF_BAR1, OF_BAR3, OF_MINE, OF_MYST, OFFER_LIST, PHASE_PLAY, TEAM_BLUE, TEAM_RED } from './rules';
+import { CARD_LAYOUT, OF_BAR1, OF_BAR2, OF_BAR3, OF_MINE, OF_MYST, OFFER_LIST, PHASE_PLAY, TEAM_BLUE, TEAM_RED } from './rules';
 
 const SEEDS = Array.from({ length: 60 }, (_, k) => 17 + k * 7919);
 const layoutOf = (seed: number) => {
@@ -41,24 +41,30 @@ describe('card layout', () => {
     }
   });
 
-  it('mines and epic / legendary barracks keep to the quota of each zone', () => {
+  // D81: what a barracks trains is rolled from its card's own odds, so the quotas place grades
+  // of land, not rarities. Third-grade land (a 200 card) is planted only on its quota spots, so
+  // its count is exact; second-grade land is also a filler card, so its quota is a floor.
+  it('mines and the dearer grades of land keep to the quota of each zone', () => {
     for (const seed of SEEDS) {
       const { map, L } = layoutOf(seed);
       const home = map.tiles[baseTile(TEAM_BLUE)]!;
-      const mines = CARD_LAYOUT.zones.map(() => 0), epic = mines.slice(), legend = mines.slice();
+      const mines = CARD_LAYOUT.zones.map(() => 0), g2 = mines.slice(), g3 = mines.slice();
       for (const t of map.tiles) {
         const z = zoneOf(hexDist(t.c, t.r, home.c, home.r));
         const card = L.card[TEAM_BLUE]![t.i]!, r = L.rarity[TEAM_BLUE]![t.i]!;
         if (card === OF_MINE) mines[z]!++;
-        if (r === 2) epic[z]!++;
-        if (r === 3) legend[z]!++;
-        // a bar3 card only on an epic or legendary spot; a barracks always has its rarity
-        if (card === OF_BAR3) expect(r).toBeGreaterThanOrEqual(2);
+        if (card === OF_BAR2) g2[z]!++;
+        if (card === OF_BAR3) g3[z]!++;
+        // a barracks always has its rarity, and each grade keeps inside its own odds
         expect(r >= 0).toBe(card >= 0 && OFFER_LIST[card]!.kind === 'barracks');
+        if (card >= 0) {
+          const rar = OFFER_LIST[card]!.rar;
+          if (rar) expect(rar[r]!).toBeGreaterThan(0);
+        }
       }
       expect(mines).toEqual(CARD_LAYOUT.mine);
-      expect(epic).toEqual(CARD_LAYOUT.epic);
-      expect(legend).toEqual(CARD_LAYOUT.legend);
+      expect(g3).toEqual(CARD_LAYOUT.g3);
+      for (let z = 0; z < g2.length; z++) expect(g2[z]!).toBeGreaterThanOrEqual(CARD_LAYOUT.g2[z]!);
     }
   });
 

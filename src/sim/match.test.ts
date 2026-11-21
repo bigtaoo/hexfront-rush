@@ -27,23 +27,17 @@ const freeTiles = (e: Engine, n: number) => {
 };
 
 describe('card prices', () => {
-  it('rise with each building of the kind standing, and a mystery stays flat', () => {
+  it('do not move, whatever the team has standing', () => {
     const e = playing();
-    const none = standingOf(e, TEAM_BLUE);
-    expect(cardCost(OF_MINE, none)).toBe(OFFER_LIST[OF_MINE]!.cost);
     const [a, b, c] = freeTiles(e, 3);
     e.addBuilding(TEAM_BLUE, 'mine', a!, null);
     e.addBuilding(TEAM_BLUE, 'mine', b!, null);
     e.addBuilding(TEAM_BLUE, 'barracks', c!, { unit: 'militia', rarity: 0 });
-    const s = standingOf(e, TEAM_BLUE);
-    expect(s).toEqual({ mine: 2, tower: 0, barracks: 1, mystery: 0 });
-    expect(cardCost(OF_MINE, s)).toBe(OFFER_LIST[OF_MINE]!.cost + 2 * OFFER_LIST[OF_MINE]!.step);
-    expect(cardCost(OF_BAR1, s)).toBe(OFFER_LIST[OF_BAR1]!.cost + OFFER_LIST[OF_BAR1]!.step);
-    expect(cardCost(OF_TOWER, s)).toBe(OFFER_LIST[OF_TOWER]!.cost);
-    expect(cardCost(OF_MYST, s)).toBe(OFFER_LIST[OF_MYST]!.cost);
+    expect(standingOf(e, TEAM_BLUE)).toEqual({ mine: 2, tower: 0, barracks: 1, mystery: 0 });
+    for (const oi of [OF_MINE, OF_BAR1, OF_TOWER, OF_MYST]) expect(cardCost(oi)).toBe(OFFER_LIST[oi]!.cost);
   });
 
-  it('a flip pays the risen price', () => {
+  it('a flip pays the price on the card', () => {
     const e = playing();
     const T = e.team[TEAM_BLUE]!;
     const [a] = freeTiles(e, 1);
@@ -52,7 +46,7 @@ describe('card prices', () => {
     T.offers[ti] = OF_MINE; // a mine card on any card tile
     T.gold = 1000;
     expect(tryBuy(e, TEAM_BLUE, ti)).toBe(true);
-    expect(1000 - T.gold).toBe(OFFER_LIST[OF_MINE]!.cost + OFFER_LIST[OF_MINE]!.step);
+    expect(1000 - T.gold).toBe(OFFER_LIST[OF_MINE]!.cost);
   });
 });
 

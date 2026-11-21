@@ -7,10 +7,12 @@
 // distance from the team's own castle (CARD_LAYOUT.zones): home, near, middle, far.
 //   0. the six tiles around the castle hold CARD_LAYOUT.opening (a mine, a barracks, a mystery)
 //   1. gold mines go on quota spots: CARD_LAYOUT.mine per zone, not next to each other
-//   2. legendary, then epic barracks the same way (CARD_LAYOUT.legend / .epic); the card a spot
-//      shows is bar1, bar2 or bar3 by CARD_LAYOUT.card, so a cheap card can hide a jackpot
-//   3. every other tile gets a filler card by weight (OFFER_LIST.w): tower, bar1, bar2, mystery;
-//      a filler barracks is common or rare (OFFER_LIST.rare), rolled now and stored with it
+//   2. third-, then second-grade land the same way (CARD_LAYOUT.g3 / .g2): a bar3 or bar2 card,
+//      planted deep, so the dear ground is ground you have to walk to
+//   3. every other tile gets a filler card by weight (OFFER_LIST.w): tower, bar1, bar2, bar3,
+//      mystery
+//   What a barracks card trains is rolled from its own grade's odds (OFFER_LIST.rar) and stored
+//   with it: the price on the card is the whole promise, and a dearer card keeps it more often.
 //   4. map events (EVENT_LAYOUT), after the cards so they never move a card: each side's own
 //      (mirrored) by zone, and a race on the middle row; they keep EVENT_LAYOUT.gap apart
 // A mystery is still a gamble: what it gives is rolled when it is flipped (economy.ts). A tile
@@ -19,7 +21,7 @@
 import { COLS, hexDist, idx, MID_ROW, NTILES, ROWS } from './hex';
 import { baseTile, type Tile } from './map';
 import { Prng, streamSeed } from './prng';
-import { CARD_LAYOUT, EVENT_LAYOUT, OF_BAR1, OF_MINE, OFFER_LIST, OFFER_W_TOTAL, TEAM_BLUE, TEAM_RED } from './rules';
+import { CARD_LAYOUT, EVENT_LAYOUT, OF_BAR1, OF_BAR2, OF_BAR3, OF_MINE, OFFER_LIST, OFFER_W_TOTAL, TEAM_BLUE, TEAM_RED } from './rules';
 
 export interface CardLayout {
   /** Per team (index 1 and 2): the card each tile shows that team (-1: a rock or a castle). */
@@ -42,8 +44,17 @@ export function fillerCard(rng: Prng): number {
   }
   return OF_BAR1;
 }
-/** The rarity of a barracks on a filler card: rare (1) or common (0). */
-export const fillerRarity = (rng: Prng, oi: number): number => (rng.int(100) < (OFFER_LIST[oi].rare ?? 0) ? 1 : 0);
+/** What a barracks card trains, by its grade's odds (OFFER_LIST.rar): 0 common .. 3 legendary. */
+export function rollRarity(rng: Prng, oi: number): number {
+  const rar = OFFER_LIST[oi].rar;
+  if (!rar) return 0;
+  let r = rng.int(100);
+  for (let k = 0; k < rar.length - 1; k++) {
+    r -= rar[k]!;
+    if (r < 0) return k;
+  }
+  return rar.length - 1;
+}
 
 /** Which zone (CARD_LAYOUT.zones) hex distance d from the own castle falls in. */
 export function zoneOf(d: number): number {
@@ -83,7 +94,7 @@ export function cardLayout(tiles: readonly Tile[], seed: number): CardLayout {
   for (let k = 0; k < CARD_LAYOUT.opening.length; k++) {
     const i = ring[k];
     card[i] = CARD_LAYOUT.opening[k];
-    if (OFFER_LIST[card[i]].kind === 'barracks') rarity[i] = fillerRarity(rng, card[i]);
+    if (OFFER_LIST[card[i]].kind === 'barracks') rarity[i] = rollRarity(rng, card[i]);
     if (card[i] === OF_MINE) mines.push(i);
   }
   /** Quota spots: the first free tiles of each zone's shuffled list, at least CARD_LAYOUT.gap
@@ -107,19 +118,16 @@ export function cardLayout(tiles: readonly Tile[], seed: number): CardLayout {
   };
   place(CARD_LAYOUT.mine, mines, (i) => (card[i] = OF_MINE), mines.slice());
   const best: number[] = [];
-  const barracks = (r: number) => (i: number) => {
-    let w = rng.int(100);
-    let k = 0;
-    while (k < 2 && w >= CARD_LAYOUT.card[k]) w -= CARD_LAYOUT.card[k++];
-    card[i] = OF_BAR1 + k;
-    rarity[i] = r;
+  const grade = (oi: number) => (i: number) => {
+    card[i] = oi;
+    rarity[i] = rollRarity(rng, oi);
   };
-  place(CARD_LAYOUT.legend, best, barracks(3));
-  place(CARD_LAYOUT.epic, best, barracks(2));
+  place(CARD_LAYOUT.g3, best, grade(OF_BAR3));
+  place(CARD_LAYOUT.g2, best, grade(OF_BAR2));
   for (let i = 0; i < NTILES; i++) {
     if (card[i] >= 0 || tiles[i].obst || i === baseTile(TEAM_BLUE) || i === baseTile(TEAM_RED)) continue;
     card[i] = fillerCard(rng);
-    if (OFFER_LIST[card[i]].kind === 'barracks') rarity[i] = fillerRarity(rng, card[i]);
+    if (OFFER_LIST[card[i]].kind === 'barracks') rarity[i] = rollRarity(rng, card[i]);
   }
   const card2 = new Int8Array(NTILES), rarity2 = new Int8Array(NTILES);
   for (let i = 0; i < NTILES; i++) {

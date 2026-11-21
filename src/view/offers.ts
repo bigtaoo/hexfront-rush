@@ -7,14 +7,13 @@
 // context per offer; the price is a picture number (digits.ts).
 
 import { Container, Graphics } from 'pixi.js';
-import { cardCost, rebatePct, standingOf } from '../sim/economy';
+import { cardCost } from '../sim/economy';
 import { OFFER_LIST } from '../sim/rules';
 import { coin } from './bodies';
 import { Num } from './digits';
 import { inView, type Frame } from './frame';
 import { LOOK_B } from './lookB';
 import { sharedCtx, type Pen } from './pen';
-import { COL } from './viewConst';
 
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
@@ -31,14 +30,15 @@ const PRICE_MIN_PX = 13, PRICE_MAX_H = PRICE_H * 1.45;
  *  Red is read at a glance, the digits' own dark outline carries it on cream, and it is deeper than
  *  the red team's own colour (COL.red), so a price never reads as somebody's side. */
 const POOR_TINT = '#a81f12', POOR_ALPHA = 0.55;
-/** A price the player can pay, with no rebate on it. */
+/** A price the player can pay. */
 const PRICE_TINT = '#ffffff';
 
-/** How a price is drawn: red when it cannot be paid, green when a rebate cut it, white otherwise.
- *  Cannot-pay wins over the rebate -- a cut price the player still cannot meet is not an offer yet. */
-export function priceLook(gold: number, cost: number, reb: number): { tint: string; coinAlpha: number } {
+/** How a price is drawn: red when it cannot be paid, white otherwise. Since D81 a price never
+ *  changes, so there is no third colour for a cut one -- what a card costs is what it has always
+ *  cost, and the only question the colour answers is whether the player can meet it. */
+export function priceLook(gold: number, cost: number): { tint: string; coinAlpha: number } {
   if (gold < cost) return { tint: POOR_TINT, coinAlpha: POOR_ALPHA };
-  return { tint: reb > 0 ? COL.rebate : PRICE_TINT, coinAlpha: 1 };
+  return { tint: PRICE_TINT, coinAlpha: 1 };
 }
 
 /** The stamp's two colours: a light cream face and a dark brown ink rim. */
@@ -179,7 +179,6 @@ export class OfferLayer {
   draw(f: Frame): void {
     const eng = f.eng, cam = f.cam;
     const Tm = eng.team[f.local]!;
-    const standing = standingOf(eng, f.local), reb = rebatePct(eng, f.local);
     for (const [ti, t] of this.flips) {
       const nt = t + f.dt;
       if (nt > 0.7 || eng.tiles[ti]!.bld) {
@@ -208,7 +207,7 @@ export class OfferLayer {
       const v = cam.tv[i]!;
       if (!inView(f.vis, v.x, v.y)) continue;
       const off = OFFER_LIST[oi]!;
-      const cost = cardCost(oi, standing, reb);
+      const cost = cardCost(oi);
       const c = this.card(i);
       c.seen = n;
       const ft = this.flips.get(i);
@@ -237,9 +236,8 @@ export class OfferLayer {
       }
       // what the player cannot pay for keeps its symbol at full strength; only the price row says
       // so (priceLook), so a board nothing on it can be bought from still reads as a board.
-      // a cut price is green, so the trailing side can see the 退路价 on the board itself
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
-      const look = priceLook(Tm.gold, cost, reb);
+      const look = priceLook(Tm.gold, cost);
       c.cost.set(String(cost), { h: ph, tint: look.tint, align: 'left', screen: zoom });
       c.coin.alpha = look.coinAlpha;
     }

@@ -3,11 +3,11 @@
 // and what flipping a card does — paying, refusing, and claiming the map event under it.
 
 import { describe, expect, it } from 'vitest';
-import { behindBy, cardCost, costFor, rebatePct, standingOf, surgePct, tryBuy, updateEconomy } from './economy';
+import { behindBy, cardCost, standingOf, surgePct, tryBuy, updateEconomy } from './economy';
 import { Engine } from './engine';
 import { baseTile } from './map';
 import {
-  BEHIND_SLACK, BUILD, COMEBACK_END, comebackPct, EVENT_LIST, OFFER_LIST, OF_BAR1, OF_MINE, OF_MYST, OF_TOWER, REBATE_MAX, REBATE_PER_TILE,
+  BEHIND_SLACK, BUILD, COMEBACK_END, comebackPct, EVENT_LIST, OFFER_LIST, OF_BAR1, OF_MINE, OF_MYST, OF_TOWER,
   SURGE_MAX, SURGE_PER_TILE, TEAM_BLUE, TEAM_RED,
 } from './rules';
 
@@ -29,22 +29,24 @@ function offer(e: Engine, team: number, ti: number, oi: number, gold = 5000): vo
 }
 
 describe('what a card costs', () => {
-  it('goes up by its step for each one of its kind standing', () => {
+  // D81: the price is a property of the land. Nothing a team owns, and nothing that happens in
+  // the match, may move it -- that is the whole point of the three grades.
+  it('stays put, however much of that kind the team already has', () => {
     const e = fresh();
     const mine = OFFER_LIST[OF_MINE]!;
-    expect(cardCost(OF_MINE, standingOf(e, TEAM_BLUE))).toBe(mine.cost);
-    for (let n = 1; n <= 5; n++) {
-      e.addBuilding(TEAM_BLUE, 'mine', freeTile(e, n * 3), null);
-      expect(cardCost(OF_MINE, standingOf(e, TEAM_BLUE))).toBe(mine.cost + mine.step * n);
+    for (let n = 0; n <= 5; n++) {
+      expect(cardCost(OF_MINE)).toBe(mine.cost);
+      e.addBuilding(TEAM_BLUE, 'mine', freeTile(e, (n + 1) * 3), null);
     }
   });
 
-  it('counts only its own kind, and only the team that built it', () => {
+  it('asks both sides the same, all match long', () => {
     const e = fresh();
     e.addBuilding(TEAM_BLUE, 'mine', freeTile(e), null);
-    const s = standingOf(e, TEAM_BLUE);
-    expect(cardCost(OF_TOWER, s)).toBe(OFFER_LIST[OF_TOWER]!.cost);
-    expect(cardCost(OF_MINE, standingOf(e, TEAM_RED))).toBe(OFFER_LIST[OF_MINE]!.cost);
+    behind(e, BEHIND_SLACK + 20);
+    for (const oi of [OF_MINE, OF_TOWER, OF_BAR1, OF_MYST]) expect(cardCost(oi)).toBe(OFFER_LIST[oi]!.cost);
+    // the mystery above all: a gamble is only a gamble at a price the player knows by heart
+    expect(cardCost(OF_MYST)).toBe(25);
   });
 
   it('leaves the castle out: standing is what the team bought', () => {
@@ -167,7 +169,6 @@ describe('being behind on ground', () => {
       behind(e, d);
       expect(behindBy(e, TEAM_BLUE)).toBe(0);
       expect(surgePct(e, TEAM_BLUE)).toBe(0);
-      expect(rebatePct(e, TEAM_BLUE)).toBe(0);
     }
     behind(e, BEHIND_SLACK + 4);
     expect(behindBy(e, TEAM_BLUE)).toBe(4);
@@ -178,17 +179,14 @@ describe('being behind on ground', () => {
     behind(e, 12);
     expect(behindBy(e, TEAM_RED)).toBe(0);
     expect(surgePct(e, TEAM_RED)).toBe(0);
-    expect(rebatePct(e, TEAM_RED)).toBe(0);
   });
 
-  it('opens both outlets by the tile, up to their ceilings', () => {
+  it('opens the outlet by the tile, up to its ceiling', () => {
     const e = fresh();
     behind(e, BEHIND_SLACK + 2);
     expect(surgePct(e, TEAM_BLUE)).toBe(2 * SURGE_PER_TILE);
-    expect(rebatePct(e, TEAM_BLUE)).toBe(2 * REBATE_PER_TILE);
     behind(e, BEHIND_SLACK + 500);
     expect(surgePct(e, TEAM_BLUE)).toBe(SURGE_MAX);
-    expect(rebatePct(e, TEAM_BLUE)).toBe(REBATE_MAX);
   });
 
   it('closes the window as the match runs on, and shuts it for good at the end of it', () => {
@@ -202,7 +200,6 @@ describe('being behind on ground', () => {
     e.playT = COMEBACK_END;
     expect(comebackPct(e.playT)).toBe(0);
     expect(surgePct(e, TEAM_BLUE)).toBe(0);
-    expect(rebatePct(e, TEAM_BLUE)).toBe(0);
   });
 
   it('pays a mine over the odds but leaves the castle alone', () => {
@@ -224,18 +221,4 @@ describe('being behind on ground', () => {
     expect(base).toBeGreaterThan(0);
   });
 
-  it('takes the rebate off a card the trailing side needs, but never off a tower', () => {
-    const e = fresh();
-    behind(e, BEHIND_SLACK + 20);
-    const s = standingOf(e, TEAM_BLUE);
-    expect(rebatePct(e, TEAM_BLUE)).toBe(REBATE_MAX);
-    for (const oi of [OF_MINE, OF_BAR1, OF_MYST]) {
-      expect(costFor(e, TEAM_BLUE, oi)).toBeLessThan(cardCost(oi, s));
-    }
-    expect(costFor(e, TEAM_BLUE, OF_TOWER)).toBe(cardCost(OF_TOWER, s));
-    // and the side that is ahead pays the full price for everything
-    for (const oi of [OF_MINE, OF_BAR1, OF_MYST, OF_TOWER]) {
-      expect(costFor(e, TEAM_RED, oi)).toBe(cardCost(oi, standingOf(e, TEAM_RED)));
-    }
-  });
 });

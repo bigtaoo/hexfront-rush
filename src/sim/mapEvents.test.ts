@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { cardLayout, mirrorTile, zoneOf } from './cardLayout';
-import { cardCost, standingOf, tryBuy } from './economy';
+import { cardCost, tryBuy } from './economy';
 import { Engine } from './engine';
 import { hexDist, MID_ROW, NTILES } from './hex';
 import { baseTile, generateMap } from './map';
@@ -73,7 +73,7 @@ describe('claiming a map event', () => {
     const e = playing(32);
     const ti = ringTile(e, EV_CHEST, (oi) => oi !== OF_MYST);
     const T = e.team[TEAM_BLUE]!;
-    const before = T.gold, cost = cardCost(T.offers[ti]!, standingOf(e, TEAM_BLUE));
+    const before = T.gold, cost = cardCost(T.offers[ti]!);
     expect(tryBuy(e, TEAM_BLUE, ti)).toBe(true);
     expect(e.tiles[ti]!.event).toBe(0);
     expect(T.gold).toBe(before - cost + EVENT_LIST[EV_CHEST]!.gold);

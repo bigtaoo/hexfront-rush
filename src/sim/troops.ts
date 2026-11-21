@@ -7,7 +7,7 @@ import type { Engine } from './engine';
 import { dist, dist2, isqrt, muldiv } from './fixed';
 import { WORLD_H, WORLD_W } from './hex';
 import { baseTile } from './map';
-import { enemyOf, PROJ, UNITS } from './rules';
+import { ALLY_BUBBLE, enemyOf, PROJ, UNITS } from './rules';
 import type { Entity, Unit } from './types';
 
 export function updateUnits(e: Engine): void {
@@ -86,7 +86,9 @@ function separate(e: Engine): void {
   const us = e.units;
   let maxR = 0;
   for (const u of us) if (u.alive && UNITS[u.type].size > maxR) maxR = UNITS[u.type].size;
-  const cell = Math.max(200, muldiv(maxR, 18, 10));
+  // wide enough that the furthest pair the test below can still push apart lands in a
+  // neighbouring cell: two of the largest bodies, plus the elbow room allies keep
+  const cell = Math.max(200, muldiv(maxR, 18, 10) + ALLY_BUBBLE);
   const gw = Math.trunc(WORLD_W / cell) + 1;
   const gh = Math.trunc(WORLD_H / cell) + 1;
   const cells = gw * gh;
@@ -133,7 +135,7 @@ function separate(e: Engine): void {
           if (j <= i) continue;
           const b = us[j];
           const dx = b.x - a.x, dy = b.y - a.y;
-          const min = muldiv(sizeA + UNITS[b.type].size, 9, 10);
+          const min = muldiv(sizeA + UNITS[b.type].size, 9, 10) + (a.team === b.team ? ALLY_BUBBLE : 0);
           const d2 = dx * dx + dy * dy;
           if (d2 >= min * min) continue;
           if (d2 > 100) {

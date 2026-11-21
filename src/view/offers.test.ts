@@ -26,8 +26,8 @@ const PLAQUE = '#cbb086';
 
 describe('an offer price', () => {
   it('turns red the moment the player cannot pay for it', () => {
-    const rich = priceLook(100, 55, 0);
-    const poor = priceLook(54, 55, 0);
+    const rich = priceLook(100, 55);
+    const poor = priceLook(54, 55);
     expect(rich.tint).toBe('#ffffff');
     expect(poor.tint).not.toBe(rich.tint);
     // the clay it used to be came to 1.16 against the plaque -- all but invisible. A price the
@@ -36,16 +36,11 @@ describe('an offer price', () => {
     expect(contrast(poor.tint, PLAQUE)).toBeGreaterThan(contrast(rich.tint, PLAQUE));
     expect(poor.coinAlpha).toBeLessThan(rich.coinAlpha);
     // exactly affordable is affordable
-    expect(priceLook(55, 55, 0).tint).toBe(rich.tint);
-  });
-
-  it('shows a rebate only on a price the player can actually meet', () => {
-    expect(priceLook(100, 55, 20).tint).toBe(COL.rebate);
-    expect(priceLook(10, 55, 20).tint).toBe(priceLook(10, 55, 0).tint);
+    expect(priceLook(55, 55).tint).toBe(rich.tint);
   });
 
   it("never dresses a price in the red team's own colour", () => {
-    expect(priceLook(0, 1, 0).tint).not.toBe(COL.red);
-    expect(priceLook(0, 1, 0).tint).not.toBe(COL.redDark);
+    expect(priceLook(0, 1).tint).not.toBe(COL.red);
+    expect(priceLook(0, 1).tint).not.toBe(COL.redDark);
   });
 });

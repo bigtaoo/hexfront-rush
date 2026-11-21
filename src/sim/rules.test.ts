@@ -77,13 +77,24 @@ describe('the weights', () => {
     expect(R.OFFER_W_TOTAL).toBe(R.OFFER_LIST.reduce((s, o) => s + o.w, 0));
     expect(R.MYSTERY_W_TOTAL).toBe(100); // the mystery table is written as percentages
     expect(R.MYSTERY.reduce((s, m) => s + m.w, 0)).toBe(100);
-    expect(R.CARD_LAYOUT.card.reduce((s, w) => s + w, 0)).toBe(100);
     for (const o of R.OFFER_LIST) {
       expect(o.cost).toBeGreaterThan(0);
-      expect(o.step).toBeGreaterThanOrEqual(0);
       expect(o.w).toBeGreaterThanOrEqual(0);
-      if (o.rare !== undefined) expect(o.rare).toBeGreaterThanOrEqual(0);
+      // a barracks card's odds are percentages over the four rarities, and only a barracks has them
+      expect(o.rar !== undefined).toBe(o.kind === 'barracks');
+      if (o.rar) {
+        expect(o.rar.length).toBe(4);
+        expect(o.rar.reduce((s, w) => s + w, 0)).toBe(100);
+        for (const w of o.rar) expect(w).toBeGreaterThanOrEqual(0);
+      }
     }
+    // the dearer the land, the better what it trains: each grade's odds sit above the last
+    const mean = (o: R.Offer) => o.rar!.reduce((s, w, i) => s + w * i, 0);
+    expect(mean(R.OFFER_LIST[R.OF_BAR2]!)).toBeGreaterThan(mean(R.OFFER_LIST[R.OF_BAR1]!));
+    expect(mean(R.OFFER_LIST[R.OF_BAR3]!)).toBeGreaterThan(mean(R.OFFER_LIST[R.OF_BAR2]!));
+    // and it costs more
+    expect(R.OFFER_LIST[R.OF_BAR2]!.cost).toBeGreaterThan(R.OFFER_LIST[R.OF_BAR1]!.cost);
+    expect(R.OFFER_LIST[R.OF_BAR3]!.cost).toBeGreaterThan(R.OFFER_LIST[R.OF_BAR2]!.cost);
     // the cards that only ever stand on a quota spot are the ones laid out by quota
     expect(R.OFFER_LIST.filter((o) => o.w === 0).map((o) => o.key)).toEqual(['mine', 'bar3']);
     for (const m of R.MYSTERY) expect(!(m.squad && m.barracks)).toBe(true); // one prize or the other
@@ -94,14 +105,14 @@ describe('the weights', () => {
     for (let i = 1; i < z.length; i++) expect(z[i]!).toBeGreaterThan(z[i - 1]!);
     expect(R.CARD_LAYOUT.gap).toBeGreaterThanOrEqual(0);
     expect(z[0]!).toBeGreaterThanOrEqual(R.HOME_RADIUS - 1);
-    for (const q of [R.CARD_LAYOUT.mine, R.CARD_LAYOUT.epic, R.CARD_LAYOUT.legend]) {
+    for (const q of [R.CARD_LAYOUT.mine, R.CARD_LAYOUT.g2, R.CARD_LAYOUT.g3]) {
       expect(q.length).toBe(z.length);
       for (const n of q) expect(n).toBeGreaterThanOrEqual(0);
     }
     // the best cards are not at home: a team has to come out for them
-    expect(R.CARD_LAYOUT.epic[0]).toBe(0);
-    expect(R.CARD_LAYOUT.legend[0]).toBe(0);
-    expect(R.CARD_LAYOUT.legend[1]).toBe(0);
+    expect(R.CARD_LAYOUT.g2[0]).toBe(0);
+    expect(R.CARD_LAYOUT.g3[0]).toBe(0);
+    expect(R.CARD_LAYOUT.g3[1]).toBe(0);
   });
 });
 

@@ -12,7 +12,7 @@ import { Engine } from './engine';
 import { NTILES, ROWS } from './hex';
 import { baseTile } from './map';
 import { AI_SKILL_MAX, AI_SKILL_STD } from './setup';
-import { EV_CAMP, EV_CHEST, EV_HOARD, EV_WARBAND, EVENT_LIST, OF_BAR1, OF_MINE, OFFER_LIST, PHASE_PLAY, TEAM_RED } from './rules';
+import { EV_CAMP, EV_CHEST, EV_HOARD, EV_WARBAND, EVENT_LIST, MAX_PLAY_TICKS, OF_BAR1, OF_MINE, OFFER_LIST, PHASE_PLAY, TEAM_RED } from './rules';
 
 /** A match being played, with the engine's own AI switched off: the tests drive it by hand. */
 const board = (seed = 31) => {
@@ -133,22 +133,35 @@ describe('where it builds', () => {
 });
 
 describe('the skill levels', () => {
-  /** Red alone on the board for three minutes: what it has built and raised by then. */
-  const grow = (skill: number, seed: number) => {
-    const e = new Engine({ seed, aiBlue: false, aiRed: true, red: { skill } });
+  /** A whole match, the standard level against the beginner, played out. A proxy that counts what
+   *  one side builds alone cannot tell the levels apart any more: the beginner buys the nearest
+   *  cheap card the moment it can afford it, so left alone it ends up with MORE barracks than the
+   *  level that saves for better ground. What the better level is better at only shows when the
+   *  two meet. Both colours are played, because blue moves first and wins a little more often. */
+  const duel = (seed: number, stdIsRed: boolean): boolean => {
+    const e = new Engine({
+      seed, aiBlue: true, aiRed: true,
+      blue: { skill: stdIsRed ? 0 : AI_SKILL_STD },
+      red: { skill: stdIsRed ? AI_SKILL_STD : 0 },
+    });
     while (e.phase !== PHASE_PLAY) e.step([]);
-    for (let i = 0; i < 30 * 180; i++) e.step([]);
-    const s = standingOf(e, TEAM_RED);
-    return s.mine + s.tower + s.barracks + e.team[TEAM_RED]!.units;
+    for (let i = 0; i < MAX_PLAY_TICKS + 100 && !e.result; i++) e.step([]);
+    if (!e.result) return false; // ran out the clock: not a win
+    return stdIsRed ? e.result.winner === TEAM_RED : e.result.winner !== TEAM_RED;
   };
 
-  it('leave the beginner behind, seed for seed', () => {
-    for (const seed of [7, 31, 404]) {
-      expect(grow(AI_SKILL_STD, seed)).toBeGreaterThan(grow(0, seed));
-    }
+  it('leave the beginner behind, over a match', () => {
+    let won = 0;
+    for (const seed of [7, 31, 404, 11, 99, 2026]) for (const red of [true, false]) if (duel(seed, red)) won++;
+    expect(won).toBeGreaterThanOrEqual(9); // 12 matches; it takes 11 of them as these tables stand
   });
 
   it('still let the beginner play: it builds, it just builds worse', () => {
-    expect(grow(0, 7)).toBeGreaterThan(5);
+    const e = new Engine({ seed: 7, aiBlue: false, aiRed: true, red: { skill: 0 } });
+    while (e.phase !== PHASE_PLAY) e.step([]);
+    for (let i = 0; i < 30 * 180; i++) e.step([]);
+    const s = standingOf(e, TEAM_RED);
+    expect(s.mine + s.tower + s.barracks).toBeGreaterThan(5);
+    expect(e.units.filter((u) => u.alive && u.team === TEAM_RED).length).toBeGreaterThan(10);
   });
 });
