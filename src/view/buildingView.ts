@@ -7,9 +7,10 @@
 
 import { Container, Graphics, Sprite } from 'pixi.js';
 import type { Engine } from '../sim/engine';
-import { TICK_RATE } from '../sim/fixed';
+import { TICK_RATE, ticks } from '../sim/fixed';
 import { BUILD, HIT_FLASH, UNITS } from '../sim/rules';
 import type { Building } from '../sim/types';
+import { BIRTH } from './birth';
 import { artH, artSprite, artW, buildingTex, castSprite, setCast, PPU, TILE_FOOT, unitTex } from './art';
 import { coin, hpBar, shadowCtx } from './bodies';
 import type { Camera } from './camera';
@@ -17,6 +18,19 @@ import type { Frame } from './frame';
 import { type Live, liveGraphics, Pen, sharedCtx } from './pen';
 import { LOOK_B } from './lookB';
 import { COL, RARITY_COLOR } from './viewConst';
+
+/** Part way from one hex colour to another, for a ring that warms as its work finishes. */
+function mix(a: string, b: string, k: number): string {
+  if (k <= 0) return a;
+  if (k >= 1) return b;
+  const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
+  let out = 0;
+  for (let sh = 0; sh <= 16; sh += 8) {
+    const c = Math.round(((x >> sh) & 255) + (((y >> sh) & 255) - ((x >> sh) & 255)) * k);
+    out |= c << sh;
+  }
+  return `#${out.toString(16).padStart(6, '0')}`;
+}
 
 /** A built mine's or barracks' badge: a dark disc at the building's foot showing what it makes (a
  *  coin, or the troop it trains) inside a ring that fills toward the next coin or troop. The badge
@@ -204,7 +218,11 @@ export class BuildingView {
         // training; grey while the team is at the troop cap and the next troop waits
         const full = b.spawnT <= 0;
         const k = full ? 1 : 1 - b.spawnT / UNITS[b.unit as keyof typeof UNITS].spawn;
-        badgeRing(p, 'barracks', k, full ? '#9ca3af' : RARITY_COLOR[b.rarity] ?? '#9aa5b1');
+        // over the last breath the ring warms to the gold of the light gathering at the door
+        // (birth.ts), so "nearly out" is said in the same colour in both places
+        const near = full ? 0 : Math.max(0, 1 - b.spawnT / ticks(BIRTH.glow));
+        const cold = full ? '#9ca3af' : RARITY_COLOR[b.rarity] ?? '#9aa5b1';
+        badgeRing(p, 'barracks', k, mix(cold, COL.coin, near));
         break;
       }
     }

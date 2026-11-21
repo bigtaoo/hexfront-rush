@@ -10,6 +10,7 @@ import { Container, Graphics, Texture, type Sprite } from 'pixi.js';
 import { TICK_RATE } from '../sim/fixed';
 import { LUNGE_TICKS, type UnitKey } from '../sim/rules';
 import { artH, artSprite, castSprite, PPU, setCast, unitAnim, unitFall, unitTex, unitTurn } from './art';
+import { BIRTH } from './birth';
 import { hpBar, shadowCtx } from './bodies';
 import { CAST, LOOK_B, LOOKB_UNIT_K } from './lookB';
 import { liveGraphics, sharedCtx, type Pen } from './pen';
@@ -88,8 +89,9 @@ export function fallTag(k: number): string {
 }
 /** Picture scale over the art's own size (lookB draws troops bigger). */
 const PIC_K = LOOK_B ? LOOKB_UNIT_K : 1;
-/** The drop-in after training: a fall for the first DROP of it, then a squash and settle. */
-const SPAWN_S = 0.42, DROP = 0.55, DROP_H = 0.9;
+/** The piece used to drop in over its own landing spot, which said nothing about where it came
+ *  from. The fall is now the arc birth.ts flies from the barracks; what is left here is the last
+ *  beat of it, the piece setting into the board. `age` arrives already counted from the landing. */
 /** How long a fallen troop takes to tip over and fade. */
 export const DEATH_S = 0.5;
 /** The blow lasts LUNGE_TICKS in the sim; the view plays it out in seconds so it is smooth at any
@@ -268,19 +270,14 @@ export class UnitView {
         if (this.cast) this.cast.texture = t;
       }
     }
-    const age = u.age ?? SPAWN_S;
-    if (age < SPAWN_S) {
-      const k = Math.max(0, age) / SPAWN_S;
-      if (k < DROP) {
-        const d = k / DROP;
-        lift += DROP_H * (1 - d * d);
-        alpha = Math.min(1, d * 3);
-      } else {
-        // it lands, sets into the board for a moment and rocks itself still
-        const w = Math.sin((Math.PI * (k - DROP)) / (1 - DROP));
-        lift -= 0.045 * w;
-        rot += face * 0.2 * w;
-      }
+    const age = u.age ?? BIRTH.settle;
+    if (age < BIRTH.settle) {
+      // it sets into the board and rocks itself still, out of the light that carried it
+      const k = Math.max(0, age) / BIRTH.settle;
+      const w = Math.sin(Math.PI * k);
+      lift -= 0.045 * w;
+      rot += face * 0.2 * w;
+      alpha = Math.min(1, k * 3);
     }
     // Written out rather than looped over [this.body, this.flash]: that array was an allocation
     // per troop per frame, on the view's hottest line.

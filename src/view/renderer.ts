@@ -60,7 +60,12 @@ export class Renderer {
 
   constructor(private readonly app: Application) {
     if (this.table) this.world.addChild(this.table.root);
-    this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.root, this.offers.tags, this.effects.root);
+    this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.birth.under, this.sprites.root, this.offers.tags, this.sprites.birth.root, this.effects.root);
+    // a troop landing out of its birth light spends the same ring and sparks as any other impact
+    this.sprites.birth.land = (x, y, team) => {
+      this.effects.ring(x, y, 0.35, teamLight(team));
+      this.effects.burst(x, y, COL.coin, 6);
+    };
     app.stage.addChild(this.world, this.edges.root, this.hud.root, this.overlays.root);
     if (this.light) {
       // the sand's grain lies on the ground, over it and under everything that stands on it

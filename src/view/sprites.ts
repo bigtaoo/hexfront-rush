@@ -10,6 +10,7 @@ import { FP, TICK_RATE } from '../sim/fixed';
 import { EVENT_LIST, GUARD, HIT_FLASH, LUNGE_TICKS, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
 import { TILE } from '../sim/hex';
 import { artH, artSprite, castSprite, setCast, eventTex, guardAnim, guardTex, obstacleTex, PPU, rubbleTex, TILE_FOOT } from './art';
+import { BIRTH_MAX, BirthFx, unitAge } from './birth';
 import { hpBar, shadowCtx } from './bodies';
 import { BuildingView, WallLayer } from './buildingView';
 import type { Camera } from './camera';
@@ -253,6 +254,10 @@ const LOOK: UnitLook = {
   flash: 0, hp: 1, own: false, id: 0, rarity: 0, time: 0,
 };
 
+/** How often a waiting troop looks round, and for how long. Prime-ish against each other so the
+ *  line never glances as one. */
+const GLANCE_EVERY = 4.3, GLANCE_S = 0.4;
+
 export class SpriteLayer {
   readonly root = new Container({ sortableChildren: true });
   private obst: (Container | null)[] = [];
@@ -262,6 +267,9 @@ export class SpriteLayer {
   private units = new Map<number, UnitView>();
   private guards: (GuardView | null)[] = [null, null, null];
   private walls = new WallLayer();
+  /** The lights that carry newborn troops out of their barracks; the renderer hangs its two
+   *  containers either side of this layer. */
+  readonly birth = new BirthFx();
   private frame = 0;
 
   /** New match or new side: the static obstacles, and nothing else yet. */
@@ -300,6 +308,7 @@ export class SpriteLayer {
     this.blds.clear();
     this.units.clear();
     this.guards = [null, null, null];
+    this.birth.reset();
     this.obst = [];
     this.rubble = [];
     this.events = [];
@@ -308,6 +317,7 @@ export class SpriteLayer {
   draw(f: Frame): void {
     const eng = f.eng, cam = f.cam, vis = f.vis;
     const n = ++this.frame;
+    this.birth.begin();
     this.walls.update(eng);
     for (const t of eng.tiles) {
       const v = cam.tv[t.i]!;
@@ -358,7 +368,10 @@ export class SpriteLayer {
       bv.seen = n;
       const v = cam.tv[b.tile]!;
       bv.root.visible = inView(vis, v.x, v.y);
-      if (bv.root.visible) bv.update(b, f);
+      if (bv.root.visible) {
+        bv.update(b, f);
+        this.birth.gather(b, v, f);
+      }
     }
     for (const [id, bv] of this.blds) {
       if (bv.seen === n) continue;
@@ -384,15 +397,27 @@ export class SpriteLayer {
       const moving = u.x !== u.px || u.y !== u.py;
       const ph = moving ? walkPhase(f.time + u.id * 0.37, def.speed) : -1;
       const step = moving ? Math.sin(ph * 2 * Math.PI) : 0;
+      // a troop mustering for the next wave stood perfectly still for up to WAVE_TICKS, which read
+      // as a model the view had forgotten rather than a soldier waiting: it breathes, and now and
+      // then it looks the other way (the turn frames are already drawn, so it costs nothing)
+      const idle = moving ? 0 : 0.012 * Math.sin(f.time * 1.1 + u.id * 0.7);
+      const glance = u.hold && !moving && (f.time + u.id * 1.37) % GLANCE_EVERY < GLANCE_S;
       LOOK.type = u.type;
       LOOK.team = u.team;
       LOOK.s = def.size / FP;
-      LOOK.face = u.face || (u.team === TEAM_BLUE ? 1 : -1);
+      LOOK.face = (u.face || (u.team === TEAM_BLUE ? 1 : -1)) * (glance ? -1 : 1);
       LOOK.lunge = eng.tick - u.lungeT < LUNGE_TICKS;
-      LOOK.bob = Math.abs(step) * 0.06;
+      LOOK.bob = Math.abs(step) * 0.06 + idle;
       LOOK.step = step;
       LOOK.phase = ph;
-      LOOK.age = (eng.tick - u.bornT + f.alpha) / TICK_RATE;
+      // a newborn troop is still in the air: birth.ts draws the light carrying it, and hands back
+      // the age of the piece itself -- below zero while there is no piece to draw yet
+      const age = unitAge(eng.tick, u.bornT, f.alpha);
+      LOOK.age = age < BIRTH_MAX ? this.birth.step(u, age, p) : age;
+      if (LOOK.age < 0) {
+        uv.root.visible = false;
+        continue;
+      }
       LOOK.ranged = !!def.ranged;
       LOOK.cd = u.cd;
       LOOK.flash = Math.max(0, HIT_FLASH - (eng.tick - u.hitT)) / HIT_FLASH;
@@ -445,6 +470,7 @@ export class SpriteLayer {
   destroy(): void {
     this.clear();
     this.walls.g.destroy();
+    this.birth.destroy();
     this.root.destroy();
   }
 }
