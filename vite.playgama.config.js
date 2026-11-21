@@ -33,7 +33,7 @@ export const BRIDGE_CONFIG = {
   },
   // the leaderboards (total campaign stars, daily challenges won) run on Bridge SaaS: the playgama
   // platform has none of its own; the tags are the console's (bridge.ts LEADERBOARDS), the token is public
-  saas: { publicToken: 'cmw804jyv1kfgmt0hi783aoav', leaderboards: { platforms: ['playgama', 'qa_tool'] } },
+  saas: { publicToken: 'cmwq4eogl1fwnjx0itl9z8wfb', leaderboards: { platforms: ['playgama', 'qa_tool'] } },
   leaderboards: [{ id: 'campaign_stars', isMain: true }, { id: 'daily_wins' }],
 };
 
