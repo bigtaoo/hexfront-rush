@@ -10,29 +10,21 @@
 import { Container, Graphics } from 'pixi.js';
 import type { Engine } from '../sim/engine';
 import { FP } from '../sim/fixed';
+import { hexDist } from '../sim/hex';
 import { baseTile, type ThemeKey, type Tile } from '../sim/map';
 import { GUARD, TEAM_BLUE, TEAM_RED, TEAMS } from '../sim/rules';
 import type { Camera } from './camera';
 import { grain, GRAIN_VARIANTS } from './grain';
 import { hexPts, Pen, sharedCtx } from './pen';
 import { LOOK_B } from './lookB';
+import { SKINS, skinFor, type MapSkin } from './skins';
+
+/** Hexes from a castle: the home country, then the open field; past that is the contested middle. */
+const HOME_BAND = 4, FIELD_BAND = 8;
 import type { Pt } from './viewConst';
 
-interface GroundLook {
-  /** Tile tops, two shades. */
-  top: readonly [string, string];
-  side: string;
-  /** Around the map. */
-  bg: string;
-}
-
-export const GROUND: Record<ThemeKey, GroundLook> = {
-  meadow: { top: ['#a3cc78', '#9bc570'], side: '#5d8a3e', bg: '#2f4a2b' },
-  desert: LOOK_B ? { top: ['#e6d1a4', '#e2cc9e'], side: '#ad8b5a', bg: '#5f4936' } : { top: ['#e8d1a0', '#e1c995'], side: '#a9844d', bg: '#5e4630' },
-  // warm grey snow: a blue-white would read as the blue team's; a step darker than white, so the
-  // white offer symbols and the pale team grounds still stand out on it
-  snow: { top: ['#d5d9d3', '#cdd2cb'], side: '#8a9394', bg: '#3c4448' },
-};
+/** The backdrop around the map, for the renderer's clear colour. */
+export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme, seed).bg;
 
 /** A team's ground: mid-tone tops (two shades) and the border line in the full hue. A full team
  *  fill turned the map into a sheet of blue that swallowed the blue roofs, and a pale pastel left
@@ -68,10 +60,20 @@ const LIT_EDGE = bevel([3, 4, 5, 0]), SHADE_EDGE = bevel([0, 1, 2, 3]);
 /** Each tile is its own block set into the board: cut back to TILE_R, so the slab's groove floor
  *  (table.ts SLAB) shows between them. A gap filled with a drawn *line* once made a heavy honeycomb
  *  over the map; a gap that shows a lit side and a shaded groove reads as carved instead. */
-function tileCtx(side: string, top: string, obst: boolean, variant: number) {
-  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${variant}`, (p) => {
+function tileCtx(side: string, top: string, obst: boolean, variant: number, water: boolean) {
+  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${variant}|${water ? 1 : 0}`, (p) => {
     p.hex(0, SIDE_H, TILE_R, side);
     p.hex(0, 0, TILE_R, top);
+    if (water) {
+      // a pond sunk into the board: no wood grain on it, a pale rim where it meets the bank, and
+      // two ripples so it reads as water and not as a flat blue-green hex
+      p.hex(0, 0, TILE_R * 0.9, null, 'rgba(255,255,255,0.3)', 0.07);
+      p.hex(0.06, 0.1, TILE_R * 0.52, 'rgba(255,255,255,0.1)');
+      p.line([-0.4, -0.18, 0.1, -0.24], 'rgba(255,255,255,0.4)', 0.07, 'round');
+      p.line([-0.16, 0.26, 0.36, 0.2], 'rgba(255,255,255,0.28)', 0.06, 'round');
+      p.line(SHADE_EDGE, 'rgba(20,40,42,0.26)', 0.09, 'round');
+      return;
+    }
     if (LOOK_B) {
       // the wood under the paint (grain.ts), stretched over the top's bounds
       p.g.poly(hexPts(0, 0, TILE_R), true).fill({ texture: grain(variant), color: 0xffffff });
@@ -100,6 +102,11 @@ export class GroundLayer {
   private rings = new Graphics();
   private ringPen = new Pen(this.rings.context);
   private owner = new Int8Array(0);
+  /** Per tile: which band of the map it is in (0 home, 1 field, 2 the contested middle), and
+   *  whether this skin paints it as water. Both static for the match. */
+  private zone = new Int8Array(0);
+  private water = new Uint8Array(0);
+  private skin: MapSkin = SKINS[0]!;
   /** Per tile, its neighbours' tile indexes and the shared edge's two corners (view units). */
   private edges: { j: number; a: Pt; b: Pt }[][] = [];
 
@@ -110,6 +117,16 @@ export class GroundLayer {
     const order = eng.tiles.map((t) => t.i).sort((a, b) => cam.tv[a]!.y - cam.tv[b]!.y || a - b);
     this.tiles = new Array<Graphics>(eng.tiles.length);
     this.owner = new Int8Array(eng.tiles.length).fill(-2);
+    this.skin = skinFor(eng.themeKey, eng.config.seed);
+    const homes = TEAMS.map((tm) => eng.tiles[baseTile(tm)]!);
+    this.zone = new Int8Array(eng.tiles.length);
+    this.water = new Uint8Array(eng.tiles.length);
+    for (const t of eng.tiles) {
+      const d = Math.min(...homes.map((h) => hexDist(t.c, t.r, h.c, h.r)));
+      this.zone[t.i] = d <= HOME_BAND ? 0 : d <= FIELD_BAND ? 1 : 2;
+      // ponds take the place of the rocks (ice in the snow), never of open ground
+      this.water[t.i] = this.skin.water && (t.obst === 'rock' || t.obst === 'ice') ? 1 : 0;
+    }
     for (const i of order) {
       const v = cam.tv[i]!;
       const g = new Graphics();
@@ -149,23 +166,25 @@ export class GroundLayer {
 
   /** Swaps the look of every tile that changed hands, then redraws the borders. */
   update(eng: Engine): void {
-    const look = GROUND[eng.themeKey];
     let dirty = false;
     for (const t of eng.tiles) {
       if (this.owner[t.i] === t.owner) continue;
       this.owner[t.i] = t.owner;
-      this.tiles[t.i]!.context = this.lookOf(t, look);
+      this.tiles[t.i]!.context = this.lookOf(t);
       dirty = true;
     }
     if (dirty) this.drawBorders(eng);
   }
 
-  private lookOf(t: Tile, look: GroundLook) {
-    const th = TEAM_HUE[t.owner];
-    const top = look.top[t.shade ? 1 : 0]!;
+  private lookOf(t: Tile) {
+    const sk = this.skin;
+    const k = t.shade ? 1 : 0;
+    const wet = this.water[t.i] ? sk.water : null;
+    const th = wet ? undefined : TEAM_HUE[t.owner];
+    const top = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
     // the grain's turn by a hash of the tile, so no row or column repeats it
     const variant = Math.imul(t.i + 1, 2654435761) >>> 0;
-    return tileCtx(look.side, th ? th.top[t.shade ? 1 : 0]! : top, !!t.obst, variant % GRAIN_VARIANTS);
+    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, variant % GRAIN_VARIANTS, !!wet);
   }
 
   /** Along every edge where an owned tile meets a tile its team does not own, a line in the

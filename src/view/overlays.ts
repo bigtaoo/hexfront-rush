@@ -318,10 +318,18 @@ export class Overlays {
     if (s !== this.handS) {
       this.handS = s;
       const h = this.hand.p.clear();
-      const lw = Math.max(2, s * 0.09);
-      h.g.roundRect(-s * 0.42, s * 0.55, s * 0.84, s * 0.85, s * 0.3).fill('#ffffff').stroke({ color: '#1f2937', width: lw, join: 'round' });
-      h.g.roundRect(-s * 0.15, 0, s * 0.3, s * 0.95, s * 0.15).fill('#ffffff').stroke({ color: '#1f2937', width: lw, join: 'round' });
-      h.rect(-s * 0.1, s * 0.6, s * 0.2, s * 0.3, '#ffffff');
+      const lw = Math.max(2, s * 0.075);
+      const body = handPath(s);
+      h.poly(body.map((v, k) => (k & 1 ? v + s * 0.07 : v)), 'rgba(20,14,6,0.22)', null);
+      h.poly(body, '#fdf6ea', '#2a2118', lw);
+      // the creases that tell a fist from a blob: the finger's base and the two folds beside it
+      const crease = (x0: number, y0: number, x1: number, y1: number) =>
+        h.line([x0 * s, y0 * s, x1 * s, y1 * s], 'rgba(42,33,24,0.5)', lw * 0.62, 'round');
+      crease(-0.14, 0.9, 0.2, 0.82);
+      crease(0.32, 0.96, 0.6, 0.98);
+      crease(0.3, 1.2, 0.58, 1.22);
+      // a cuff, so the wrist ends somewhere instead of being cut off
+      h.g.roundRect(-s * 0.13, s * 1.42, s * 0.65, s * 0.26, s * 0.11).fill('#c08a4e').stroke({ color: '#2a2118', width: lw, join: 'round' });
     }
     // the hand comes down from above onto the card's symbol, its palm above the card: it used to
     // reach up from below and sat on the price the player was being taught to read
@@ -385,4 +393,32 @@ export class Overlays {
     this.reset();
     this.root.destroy({ children: true });
   }
+}
+
+/** The tutorial hand: a pointing fist, finger up, as one silhouette in units of `s`. Three
+ *  overlapping rounded rects used to be the hand, and every stroke crossed the next one, so it
+ *  read as a white blob on a stick. One closed outline strokes cleanly at any size. */
+function handPath(s: number): number[] {
+  const pts: number[] = [];
+  const at = (x: number, y: number) => pts.push(x * s, y * s);
+  const arc = (cx: number, cy: number, r: number, a0: number, a1: number, n: number) => {
+    for (let k = 0; k <= n; k++) {
+      const a = a0 + ((a1 - a0) * k) / n;
+      at(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+  };
+  // the index finger, at the fist's near edge and not in the middle of it: a finger standing up
+  // out of the centre of a fist with no thumb beside it is a different gesture entirely
+  at(-0.16, 0.86);
+  arc(0, 0.26, 0.16, Math.PI, 2 * Math.PI, 12);
+  at(0.16, 0.58);
+  arc(0.32, 0.64, 0.17, Math.PI, 2 * Math.PI, 8); // the knuckle of the folded middle finger
+  arc(0.57, 0.82, 0.19, -0.5 * Math.PI, 0.5 * Math.PI, 8); // and the three fingers down the side
+  arc(0.55, 1.12, 0.19, -0.5 * Math.PI, 0.5 * Math.PI, 8);
+  arc(0.52, 1.34, 0.17, -0.5 * Math.PI, 0.5 * Math.PI, 8);
+  at(0.5, 1.5);
+  at(-0.11, 1.5);
+  arc(-0.23, 1.18, 0.26, 0.5 * Math.PI, 1.34 * Math.PI, 12); // the thumb, out to the near side
+  at(-0.18, 0.9);
+  return pts;
 }

@@ -18,7 +18,7 @@ import type { BurstKind, SimEvent } from '../sim/types';
 import { Camera } from './camera';
 import { EffectLayer } from './effects';
 import { Juice, type DrawUi, type Frame, type Vis } from './frame';
-import { GROUND, GroundLayer } from './ground';
+import { groundBg, GroundLayer } from './ground';
 import { EdgeLayer } from './edges';
 import { Hud, type Status } from './hud';
 import { LightLayer } from './light';
@@ -104,7 +104,7 @@ export class Renderer {
     this.eng = eng;
     this.local = local || TEAM_BLUE;
     this.cam.setView(eng, this.local);
-    this.app.renderer.background.color = GROUND[eng.themeKey].bg;
+    this.app.renderer.background.color = groundBg(eng.themeKey, eng.config.seed);
     this.ground.build(eng, this.cam);
     this.table?.build(this.cam.tv);
     this.sprites.build(eng, this.cam);

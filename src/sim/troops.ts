@@ -6,6 +6,7 @@ import { bfsStep } from './path';
 import type { Engine } from './engine';
 import { dist, dist2, isqrt, muldiv } from './fixed';
 import { WORLD_H, WORLD_W } from './hex';
+import { baseTile } from './map';
 import { enemyOf, PROJ, UNITS } from './rules';
 import type { Entity, Unit } from './types';
 
@@ -134,10 +135,23 @@ function separate(e: Engine): void {
           const dx = b.x - a.x, dy = b.y - a.y;
           const min = muldiv(sizeA + UNITS[b.type].size, 9, 10);
           const d2 = dx * dx + dy * dy;
-          if (d2 < min * min && d2 > 100) {
+          if (d2 >= min * min) continue;
+          if (d2 > 100) {
             const d = isqrt(d2), push = Math.trunc((min - d) / 2);
             if (push <= 0) continue;
             const nx = muldiv(dx, push, d), ny = muldiv(dy, push, d);
+            nudge(e, a, -nx, -ny);
+            nudge(e, b, nx, ny);
+          } else {
+            // Stacked all but exactly: there is no direction between them to push along (isqrt(0)
+            // is 0, and dividing by it is how this pair used to be skipped, so two troops that
+            // landed on the same point stayed welded together). Take a direction from the pair's
+            // lanes instead: fixed per pair, so it is deterministic, and different pairs scatter
+            // different ways. One tick of this is enough to put them back in the branch above.
+            const push = Math.trunc(min / 4);
+            const k = (a.lane + b.lane) & 3;
+            const s = k & 2 ? -push : push;
+            const nx = k & 1 ? s : 0, ny = k & 1 ? 0 : s;
             nudge(e, a, -nx, -ny);
             nudge(e, b, nx, ny);
           }
@@ -155,11 +169,43 @@ function nudge(e: Engine, u: Unit, dx: number, dy: number): void {
   }
 }
 
+/** Is (x, y) inside a rock, a tree or a cactus? Off the map counts as open, exactly as walking
+ *  off the edge always has: only the obstacles the pathing already routes around block here. */
+function blocked(e: Engine, x: number, y: number): boolean {
+  const t = e.tileAt(x, y);
+  return !!(t && t.obst);
+}
+
+/** moveToward, but the step never ends inside an obstacle: when the straight line would put the
+ *  troop on a rock, it is retried one axis at a time so the troop slides along the rock's face.
+ *
+ *  moveToward itself has no idea the map has obstacles — only `nudge` ever checked — so a troop
+ *  marching with a lane offset would clip the corner of a hex nobody picked as its step and stand
+ *  inside it, sometimes for half a minute. A troop that is somehow already in one walks out
+ *  freely, or it would be stuck there for good. */
+function walk(e: Engine, u: Unit, tx: number, ty: number, speed: number): boolean {
+  const x0 = u.x, y0 = u.y;
+  const done = moveToward(u, tx, ty, speed);
+  // the open-ground case costs one tile lookup and nothing else; the rest only runs on a rock
+  if (!blocked(e, u.x, u.y)) return done;
+  if (blocked(e, x0, y0)) return done;
+  const nx = u.x, ny = u.y;
+  u.x = x0;
+  u.y = y0;
+  if (nx !== x0 && !blocked(e, nx, y0)) {
+    u.x = nx;
+    if (Math.abs(nx - x0) > 50) u.face = nx > x0 ? 1 : -1;
+  } else if (ny !== y0 && !blocked(e, x0, ny)) {
+    u.y = ny;
+  }
+  return false;
+}
+
 function unitStepToward(e: Engine, u: Unit, tg: Entity, speed: number): void {
   const cur = e.tileAt(u.x, u.y);
   const tt = e.tileAt(tg.x, tg.y);
   if (!cur || !tt || cur.i === tt.i || cur.nb.includes(tt.i)) {
-    moveToward(u, tg.x, tg.y, speed);
+    walk(e, u, tg.x, tg.y, speed);
     return;
   }
   if (u.step < 0 || u.step === cur.i) {
@@ -167,8 +213,8 @@ function unitStepToward(e: Engine, u: Unit, tg: Entity, speed: number): void {
   }
   if (u.step >= 0) {
     const s = e.tiles[u.step];
-    if (moveToward(u, s.x, s.y, speed)) u.step = -1;
-  } else moveToward(u, tg.x, tg.y, speed);
+    if (walk(e, u, s.x, s.y, speed)) u.step = -1;
+  } else walk(e, u, tg.x, tg.y, speed);
 }
 
 /** Down the enemy castle's flow field; ties between equally good tiles split by the unit's lane. */
@@ -188,14 +234,20 @@ function unitMarch(e: Engine, u: Unit, speed: number): void {
       } else if (field[n] === bd && best.length) best.push(n);
     }
     if (!best.length) {
+      // A local minimum of the flow field, or a tile ringed by rocks: there is no better
+      // neighbour to pick. This used to set step = -1 and return, which moves nothing and leaves
+      // the same situation next tick, so the troop stood still for the rest of the match. Head
+      // straight at the enemy castle instead and let `walk` slide it off the dead end.
       u.step = -1;
+      const goal = e.tiles[baseTile(enemyOf(u.team))];
+      walk(e, u, goal.x, goal.y, speed);
       return;
     }
     u.step = best[Math.trunc((u.lane * best.length) / 1000) % best.length];
   }
   const s = e.tiles[u.step];
   const off = muldiv(u.lane - 500, 6, 10); // aim a bit off-centre per unit so groups spread
-  if (moveToward(u, s.x + off, s.y, speed)) u.step = -1;
+  if (walk(e, u, s.x + off, s.y, speed)) u.step = -1;
   else {
     const here = e.tileAt(u.x, u.y);
     if (here && here.i === u.step) u.step = -1;
