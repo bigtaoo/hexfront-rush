@@ -63,6 +63,22 @@ describe('hud layout', () => {
     r.destroy();
   });
 
+  // D79: the match has no time limit, so the time played decides nothing and the seconds to the
+  // next wave decide everything. The clock was the biggest thing on the screen and the countdown
+  // was small grey text beside it. If that ever swaps back, this fails.
+  it('says the next wave louder than the time played, and never on top of it', () => {
+    const r = new Renderer(app as unknown as Application);
+    for (const [w, h] of SIZES) {
+      hudOn(r, w, h);
+      const hud = (r as unknown as { hud: { texts: Map<string, Container>; nums: Map<string, Container> } }).hud;
+      const wave = hud.texts.get('wave')!.getBounds(), clock = hud.nums.get('clock')!.getBounds();
+      const where = `${w}x${h} wave ${wave.height.toFixed(1)} clock ${clock.height.toFixed(1)}`;
+      expect(wave.height, where).toBeGreaterThan(clock.height);
+      expect(clock.x + clock.width, `${w}x${h} clock ends ${(clock.x + clock.width).toFixed(0)}, wave starts ${wave.x.toFixed(0)}`).toBeLessThanOrEqual(wave.x + 0.5);
+    }
+    r.destroy();
+  });
+
   it('leaves the play area between the bars clear', () => {
     const r = new Renderer(app as unknown as Application);
     for (const [w, h] of SIZES) {

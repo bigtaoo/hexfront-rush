@@ -375,17 +375,19 @@
   .chip, .chip span { color: #fff; -webkit-text-stroke: 3px var(--ink); paint-order: stroke fill; }
   .chip small { -webkit-text-stroke: 2px var(--ink); }
 
-  /* the corner buttons: round wooden tokens */
+  /* the corner buttons: dark leather tokens, the same material as the lobby's (.tok). In light
+     wood they were as loud as the gold pill they sit beside -- three painted slots in one bar for
+     one thing worth looking at. Nothing a match is won with is in this corner. */
   #muteBtn, #musicBtn, #pauseBtn, #leaveBtn, #speedBtn {
-    position: fixed; bottom: 12px; width: 50px; height: 50px; border-radius: 50%; border: 3px solid var(--wood-rim);
-    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.45), rgba(255,255,255,0) 45%), var(--grain), radial-gradient(circle, var(--wood-hi), var(--wood) 72%);
-    box-shadow: inset 0 -3px 0 rgba(110,67,32,.3), 0 4px 0 var(--wood-rim), 0 6px 10px rgba(0,0,0,.35);
-    color: var(--ink); cursor: pointer; z-index: 20; padding: 10px; box-sizing: border-box;
+    position: fixed; bottom: 12px; width: 50px; height: 50px; border-radius: 50%; border: 3px solid #1b1007;
+    background: var(--grain), radial-gradient(circle at 35% 25%, #6b4728, #34200f 76%);
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.35), 0 4px 0 #1b1007, 0 6px 10px rgba(0,0,0,.35);
+    color: #f6e7c8; cursor: pointer; z-index: 20; padding: 10px; box-sizing: border-box;
   }
   #muteBtn, #musicBtn, #pauseBtn, #leaveBtn, #speedBtn { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
   #muteBtn { right: calc(10px + env(safe-area-inset-right, 0px)); } #leaveBtn, #pauseBtn, #musicBtn { right: calc(68px + env(safe-area-inset-right, 0px)); }
   #speedBtn { right: calc(126px + env(safe-area-inset-right, 0px)); min-width: 50px; width: auto; border-radius: 25px; padding: 0 12px; font: inherit; font-size: 20px; }
-  #muteBtn:active, #musicBtn:active, #pauseBtn:active, #leaveBtn:active, #speedBtn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--wood-rim); }
+  #muteBtn:active, #musicBtn:active, #pauseBtn:active, #leaveBtn:active, #speedBtn:active { transform: translateY(3px); box-shadow: inset 0 -2px 0 rgba(0,0,0,.35), 0 1px 0 #1b1007; }
   #muteBtn svg, #musicBtn svg, #pauseBtn svg, #leaveBtn svg { width: 100%; height: 100%; display: block; }
   #muteBtn .x, #musicBtn .x { display: none; }
   #muteBtn.muted .x, #musicBtn.muted .x { display: inline; }

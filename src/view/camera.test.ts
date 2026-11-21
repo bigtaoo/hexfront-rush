@@ -55,8 +55,8 @@ describe('the screen layout', () => {
     // the squeeze is for frames nobody plays in; a phone must be untouched by it
     for (const H of [272, 320, 480, 667, 844, 1080, 1440, 2400]) {
       const c = fresh(390, H);
-      expect([H, c.hudTop]).toEqual([H, Math.max(58, Math.min(78, H * 0.085))]);
-      expect([H, c.hudBot]).toEqual([H, Math.max(64, Math.min(92, H * 0.1))]);
+      expect([H, c.hudTop]).toEqual([H, Math.max(48, Math.min(68, H * 0.072))]);
+      expect([H, c.hudBot]).toEqual([H, Math.max(54, Math.min(78, H * 0.088))]);
     }
   });
 

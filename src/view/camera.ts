@@ -19,8 +19,12 @@ const COVER_W = 0.8;
 const COVER_H = 0.92;
 const COVER_MAX = 1.8;
 /** The two HUD bars are sized for a phone or bigger. On a screen too short for them they shrink
- *  together to this share of it, so there is always a play area left between them. */
-const BAR_SHARE = 0.45;
+ *  together to this share of it, so there is always a play area left between them. Held sideways a
+ *  phone is 360 px tall and the share was 0.45: nearly half the screen was rail, and the board --
+ *  the thing the player actually plays -- was a strip between them. The slimmer rails above do
+ *  most of that work; this is set so the shortest screen a player holds (272 px) still gets them
+ *  whole, and only a frame shorter than that gives anything up. */
+const BAR_SHARE = 0.38;
 
 /** Something that moves in the sim: its position now and a tick ago (FP). */
 export interface Mobile {
@@ -33,8 +37,8 @@ export interface Mobile {
 export class Camera {
   W = 1;
   H = 1;
-  hudTop = 58;
-  hudBot = 64;
+  hudTop = 48;
+  hudBot = 54;
   availH = 1;
   viewCY = 0;
   fitScale = 1;
@@ -106,7 +110,7 @@ export class Camera {
   resize(W: number, H: number): void {
     this.W = W;
     this.H = H;
-    const top = Math.max(58, Math.min(78, H * 0.085)), bot = Math.max(64, Math.min(92, H * 0.1));
+    const top = Math.max(48, Math.min(68, H * 0.072)), bot = Math.max(54, Math.min(78, H * 0.088));
     // A thumbnail-sized frame (a portal's preview panel, a window dragged nearly shut) is shorter
     // than the two bars together. Taken as they are, the play area between them comes out negative
     // and so does every scale drawn from it: the board would be drawn mirrored and inside out, and
