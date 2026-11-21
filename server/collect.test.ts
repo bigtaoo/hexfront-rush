@@ -23,10 +23,14 @@ const server = collectServer(c, dir);
 let base = '';
 
 beforeAll(async () => {
-  // and the same for node's own wall-clock limits on a request, which collect.ts sets for the
-  // real internet; here they would only cut off a request this machine is too busy to read
+  // Node's own wall-clock limits on a request and on an idle connection. They are there for the
+  // real internet; here they only ever fire because this machine is busy. The idle one is the one
+  // that bit: between two of the fetches below a whole match is replayed, which on a loaded CI
+  // runner takes longer than the five seconds node keeps a spare connection, so the server closed
+  // the socket that fetch then reached for and the next request came back as ECONNRESET.
   server.headersTimeout = 180_000;
   server.requestTimeout = 180_000;
+  server.keepAliveTimeout = 180_000;
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
