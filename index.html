@@ -87,8 +87,16 @@
     box-shadow: inset 0 -4px 0 rgba(0,0,0,.12), 0 6px 0 var(--gold-rim), 0 10px 16px rgba(0,0,0,.35); }
   .btn.small:active { box-shadow: 0 2px 0 var(--gold-rim); }
   #menu .row .btn.wood { min-width: 0; }
-  /* the menu: the main button, a two-by-two grid of the modes, then the tools row */
-  .menuGrid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; width: min(460px, 100%); }
+  /* The lobby is two blocks: the title (the logo between the two toys, with the record under it)
+     and the actions (the main button, a two-by-two grid of the modes, then the tools row).
+     Standing up they sit one above the other with the board showing through between them; lying
+     down they sit side by side. One tall column on a 360 px-high phone held sideways had the
+     tools row on the bottom edge under the audio switches, with half the screen's width empty. */
+  #menu { gap: clamp(12px, 4vh, 40px); }
+  .menuSide, .menuMain { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .menuSide { gap: 6px; }
+  .menuMain { gap: clamp(10px, 2.4vh, 16px); width: min(460px, 100%); }
+  .menuGrid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; width: 100%; }
   .menuGrid > .btn { flex: 0 0 calc(50% - 6px); min-width: 0; padding-left: 8px; padding-right: 8px; box-sizing: border-box; }
   /* the difficulty, medals and gear stay on one line: on a phone the gear wrapped to a row of its own */
   @media (max-width: 480px) {
@@ -117,13 +125,31 @@
   .seg button.on { background: var(--gloss), linear-gradient(var(--gold-hi), var(--gold)); }
   /* a destructive button asking for a second tap */
   .btn.armed { border-color: #6b1d0c; background: var(--gloss), linear-gradient(#f2795c, #c8402a); color: #fff; text-shadow: 0 2px 0 #6b1d0c; box-shadow: 0 6px 0 #6b1d0c; }
-  @media (max-height: 560px) and (min-aspect-ratio: 5/4) {
-    .menuGrid { width: min(760px, 100%); }
-    .menuGrid > .btn { flex: 1 1 0; }
-    /* the four modes on one row leaves the menu one column, and on a 320 px-tall landscape phone
-       that column is all the screen there is: the rows close up so the tools row keeps its place
-       on it in every language (English had nothing to spare, Japanese was 19 px over) */
-    #menu { gap: 8px; }
+  /* lying down: the title to one side of the actions, so the menu needs half the height. The
+     grid keeps its two columns -- four modes on one row made every button a narrow sliver that
+     the longer languages could not write in. */
+  @media (max-height: 620px) and (min-aspect-ratio: 5/4) {
+    #menu { flex-direction: row; justify-content: center; align-items: center;
+      gap: clamp(14px, 4vw, 48px); padding: 10px clamp(12px, 3vw, 40px); }
+    .menuSide { flex: 0 1 auto; min-width: 0; }
+    .menuMain { flex: 0 1 auto; width: min(400px, 50%); gap: clamp(8px, 2.2vh, 14px); }
+    /* The toys and the logo measure against the height here: vmin is the short side either way,
+       so sideways they were sized for a screen twice as wide as the room they actually had. The
+       width is in the min() as well, or a long screen walks the blue guard off the left edge --
+       the images keep their height whatever the column does, so the column cannot shrink them. */
+    .title { margin-bottom: 0; max-width: 100%; }
+    #menu .title img { height: clamp(40px, min(22vh, 8vw), 120px); }
+    #menu .title img.logo { height: clamp(48px, min(26vh, 11vw), 140px); max-width: 26vw; }
+    /* one line for the tools, as on a narrow phone: wrapped, the gear and the medal dropped to a
+       row of their own and the column grew back into the audio switches in the corner */
+    #menu .row.tools { flex-wrap: nowrap; gap: 8px; }
+    #menu .row.tools .seg { --segPad: 7px; }
+    #menu .row.tools .btn { padding-left: 12px; padding-right: 12px; }
+  }
+  /* standing up: the title high, the actions low, the board between them */
+  @media (orientation: portrait) {
+    #menu { justify-content: center; }
+    .menuSide { margin-bottom: clamp(0px, 3vh, 36px); }
   }
   @media (min-width: 700px) { #settings .card { max-width: 460px; } }
   /* the brief's rewarded-ad offer: labelled as an ad (the screen icon and the text say so) */
@@ -482,8 +508,11 @@
 <body>
 
 <div id="menu" class="panel hidden">
+  <div class="menuSide">
   <div class="title"><img class="l" src="ui/guard_blue.webp" alt=""><img class="logo" src="ui/logo.webp" alt="Hexfront Rush"><img class="r" src="ui/ogre_red.webp" alt=""></div>
   <div class="sub" id="record"></div>
+  </div>
+  <div class="menuMain">
   <button class="btn" id="playBtn"></button>
   <div class="menuGrid">
     <button class="btn wood" id="quickBtn" data-t="quick"></button>
@@ -495,6 +524,7 @@
     <div class="seg" id="diffBtn" role="radiogroup"><button data-d="0" data-t="diff0" role="radio"></button><button data-d="1" data-t="diff1" role="radio"></button><button data-d="2" data-t="diff2" role="radio"></button><button data-d="3" data-t="diff3" role="radio"></button></div>
     <button class="btn wood" id="achBtn" aria-label="Achievements" data-ta="achievements"><img class="medal" src="ui/icons/medal.webp" alt=""><span id="achN"></span></button>
     <button class="btn wood icon" id="setBtn" aria-label="Settings" data-ta="settings"><img class="gear" src="ui/icons/gear.webp" alt=""></button>
+  </div>
   </div>
 </div>
 

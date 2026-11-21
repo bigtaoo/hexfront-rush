@@ -58,9 +58,12 @@ export function fitTools(): void {
   if (!btn) return;
   const cs = getComputedStyle(btn), hs = getComputedStyle(hold);
   const fs0 = parseFloat(cs.fontSize) || 13, pad0 = parseFloat(cs.paddingLeft) || 10;
-  // the row may sit a little wider than the panel's own padding, which is cut for cards; what it
-  // may not do is leave the screen, so the wider of the two is the room it has
-  const room = Math.max(hold.clientWidth - parseFloat(hs.paddingLeft) - parseFloat(hs.paddingRight), document.documentElement.clientWidth - 12);
+  // the row may sit a little wider than the box it is in, whose padding is cut for cards, so it
+  // is given a little slack past that box; what it may not do is leave the screen. Lying down the
+  // menu is two columns and the row is in the narrower one, so the box is the real limit there --
+  // measured against the screen alone, the words kept their size and the gear left the column.
+  const hr = hold.clientWidth - parseFloat(hs.paddingLeft) - parseFloat(hs.paddingRight);
+  const room = Math.min(document.documentElement.clientWidth - 12, hr + 24);
   // two things go wrong here and they are measured against different things: the row leaving the
   // room it has, and the row handing its own children less than their words need. The fit is
   // given the worse of the two as one overflow to drive to nothing.
