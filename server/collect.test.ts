@@ -48,6 +48,10 @@ afterAll(async () => {
 });
 
 describe('collect.ts', () => {
+  // a whole match played, then the same match replayed and re-hashed on the way back: 14 s on a
+  // quiet machine and 36 s on a CI runner whose two cores are shared with the rest of the suite,
+  // where the 30 s default timed it out. The work is the point, so it gets the room -- the same
+  // room golden.test.ts and collector.test.ts give the same kind of work.
   it('keeps a solo replay posted as the game posts it', async () => {
     const m = playMatch(808);
     const body = JSON.stringify({ id: '00112233aabbccdd', end: 'lost', build: '0.4.0+abc', platform: 'playgama', replay: makeReplay(m.config, m.log, m.engine) });
@@ -60,7 +64,7 @@ describe('collect.ts', () => {
     expect(docs.map((d) => [d.id, d.end, d.platform])).toEqual([['s-00112233aabbccdd', 'lost', 'playgama']]);
     expect(checkReplay(docs[0]!.replay)).toBe(true);
     expect((await req('/r', { method: 'POST', body: 'nope' })).status).toBe(400);
-  });
+  }, 180_000);
 
   it('serves the privacy page, the health check, and 404 for the rest', async () => {
     const p = await req('/privacy');
