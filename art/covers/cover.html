@@ -4,7 +4,7 @@
   @font-face { font-family: "Lilita One"; src: url("file:///D:/new/game/public/fonts/LilitaOne-Regular.ttf"); }
   :root { --ink: #3a2412; --wood-rim: #6e4320; --u: 1px; }
   html, body { margin: 0; width: 100vw; height: 100vh; overflow: hidden; background: #6f9a4a; }
-  .bg { position: absolute; inset: -20px; background: url("bg.png") center / cover; filter: blur(3px) saturate(1.08); }
+  .bg { position: absolute; inset: -20px; background: url("bg.png") center / cover; filter: blur(8px) saturate(1.05) brightness(0.94); }
   .vig { position: absolute; inset: 0; background:
     radial-gradient(ellipse at 50% 18%, rgba(40,24,10,.45), rgba(40,24,10,0) 42%),
     radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 45%, rgba(30,18,8,.55) 100%), linear-gradient(rgba(30,18,8,0) 80%, rgba(30,18,8,.45)); }
@@ -14,6 +14,7 @@
   .logo span { display: block; color: #ef5a3c; font-size: 1.22em;
     text-shadow: 0 calc(2*var(--u)) 0 #d8452a, 0 calc(4*var(--u)) 0 #c03a22, 0 calc(6*var(--u)) 0 #a3301b, 0 calc(8*var(--u)) 0 #862713, 0 calc(10*var(--u)) 0 #6b1d0c, 0 calc(14*var(--u)) 0 var(--ink), 0 calc(24*var(--u)) calc(30*var(--u)) rgba(0,0,0,.55); }
   .landscape .bg, .square .bg { background-position: center 12%; }
+  .portrait .bg { filter: blur(14px) saturate(1.05) brightness(0.92); }
   img.t { position: absolute; filter: drop-shadow(0 calc(14*var(--u)) calc(10*var(--u)) rgba(0,0,0,.45)); }
   .flip { transform: scaleX(-1); }
 
