@@ -1,0 +1,21 @@
+{
+  // Static hosting (Cloudflare Workers static assets) for Hexfront Rush's web build, served at
+  // hexfront.gamestao.com. Mirrors D:\standing's wrangler/web.jsonc (same gamestao.com account).
+  //
+  // Build (outputs dist):          npm run build
+  // Deploy (from the repo root):   npx wrangler deploy -c wrangler/web.jsonc
+  //
+  // routes[].custom_domain=true provisions the DNS record and edge certificate on the first
+  // deploy. A readable hostname rather than a spare letter: this URL is the one the studio site
+  // links and a player shares, and only one of the two says what it opens.
+  "name": "hexfront-rush-web",
+  "compatibility_date": "2026-11-21",
+  "assets": {
+    // no single-page fallback: a missing file is a 404, never index.html served under some
+    // script's name, which a long asset cache would then keep
+    "directory": "../dist"
+  },
+  "routes": [
+    { "pattern": "hexfront.gamestao.com", "custom_domain": true }
+  ]
+}
