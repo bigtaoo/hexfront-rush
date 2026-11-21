@@ -91,6 +91,9 @@ describe('onlineDoc', () => {
   });
   const report = { winner: m.engine.result?.winner ?? 0, h: final, tick: end };
 
+  // a whole match replayed and re-hashed: seconds of work on its own, and minutes of it when a
+  // CI runner's two cores are shared with the rest of the suite. The 30 s default timed it out
+  // there while it passed everywhere else, so it is given the room the work really takes.
   it('a match both seats finished alike plays back to their end', () => {
     const d = onlineDoc(room({ reports: [null, report, report] }), 1)!;
     expect(d).toMatchObject({ id: 'o-QX7P-4040', kind: 'online', end: 'over', at: 1 });
@@ -101,7 +104,7 @@ describe('onlineDoc', () => {
     expect(d.desync).toBeUndefined();
     // one seat's report is enough
     expect(checkReplay(onlineDoc(room({ reports: [null, null, report] }), 1)!.replay)).toBe(true);
-  });
+  }, 180_000);
 
   it('a match left early stops at the last agreed checkpoint', () => {
     const checks = m.checks.filter((c) => c[0] <= 2000);

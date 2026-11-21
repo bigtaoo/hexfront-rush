@@ -35,11 +35,14 @@ describe('determinism', () => {
     expect(b.hashes).toEqual(a.hashes);
   });
 
+  // three whole matches, one of them hashing all of its state every single tick: seconds of work
+  // on a quiet machine and minutes of it on a CI runner whose two cores are shared with the rest
+  // of the suite, where the 30 s default timed it out. The work is the point, so it gets the room.
   it('hashing every tick and restoring snapshots change nothing', () => {
     const plain = playMatch(5150).engine.hash();
     expect(playMatch(5150, { hashEvery: 1 }).engine.hash()).toBe(plain);
     expect(hex(playMatch(5150, { restoreEvery: 457 }).engine.hash())).toBe(hex(plain));
-  });
+  }, 180_000);
 
   it('a snapshot is plain JSON', () => {
     const e = new Engine({ seed: 5150, aiBlue: true, aiRed: true });

@@ -14,11 +14,19 @@ import { readShelf, ReplayShelf } from './replayShelf.ts';
 
 const dir = mkdtempSync(join(tmpdir(), 'hf-collect-'));
 const quiet = () => {};
-const c = new Collector(new ReplayShelf(dir, undefined, quiet), quiet, { trustProxy: true });
+// bodyMs is wall clock: the collector drops a body that takes too long to arrive. Over loopback
+// nothing is ever slow, but a CI runner sharing two cores with the rest of the suite can starve
+// this process past the 20 s default while the bytes sit in the socket, and the dropped socket
+// reached the test as ECONNRESET. The limit itself is covered in collectorLimits.test.ts.
+const c = new Collector(new ReplayShelf(dir, undefined, quiet), quiet, { trustProxy: true, bodyMs: 180_000 });
 const server = collectServer(c, dir);
 let base = '';
 
 beforeAll(async () => {
+  // and the same for node's own wall-clock limits on a request, which collect.ts sets for the
+  // real internet; here they would only cut off a request this machine is too busy to read
+  server.headersTimeout = 180_000;
+  server.requestTimeout = 180_000;
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 });
