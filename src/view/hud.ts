@@ -242,11 +242,11 @@ export class Hud {
       p.rrect(qx, gy - qfs * 1.9, qw, qfs * 3.8, 10, flash ? 'rgba(34,140,60,0.92)' : 'rgba(26,14,5,0.62)', 'rgba(243,214,164,0.18)', 1.5);
       const pbw = qw - 20 - qfs * 3.5;
       p.rrect(qx + 10, gy + qfs * 0.35, pbw, qfs * 0.8, qfs * 0.4, 'rgba(18,10,3,0.55)');
-      p.rrect(qx + 10, gy + qfs * 0.35, Math.max(qfs * 0.8, (pbw * qp.prog) / qp.q.need), qfs * 0.8, qfs * 0.4, '#4ade80');
+      p.rrect(qx + 10, gy + qfs * 0.35, Math.max(qfs * 0.8, (pbw * qp.prog) / qp.q.need), qfs * 0.8, qfs * 0.4, '#35a35c');
       coin(p, qx + qw - qfs * 2.6, gy + qfs * 0.75, qfs * 0.45);
       // a long quest (Russian, on a phone held upright) shrinks to its box instead of running under the gold pill
       fitWidth(this.text('quest', T('quest_' + qp.q.id, { n: qp.q.need }), qx + 10, gy - qfs * 0.75, { size: qfs, color: '#ffffff', weight: 800, align: 'left' }), qw - 16);
-      this.num('qprog', `${qp.prog}/${qp.q.need}`, qx + 10 + pbw / 2, gy + qfs * 0.77, { size: Math.max(12, qfs * 0.7), color: '#fff', weight: 800 });
+      this.num('qprog', `${qp.prog}/${qp.q.need}`, qx + 10 + pbw / 2, gy + qfs * 0.77, { size: Math.max(12, qfs * 0.7), color: '#fff', weight: 800, stroke: 'rgba(0,0,0,0.45)' });
       this.num('qreward', String(qp.q.reward), qx + qw - qfs * 2.0, gy + qfs * 0.78, { size: Math.max(12, qfs * 0.85), color: COL.coin, weight: 900, align: 'left' });
     } else {
       this.hide('quest');

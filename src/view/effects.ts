@@ -36,7 +36,24 @@ interface Floater {
   color: string;
   t: number;
   life: number;
+  /** Seconds left of a hurried exit, or null while the label is living its full life. */
+  rush: number | null;
   view: Text | Num | null;
+}
+
+/** The most labels the field carries at once. A big fight put six numbers and words over the board
+ *  at the same time, none of them readable; past this the OLDEST is hurried off rather than the
+ *  newest refused, because whatever just happened is always the more interesting of the two. */
+const MAX_FLOATERS = 5;
+/** How long a hurried label takes to leave (s): long enough to be a fade and not a blink. */
+const RUSH = 0.22;
+
+/** Mark everything over `max` for a quick exit, oldest first. Exported for its test. */
+export function hurryOldest(list: { rush: number | null }[], max = MAX_FLOATERS, rush = RUSH): void {
+  for (let i = 0; i < list.length - max; i++) {
+    const e = list[i]!;
+    if (e.rush === null) e.rush = rush;
+  }
 }
 
 /** Drop the finished entries in place. `filter` built a new array every frame, as long as
@@ -51,7 +68,7 @@ function prune<T>(arr: T[], done: (e: T) => boolean): void {
 }
 const expired = (e: { t: number; life: number }): boolean => e.t >= e.life;
 const floaterDone = (fl: Floater): boolean => {
-  if (fl.t < fl.life) return false;
+  if (fl.t < fl.life && !(fl.rush !== null && fl.rush <= 0)) return false;
   fl.view?.destroy();
   return true;
 };
@@ -97,7 +114,8 @@ export class EffectLayer {
     this.rings.push({ x, y, r, color, t: 0, life: 0.35 });
   }
   floater(x: number, y: number, text: string, color: string): void {
-    this.floaters.push({ x, y, text, color, t: 0, life: 1.1, view: null });
+    this.floaters.push({ x, y, text, color, t: 0, life: 1.1, rush: null, view: null });
+    hurryOldest(this.floaters);
   }
   /** The white hex over a tile the player tapped. */
   markAt(x: number, y: number): void {
@@ -142,6 +160,7 @@ export class EffectLayer {
     for (const fl of this.floaters) {
       fl.t += dt;
       fl.y -= 0.8 * dt;
+      if (fl.rush !== null) fl.rush = Math.max(0, fl.rush - dt);
     }
     prune(this.floaters, floaterDone);
     for (const fl of this.floaters) {
@@ -155,7 +174,7 @@ export class EffectLayer {
         fl.view.scale.set(1 / zoom);
       } else fl.view.set(fl.text, { h: 0.5, tint: fl.color, screen: zoom });
       fl.view.position.set(fl.x, fl.y);
-      fl.view.alpha = Math.min(1, (1 - fl.t / fl.life) * 2);
+      fl.view.alpha = Math.min(1, (1 - fl.t / fl.life) * 2) * (fl.rush === null ? 1 : fl.rush / RUSH);
     }
   }
 

@@ -41,6 +41,10 @@ const BURST_COL: Record<BurstKind, (team: number) => string> = {
   claim: teamLight,
 };
 
+/** How much gold one flying coin stands for, and the most a single payout ever sends. Seven mines
+ *  used to send a coin each; the stream now carries the weight of the whole tick instead. */
+const COIN_PER = 25, COIN_MAX = 8;
+
 export class Renderer {
   readonly cam = new Camera();
   readonly juice = new Juice();
@@ -129,6 +133,7 @@ export class Renderer {
    *  away from its goal, and this put both at 0 - so one lag spike stranded an online match zoomed
    *  out for good, with no panning and no edge markers. */
   reset(): void {
+    this.income = null;
     this.overlays.reset();
     this.effects.reset();
     this.offers.reset();
@@ -188,6 +193,19 @@ export class Renderer {
     const p = this.cam.worldToScreen(x, y);
     this.overlays.coinFly(p.x, p.y, n);
   }
+  /** The income of one tick, pooled by `onEvent` and spent in `draw`: the total, and the mine that
+   *  paid most of it, which is where it is said from. 矿脉涌动 is called out when any mine was
+   *  surging, at the steepest rate of them -- the outlet has to be visible to be used. */
+  private income: { x: number; y: number; best: number; total: number; surge: number } | null = null;
+  private flushIncome(): void {
+    const k = this.income;
+    if (!k) return;
+    this.income = null;
+    const fx = this.effects;
+    fx.floater(k.x, k.y - 0.9, k.surge > 0 ? `+${k.total} +${k.surge}%` : '+' + k.total, k.surge > 0 ? COL.surge : COL.coin);
+    // one stream, its weight told by how many coins are in it rather than by how many mines paid
+    this.coinFly(k.x, k.y, Math.max(1, Math.min(COIN_MAX, Math.round(k.total / COIN_PER))));
+  }
   needGold(x: number, y: number): void {
     const p = this.cam.view(x, y);
     this.effects.floater(p.x, p.y - 0.6, T('needGold'), COL.hurt);
@@ -211,11 +229,23 @@ export class Renderer {
         if (p) this.overlays.damageNumber(e.id ?? 0, p.x, p.y, e.amount ?? 0, mine ? COL.hurt : '#ffffff');
         break;
       case 'income':
+        // One event per mine, all on the same tick: a board with seven mines threw seven green
+        // numbers and seven streams of coins at once, every one of them saying what the gold pill
+        // was already saying, and the player had to add them up to learn the one thing that
+        // mattered. They are pooled here and said once in `flushIncome`.
         if (mine && p) {
-          // 矿脉涌动 pays in green and says by how much: the outlet has to be visible to be used
-          const sg = e.surge ?? 0;
-          fx.floater(p.x, p.y - 0.9, sg > 0 ? `+${e.amount} +${sg}%` : '+' + e.amount, sg > 0 ? COL.surge : COL.coin);
-          this.coinFly(p.x, p.y, 1);
+          const amt = e.amount ?? 0;
+          const k = this.income;
+          if (!k) this.income = { x: p.x, y: p.y, best: amt, total: amt, surge: e.surge ?? 0 };
+          else {
+            k.total += amt;
+            k.surge = Math.max(k.surge, e.surge ?? 0);
+            if (amt > k.best) {
+              k.best = amt;
+              k.x = p.x;
+              k.y = p.y;
+            }
+          }
         }
         break;
       case 'mapEvent':
@@ -269,6 +299,7 @@ export class Renderer {
     const vis: Vis = { x0: -ex / s - 1.3, x1: (cam.W - ex) / s + 1.3, y0: -ey / s - 1.0, y1: (cam.H - ey) / s + 1.9 };
     setDigitDensity(this.app.renderer.resolution);
     const f: Frame = { eng, alpha, dt, time: this.time, ui, cam, vis, local: this.local };
+    this.flushIncome();
     this.ground.update(eng);
     this.offers.draw(f);
     this.sprites.draw(f);

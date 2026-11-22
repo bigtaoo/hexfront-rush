@@ -155,7 +155,13 @@ export class Overlays {
   guide: Tile | null = null;
 
   constructor(private juice: Juice) {
-    this.root.addChild(this.dmgBox, this.coinG.g, this.ringG.g, this.hand.g, this.pill.g, this.hintText, this.cardView.root, this.bandG.g, this.bannerBox);
+    // Ordered by how long a thing lives, longest first: the standing furniture at the bottom, the
+    // things that flash and are gone on top. A damage number is on screen for well under a second
+    // and it is the one piece of feedback that has to arrive on the frame it is about -- it used to
+    // sit UNDER the hint line, the tutorial hand and the pick-up card, any of which could eat it at
+    // the exact moment a fight turned. The tug band and the banner stay above everything, as they
+    // always have: they are the match talking, not the field.
+    this.root.addChild(this.cardView.root, this.pill.g, this.hintText, this.hand.g, this.ringG.g, this.dmgBox, this.coinG.g, this.bandG.g, this.bannerBox);
   }
 
   reset(): void {
