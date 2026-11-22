@@ -63,12 +63,23 @@ describe('campaign', () => {
   });
 
   it('Hard: the same stage with a stronger, richer rival; opens stage by stage once Normal is won', () => {
+    let tuned = 0;
     for (let id = 0; id < STAGE_COUNT; id++) {
-      const st = stageAt(id), h = hardStage(st);
+      const st = stageAt(id), h = hardStage(st), base = st.rival.income ?? 100;
       expect(h.seed).toBe(st.seed);
       expect(h.rival.skill).toBe(Math.min(3, st.rival.skill + 1));
-      expect(h.rival.income).toBe(Math.round((st.rival.income ?? 100) * (st.rival.skill >= 3 ? HARD_INCOME_TOP : HARD_INCOME)));
+      const mul = st.hardMul ?? (st.rival.skill >= 3 ? HARD_INCOME_TOP : HARD_INCOME);
+      expect(h.rival.income).toBe(Math.round(base * mul));
+      // A per-stage hardMul is an escape hatch for maps that answer the global one too steeply:
+      // it may soften a stage, never below Normal and never past the global multiplier.
+      if (st.hardMul !== undefined) {
+        tuned++;
+        expect(st.hardMul).toBeGreaterThan(1);
+        expect(st.hardMul).toBeLessThan(Math.max(HARD_INCOME, HARD_INCOME_TOP));
+      }
+      expect(h.rival.income).toBeGreaterThan(base);
     }
+    expect(tuned).toBeLessThanOrEqual(4); // if many stages need one, the global multipliers are wrong
     expect(hardOpen([], [], 0)).toBe(false);
     expect(hardOpen([GOAL_WIN], [], 0)).toBe(true);
     expect(hardOpen([GOAL_WIN, GOAL_WIN], [], 1)).toBe(false);

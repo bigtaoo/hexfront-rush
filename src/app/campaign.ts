@@ -22,6 +22,9 @@ export interface Stage {
   siege?: number;
   /** Seconds: winning within this earns the third star. */
   par: number;
+  /** The hard campaign's income multiplier, when the global one does not fit this map
+   *  (see hardStage). Only a handful of stages need it. */
+  hardMul?: number;
 }
 
 export interface Chapter {
@@ -87,7 +90,7 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     // warlords: the rival starts with an army
     key: 'warlords', theme: 'desert', stages: [
-      { seed: 227, rival: R(3, { style: 2, barracks: 1, income: 105 }), par: 450 },
+      { seed: 227, rival: R(3, { style: 2, barracks: 1, income: 105 }), par: 450, hardMul: 1.05 },
       { seed: 255, rival: R(3, { style: 2, income: 110 }), par: 270 },
       { seed: 21106, rival: R(3, { style: 2, barracks: 2, income: 100 }), par: 240 },
       { seed: 21121, rival: R(3, { style: 4, gold: 200, income: 90 }), par: 240 },
@@ -105,7 +108,7 @@ export const CHAPTERS: readonly Chapter[] = [
       { seed: 26112, rival: R(3, { style: 1, barracks: 2, income: 115 }), par: 300 },
       { seed: 26177, rival: R(3, { style: 2, barracks: 3, gold: 200, income: 90 }), par: 240 },
       { seed: 26205, rival: R(3, { style: 1, barracks: 3, castle: 150, towers: 2, income: 110 }), par: 270 },
-      { seed: 26218, rival: R(3, { style: 1, barracks: 3, castle: 200, towers: 2, income: 130 }), par: 450 },
+      { seed: 26218, rival: R(3, { style: 1, barracks: 3, castle: 200, towers: 2, income: 130 }), par: 450, hardMul: 1.07 },
     ],
   },
 ];
@@ -119,16 +122,22 @@ export function stageAt(id: number): Stage {
 // ---------------- the hard campaign ----------------
 
 /** The hard campaign: the same 42 stages and maps, the rival one skill up and with HARD_INCOME
- *  more income; a rival already at the top skill (most of chapters 3-6) gets HARD_INCOME_TOP instead.
- *  Calibrated (`HARD=1 npm run campaign -- 16`): the bot wins about 15-27 points less often than
- *  on Normal, chapter by chapter. Its stars and best times are kept apart (Save.hard,
- *  Save.hardBest); a hard stage opens once it is won on Normal and the hard one before it is won. */
-export const HARD_INCOME = 1.1;
-export const HARD_INCOME_TOP = 1.2;
+ *  more income; a rival already at the top skill (most of chapters 3-6) has no skill left to gain,
+ *  so the income alone must do the work and it gets HARD_INCOME_TOP instead. The two are tuned
+ *  apart because they are not the same lever: a skill step is worth far more than a tenth of income,
+ *  so the group that cannot take the step needs *less* income than intuition says, not more.
+ *  Calibrated (`HARD=1 npm run campaign -- 32`, engine v16): the bot wins about 15-27 points less
+ *  often than on Normal, chapter by chapter. Two maps answer the multipliers so steeply that they
+ *  fell off the band on their own and carry a per-stage hardMul instead. Its stars and best times
+ *  are kept apart (Save.hard, Save.hardBest); a hard stage opens once it is won on Normal and the
+ *  hard one before it is won. */
+export const HARD_INCOME = 1.15;
+export const HARD_INCOME_TOP = 1.12;
 export function hardStage(st: Stage): Stage {
   const r = st.rival;
   const top = r.skill >= 3;
-  return { ...st, rival: { ...r, skill: Math.min(3, r.skill + 1), income: Math.round((r.income ?? 100) * (top ? HARD_INCOME_TOP : HARD_INCOME)) } };
+  const mul = st.hardMul ?? (top ? HARD_INCOME_TOP : HARD_INCOME);
+  return { ...st, rival: { ...r, skill: Math.min(3, r.skill + 1), income: Math.round((r.income ?? 100) * mul) } };
 }
 
 /** Hard stage id is open: won on Normal, and the first one or the hard one before it is won. */
