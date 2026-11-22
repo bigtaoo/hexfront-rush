@@ -24,21 +24,26 @@ const PRICE_H = LOOK_B ? 0.3 : 0.46;
 /** The price is never drawn shorter than this on screen (px): at a phone's zoom PRICE_H alone came
  *  to about 9 px, too small to read at a glance. It grows only so far, or it would leave the plaque. */
 const PRICE_MIN_PX = 13, PRICE_MAX_H = PRICE_H * 1.45;
-/** An offer the player cannot pay for: its price turns a strong rust red and its coin dims. It was
- *  a dull clay (#b9a487) on the cream plaque -- within a shade of the plaque's own tone, so the one
- *  number the player had to read was the hardest one on the board and the warning warned nobody.
- *  Red is read at a glance, the digits' own dark outline carries it on cream, and it is deeper than
- *  the red team's own colour (COL.red), so a price never reads as somebody's side. */
-const POOR_TINT = '#a81f12', POOR_ALPHA = 0.55;
-/** A price the player can pay. */
+/** An offer the player cannot pay for: the price is cut into the plaque in the plaque's own dark
+ *  brown, its coin dims and the whole price row steps back. It was a dull clay (#b9a487) once,
+ *  within a shade of the plaque's tone and unreadable (D70); the answer then was a strong rust red,
+ *  which over-corrected -- on a board where most prices are out of reach that painted the whole map
+ *  in the one colour the eye cannot ignore, so the loudest thing on screen was everything the
+ *  player could NOT do. Dark on cream stays readable (the digits' own outline merges into it and
+ *  the number reads as carved), but it has no hue to chase. */
+const POOR_TINT = '#4a3729', POOR_ALPHA = 0.45, POOR_FADE = 0.85;
+/** A price the player can pay: the bright sticker face, full strength, with a gold rim around its
+ *  plaque (rimCtx). Light-on-cream plus a saturated rim is what the eye picks out of a board of
+ *  carved brown, and there are only ever a few of them -- which is the point. */
 const PRICE_TINT = '#ffffff';
 
-/** How a price is drawn: red when it cannot be paid, white otherwise. Since D81 a price never
- *  changes, so there is no third colour for a cut one -- what a card costs is what it has always
- *  cost, and the only question the colour answers is whether the player can meet it. */
-export function priceLook(gold: number, cost: number): { tint: string; coinAlpha: number } {
-  if (gold < cost) return { tint: POOR_TINT, coinAlpha: POOR_ALPHA };
-  return { tint: PRICE_TINT, coinAlpha: 1 };
+/** How a price is drawn. The one invariant, held by offers.test.ts: what the player CAN buy is the
+ *  bright one. Since D81 a price never changes, so there is no third colour for a cut one -- what a
+ *  card costs is what it has always cost, and the only question the look answers is whether the
+ *  player can meet it. `fade` multiplies the price row's alpha; `rich` lights the plaque's rim. */
+export function priceLook(gold: number, cost: number): { tint: string; coinAlpha: number; fade: number; rich: boolean } {
+  if (gold < cost) return { tint: POOR_TINT, coinAlpha: POOR_ALPHA, fade: POOR_FADE, rich: false };
+  return { tint: PRICE_TINT, coinAlpha: 1, fade: 1, rich: true };
 }
 
 /** The stamp's two colours: a light cream face and a dark brown ink rim. */
@@ -140,12 +145,23 @@ const plaqueCtx = () =>
     p.line([x + 0.13, t + 0.055, x + PLQ.w - 0.13, t + 0.055], 'rgba(255,247,228,0.5)', 0.045, 'round');
   });
 
+/** The gold rim that marks a plaque the player can buy from, drawn just inside its face. It is the
+ *  positive half of the signal: a board is read by looking for the few lit cards, not by reading
+ *  every price on it. */
+const rimCtx = () =>
+  sharedCtx('offer|rim', (p) => {
+    const x = -PLQ.w / 2 + 0.05, t = PLQ.cy - PLQ.h / 2 + 0.05;
+    p.rrect(x, t, PLQ.w - 0.1, PLQ.h - 0.1, PLQ.r * 0.8, null, 'rgba(253,224,71,0.55)', 0.05);
+  });
+
 interface CardView {
   root: Container;
   /** The coin and the price, in a layer over the troops (renderer.ts): one walking across a card
    *  hid what it cost just when the player was deciding. */
   tag: Container;
   glyph: Graphics;
+  /** The gold rim, shown only while the price can be paid (null outside lookB, which has no plaque). */
+  rim: Graphics | null;
   coin: Graphics;
   cost: Num;
   key: string;
@@ -229,17 +245,19 @@ export class OfferLayer {
       c.root.alpha = alpha;
       c.tag.position.copyFrom(c.root.position);
       c.tag.scale.set(sx, 1);
-      c.tag.alpha = alpha;
       if (c.key !== off.key) {
         c.key = off.key;
         c.glyph.context = glyphCtx(off.key);
       }
-      // what the player cannot pay for keeps its symbol at full strength; only the price row says
-      // so (priceLook), so a board nothing on it can be bought from still reads as a board.
+      // what the player cannot pay for keeps its symbol and its plaque at full strength; only the
+      // price row steps back (priceLook), so a board nothing on it can be bought from still reads
+      // as a board rather than as a greyed-out menu.
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
       const look = priceLook(Tm.gold, cost);
       c.cost.set(String(cost), { h: ph, tint: look.tint, align: 'left', screen: zoom });
       c.coin.alpha = look.coinAlpha;
+      c.tag.alpha = alpha * look.fade;
+      if (c.rim) c.rim.visible = look.rich;
     }
     for (const [i, c] of this.cards) {
       if (c.seen === n) continue;
@@ -257,7 +275,12 @@ export class OfferLayer {
     let c = this.cards.get(i);
     if (c) return c;
     const root = new Container();
-    if (LOOK_B) root.addChild(new Graphics(plaqueCtx()));
+    let rim: Graphics | null = null;
+    if (LOOK_B) {
+      root.addChild(new Graphics(plaqueCtx()));
+      rim = new Graphics(rimCtx());
+      root.addChild(rim);
+    }
     const glyph = new Graphics();
     glyph.position.set(0, GLYPH_Y);
     glyph.scale.set(GLYPH_K);
@@ -271,7 +294,7 @@ export class OfferLayer {
     tag.addChild(cg, cost);
     this.root.addChild(root);
     this.tags.addChild(tag);
-    c = { root, tag, glyph, coin: cg, cost, key: '', seen: 0 };
+    c = { root, tag, glyph, rim, coin: cg, cost, key: '', seen: 0 };
     this.cards.set(i, c);
     return c;
   }
