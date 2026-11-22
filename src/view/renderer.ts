@@ -54,6 +54,10 @@ export class Renderer {
   private hud = new Hud(this.juice);
   private light = LOOK_B ? new LightLayer() : null;
   private overlays = new Overlays(this.juice);
+  /** Set by the app: a troop of `team` just reached the board. The sim says a troop exists the
+   *  instant it is trained, but the view keeps it in the air for BIRTH_TOTAL, so the cue belongs
+   *  here and not on the event. */
+  onLand: ((team: number) => void) | null = null;
   private eng: Engine | null = null;
   private local = TEAM_BLUE;
   private time = 0;
@@ -65,6 +69,7 @@ export class Renderer {
     this.sprites.birth.land = (x, y, team) => {
       this.effects.ring(x, y, 0.35, teamLight(team));
       this.effects.burst(x, y, COL.coin, 6);
+      this.onLand?.(team);
     };
     app.stage.addChild(this.world, this.edges.root, this.hud.root, this.overlays.root);
     if (this.light) {

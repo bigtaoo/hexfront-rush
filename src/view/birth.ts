@@ -103,11 +103,16 @@ export class BirthFx {
   readonly under = new Container();
   /** Above the sprites: the orb, its trail, and the flash it opens into. */
   readonly root = new Container();
-  /** Called when an orb lands, so the renderer can spend its own ring and sparks on it. */
+  /** Called the moment a troop reaches the board — when its orb lands, or at once for one past the
+   *  ceiling, which never left the ground. The renderer spends its ring and sparks on it, and the
+   *  app sounds the spawn cue, so the cue lands with the piece instead of with the sim's tick. */
   land: ((x: number, y: number, team: number) => void) | null = null;
   private groundPen: Live = liveGraphics();
   private airPen: Live = liveGraphics();
   private live = new Map<number, Live1>();
+  /** Troops past the ceiling, which are announced without animating: ids only, so each is announced
+   *  once. It only fills during a flood of births and goes with the match (`reset`). */
+  private shown = new Set<number>();
   private pools: Sprite[][] = [[], []];
   private used = [0, 0];
   private n = 0;
@@ -150,8 +155,17 @@ export class BirthFx {
   step(u: Unit, age: number, p: Pt): number {
     let b = this.live.get(u.id);
     if (!b) {
-      // past the ceiling it simply appears where it stands, as it always did
-      if (this.live.size >= MAX_LIVE) return age;
+      // a troop that already set into the board is never pulled back into the air: without this a
+      // birth that missed the ceiling would animate the moment a slot freed, and the piece would
+      // vanish into an orb a breath after the player saw it stand there
+      if (this.shown.has(u.id)) return age;
+      // past the ceiling it simply appears where it stands, as it always did — and because it is
+      // already on the board, that is the moment it has arrived
+      if (this.live.size >= MAX_LIVE) {
+        this.shown.add(u.id);
+        this.land?.(p.x, p.y, u.team);
+        return age;
+      }
       b = this.born(u, p);
       this.live.set(u.id, b);
     }
@@ -201,6 +215,7 @@ export class BirthFx {
 
   reset(): void {
     this.live.clear();
+    this.shown.clear();
     this.groundPen.p.clear();
     this.airPen.p.clear();
     for (const pool of this.pools) for (const s of pool) s.visible = false;

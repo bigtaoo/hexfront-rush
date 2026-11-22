@@ -80,7 +80,8 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
         }
         break;
       case 'spawn':
-        if (mine) S.play('spawn');
+        // the cue is not played here: a troop is alive on the tick it is trained, but the view keeps
+        // it in the air for BIRTH_TOTAL, so Renderer.onLand sounds it when the piece actually lands
         break;
       case 'shoot':
         S.play('shoot');

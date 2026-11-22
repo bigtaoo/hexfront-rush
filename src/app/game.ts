@@ -130,6 +130,11 @@ export class Game {
       musicVol: () => (this.save.musicVol / 100) ** 2,
       paused: () => this.sysPaused(),
     });
+    // the spawn cue waits for the piece to touch the board (see Renderer.onLand); the menu's demo
+    // is silent, as it is for every other cue
+    this.renderer.onLand = (team) => {
+      if (team === this.localTeam && this.mode !== 'demo') this.sound.play('spawn');
+    };
     this.online = new Online(this);
     this.controls = new Controls(this);
     const guard = new FaultGuard(Date.now, () => !restartedLately());
