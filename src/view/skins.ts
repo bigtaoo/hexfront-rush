@@ -10,7 +10,21 @@
 // player a lie about where troops can walk. A skin with `water: null` keeps its rocks.
 //
 // Blue on the map means the blue team (art/STYLE.md), so every water is a green-teal, well off the
-// team's periwinkle, and the snow skins stay warm grey rather than drifting blue.
+// team's periwinkle, and no snow skin drifts toward that blue -- not even the glacier, whose first
+// cut was a pale teal: a teal board under a periwinkle team field left the whole map one cool hue,
+// and the blue team's own country had nothing to be blue against. Ice is cool only where it is
+// actually ice: the ponds and the crystals, which now read as the one cool thing on a warm board,
+// the way the reference's water reads against its sand. The four snow skins fan from rosy ivory
+// through gold and olive to green, all bright, none of them blue.
+//
+// Every ground tile carries a hue. Measured against art/ref/screen_gen_b.png, whose board averages
+// saturation 0.55, the first cut of these skins sat at 0.25: the snow themes were 0.02-0.09, i.e.
+// concrete, and the desert themes about half of the reference's sand (0.40-0.47). The whole board
+// then read as grey, and the cream card plaques -- at 0.33 the most saturated thing on screen --
+// read as the ground while the ground read as a backdrop. So each theme now holds its own hue at a
+// floor of its own: desert at the reference's own 0.38-0.49, meadow (already there) at 0.30-0.51,
+// snow at 0.12-0.22, bright but unmistakably warm. Snow stays the lightest board of the three; it
+// is the saturation, not the value, that tells the themes apart. See DECISIONS.md D85.
 
 import type { ThemeKey } from '../sim/map';
 
@@ -52,44 +66,43 @@ export const SKINS: readonly MapSkin[] = [
   },
   {
     key: 'desert-pale', theme: 'desert',
-    top: [['#ead9b2', '#e6d4ab'], ['#e6d1a4', '#e2cc9e'], ['#d7bd8c', '#d2b785'],
-    ],
+    top: [['#ecce93', '#e3c68d'], ['#e3c384', '#dabc7f'], ['#ceac6f', '#c6a56b']],
     side: '#ad8b5a', bg: '#5f4936', water: null,
   },
   {
     key: 'desert-red', theme: 'desert',
-    top: [['#e3bd96', '#deb78f'], ['#d6ab84', '#d1a47d'], ['#c2906c', '#bd8965']],
+    top: [['#e5b485', '#dcad80'], ['#d29e6e', '#ca986a'], ['#bd8460', '#b67f5c']],
     side: '#96643c', bg: '#4e3326', water: null,
   },
   {
     key: 'desert-canyon', theme: 'desert',
-    top: [['#dcb79a', '#d7b193'], ['#c99b7d', '#c49476'], ['#b07f63', '#ab785c']],
+    top: [['#dfae8a', '#d7a785'], ['#c9906b', '#c18b67'], ['#ad7a5a', '#a67557']],
     side: '#8a5540', bg: '#472b22', water: ['#5f9e92', '#346b63'],
   },
   {
     key: 'desert-oasis', theme: 'desert',
-    top: [['#cfd3a0', '#c9ce99'], ['#dcce9b', '#d7c894'], ['#cdb887', '#c8b280']],
+    top: [['#cdd48f', '#c5cc8a'], ['#ddc987', '#d5c182'], ['#c9ae72', '#c1a76e']],
     side: '#9b8150', bg: '#53432f', water: ['#5aab9a', '#2f7368'],
   },
   {
     key: 'snow-field', theme: 'snow',
-    top: [['#dcdfda', '#d4d8d2'], ['#d5d9d3', '#cdd2cb'], ['#c3c8c3', '#bbc1bb']],
-    side: '#8a9394', bg: '#3c4448', water: null,
+    top: [['#f3e3d2', '#eadbca'], ['#e9d6c1', '#e0ceba'], ['#d7c4ad', '#cfbda6']],
+    side: '#a28e76', bg: '#473a2d', water: null,
   },
   {
     key: 'snow-tundra', theme: 'snow',
-    top: [['#d9d6c9', '#d2cfc1'], ['#c8c5b6', '#c1beaf'], ['#b3b0a2', '#acaa9b']],
-    side: '#827c6d', bg: '#3e3c34', water: null,
+    top: [['#e2dcc0', '#d9d4b9'], ['#cfc9a8', '#c7c1a2'], ['#b9b291', '#b2ab8b']],
+    side: '#8a7f5e', bg: '#3e3827', water: null,
   },
   {
     key: 'snow-glacier', theme: 'snow',
-    top: [['#d3dbd7', '#cbd4cf'], ['#c2cdc9', '#bac6c1'], ['#aebbb8', '#a6b4b0']],
-    side: '#7c8a8a', bg: '#333d40', water: ['#6aa6a2', '#3a6f6c'],
+    top: [['#f4ead1', '#ebe1c9'], ['#e9dcbe', '#e0d4b7'], ['#d9cbab', '#d1c3a5']],
+    side: '#a19176', bg: '#46392b', water: ['#6aa6a2', '#3a6f6c'],
   },
   {
     key: 'snow-thaw', theme: 'snow',
-    top: [['#d8d7c8', '#d0d0c0'], ['#c6cbba', '#bec4b2'], ['#aeb8a8', '#a6b1a0']],
-    side: '#7f8673', bg: '#3a4038', water: ['#67a8a0', '#376f69'],
+    top: [['#dde0bd', '#d5d7b6'], ['#c7cfa9', '#bfc7a3'], ['#afba93', '#a8b38d']],
+    side: '#7f8a62', bg: '#39412c', water: ['#67a8a0', '#376f69'],
   },
 ];
 

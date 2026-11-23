@@ -136,9 +136,22 @@ level under slight minification, which blurred the sprites as much as the stretc
 
 ## Ground and colour (src/view/ground.ts)
 
-- Blue and red belong to the teams alone. Snow is a warm grey, not blue-white. The old sticker set's
-  ice crystals were bright blue and drew as rocks; the wooden-toy crystals are pale grey-green
-  (hue about 155°, saturation about 0.2) beside the team's saturated royal blue, so ice draws as ice.
+- Blue and red belong to the teams alone. Snow is a warm ivory, not blue-white and not grey either.
+  The old sticker set's ice crystals were bright blue and drew as rocks; the wooden-toy crystals are
+  pale grey-green (hue about 155°, saturation about 0.2) beside the team's saturated royal blue, so
+  ice draws as ice -- and on a warm board they are the one cool thing on it, which is what makes
+  them read as ice at all. Nothing on the ground, water included, comes within 45° of the team's
+  periwinkle (src/view/skins.test.ts).
+- Every ground tile carries a hue; none of them is a grey. Measured against art/ref/screen_gen_b.png,
+  whose board averages saturation 0.55 and is 96% coloured, the first cut of the skins averaged 0.25
+  and was half grey: the snow themes sat at 0.02-0.09, i.e. concrete, and the desert themes at about
+  half the reference's sand. The whole board then read as a backdrop, with the cream card plaques --
+  at 0.33 the most saturated thing on screen -- as the only colour on it. The floors now: desert and
+  meadow 0.30-0.49, the reference's own range; snow 0.12-0.22, bright but unmistakably warm, its
+  four skins fanning from rosy ivory through gold and olive to green. A rendered battle measures
+  0.34-0.40 against the reference's 0.55 -- the gap is the cast, which is painted wood, not poster
+  colour -- but value (0.65), warm share (68%) and coloured share (87-90%) now match it.
+  The ponds and the crystals are the cool accents; the board is not.
 - A tile top carries a faint wood grain and paint speckle (src/view/grain.ts: light and dark
   strokes over its own colour, three variants turned 0/60/120 degrees, picked per tile), and its
   bevel lines are drawn a little stronger: flat vector fills read as plastic next to the painted
@@ -153,7 +166,11 @@ level under slight minification, which blurred the sprites as much as the stretc
   next to the real ones, and thin crossed swords read as a dark scribble at play zoom.
 - A team's land is mid-tone, the same on every theme, with its border line in the full hue: a
   full-strength fill swallowed the blue roofs, a pale pastel left the white symbols nothing to
-  stand out against, and mixing the hue into the ground turned blue on sand grey. Play zoom
+  stand out against, and mixing the hue into the ground turned blue on sand grey. Between those
+  two, the wash is held high and light -- saturation 0.42-0.44 at value 0.90, not the 0.24-0.31 it
+  was first set to, which was half of what the reference gives its territories and stopped reading
+  as that team's land at all. Value, not paleness, is what keeps the roofs and the troops on top of
+  it: the field stays lighter than anything standing on it. Play zoom
   shows about 8.5 hexes across (viewConst.ts): at 11 the symbols were too small to tell apart.
 - A building is drawn inside its own tile (buildingView.ts, bldScale); one that spilled onto its
   neighbours covered their cards. Height is the binding one: see "Scale on the board" above.

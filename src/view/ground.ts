@@ -29,13 +29,20 @@ export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme
 /** A team's ground: mid-tone tops (two shades) and the border line in the full hue. A full team
  *  fill turned the map into a sheet of blue that swallowed the blue roofs, and a pale pastel left
  *  the white offer symbols with nothing to stand out against; mixing the hue into the theme's
- *  ground turned blue on sand grey, so the tone is the same on every theme. */
-const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = LOOK_B
+ *  ground turned blue on sand grey, so the tone is the same on every theme.
+ *
+ *  Held high and light, not pale: saturation 0.42-0.44 at value 0.90, against the 0.24-0.31 these
+ *  were first set to, which was half of what the reference board (art/ref/screen_gen_b.png) gives
+ *  its two territories. The old pair was the failure the comment above warns about, from the other
+ *  side: territory that is the player's own half of the board stopped reading as blue land at all.
+ *  Value is what keeps the roofs and the troops on top of it -- the field stays lighter than
+ *  anything standing on it -- so the hue can go up without the field swallowing them. */
+export const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = LOOK_B
   ? {
       // lookB: a clear team field (the buildings stand on their pale yard and the troops on their
       // bases, so the field no longer swallows them), the border carries the darker colour
-      [TEAM_BLUE]: { top: ['#a6bddb', '#a1b9d8'], line: '#2c55a0' },
-      [TEAM_RED]: { top: ['#e9b1a0', '#e6ab9a'], line: '#b13a2a' },
+      [TEAM_BLUE]: { top: ['#86b2e6', '#81abdd'], line: '#2c55a0' },
+      [TEAM_RED]: { top: ['#eea286', '#e59c81'], line: '#b13a2a' },
     }
   : {
       [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], line: '#2c55a0' },
