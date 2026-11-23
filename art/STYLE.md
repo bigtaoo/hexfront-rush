@@ -65,9 +65,14 @@ Each of these was learned by rendering the thing and looking at it, not by reaso
 * `flag(pole_top, ...)` takes the TOP of the pole and `pole_h` runs DOWNWARD - lengthening the
   pole drives it into the ground, it does not raise the flag.
 
-Scale on the board (lookB): troops are drawn 1.3x their hit size (LOOKB_UNIT_K); a building fills
-most of its tile (buildingView.ts BLD_W 1.45 / BLD_H 1.75 view units, a tile is 1.73 wide), so the
-castle never reads smaller than the soldiers standing next to it.
+Scale on the board (lookB): troops are drawn 1.3x their hit size (LOOKB_UNIT_K); the whole building
+cast is drawn at one scale (buildingView.ts BLD_K 0.76) and only the outliers are clipped, so the
+models carry the size hierarchy themselves -- the castle is modelled biggest and is drawn biggest.
+Do not fit each picture into a box of its own: that is what made the board a wall of same-sized
+blocks and, because fitting by total height punishes the one picture that carries a flag, drew the
+castle narrower than a one-room hut. The ceiling that matters is height, not width: rows are 1.5
+apart, so a picture taller than 1.45 view units reaches the offer card standing one row up
+(BLD_H, held by buildingView.test.ts). The castle alone goes above it, and only with its flag.
 
 ## Motion (src/view/unitView.ts, sprites.ts, buildingView.ts)
 
@@ -150,8 +155,8 @@ level under slight minification, which blurred the sprites as much as the stretc
   full-strength fill swallowed the blue roofs, a pale pastel left the white symbols nothing to
   stand out against, and mixing the hue into the ground turned blue on sand grey. Play zoom
   shows about 8.5 hexes across (viewConst.ts): at 11 the symbols were too small to tell apart.
-- A building is drawn inside its own tile (buildingView.ts, BLD_W/BLD_H); one that spilled onto its
-  neighbours covered their cards.
+- A building is drawn inside its own tile (buildingView.ts, bldScale); one that spilled onto its
+  neighbours covered their cards. Height is the binding one: see "Scale on the board" above.
 - (old look) A built tile is ringed by a low stone wall; lookB paves one yard under the group instead (buildingView.ts, WallLayer), and the shared edge of
   two built tiles has none, so a group of buildings reads as one walled compound.
 - Numbers (prices, gold, counts, the clock, damage, gold taken) are pictures, not live text

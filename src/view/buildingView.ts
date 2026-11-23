@@ -50,10 +50,25 @@ const BADGE_X_BASE = 0.45;
 export function badgeSpot(type: string): { x: number; y: number } {
   return { x: type === 'base' ? BADGE_X_BASE : 0, y: BADGE_Y };
 }
-/** The widest and tallest a building's picture is drawn (view units; a tile is 1.73 wide). lookB
- *  had them smaller, but next to the 1.3x troops the painted toy buildings (wide footprints) then
- *  read smaller than a soldier, so they fill most of their tile again. */
-const BLD_W = LOOK_B ? 1.45 : 1.35, BLD_H = LOOK_B ? 1.75 : 1.7;
+/** How big a building's picture is drawn (view units; a tile is 1.73 wide, rows are 1.5 apart).
+ *  Fitting every picture into one box, as looka does, made the board a wall of same-sized blocks
+ *  and inverted the models' own hierarchy: the castle is modelled widest but carries a flag, so
+ *  fitting it by total height shrank it below a one-room hut. lookB instead draws the whole cast
+ *  at one scale (BLD_K) and only clips the outliers, with the castle allowed its own, larger box.
+ *  BLD_H 1.45 is geometry, not taste: a picture of height H tops out at TILE_FOOT - H, and the
+ *  plaque on the up-diagonal neighbour reaches down to -1.5 + 0.47 = -1.03, so anything taller
+ *  than 1.45 climbs into the card one row up. See buildingView.test.ts. */
+const BLD_K = LOOK_B ? 0.76 : 1;
+const BLD_W = LOOK_B ? 1.3 : 1.35, BLD_H = LOOK_B ? 1.45 : 1.7;
+/** The castle's own box: it is the one landmark per side and may stand a head above the rest. */
+const BASE_W = LOOK_B ? 1.45 : 1.35, BASE_H = LOOK_B ? 1.95 : 1.7;
+
+/** How far down a building's picture is scaled from its modelled size (view units in, factor out).
+ *  A building stays inside its own tile: one that spilled onto its neighbours hid their cards. */
+export function bldScale(type: string, w: number, h: number): number {
+  const base = type === 'base';
+  return Math.min(BLD_K, (base ? BASE_W : BLD_W) / w, (base ? BASE_H : BLD_H) / h);
+}
 const badgeCtx = () => sharedCtx('badge', (p) => {
   p.circle(0, 0, BADGE_R + 0.06, 'rgba(24,18,12,0.88)');
   p.circle(0, 0, BADGE_R - 0.005, '#3a3f46');
@@ -145,8 +160,10 @@ export class WallLayer {
     if (LOOK_B) {
       // lookB: one paved yard under the built tiles, no wall per tile: a block of built tiles reads
       // as one place, not as a grid of boxes
-      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y + 0.05, 1.03, 'rgba(120,96,64,0.22)');
-      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y, 1.02, '#ece3cf');
+      // the paving lets the ground through: opaque cream it read as one more card face, and the
+      // smaller buildings leave more of it bare
+      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y + 0.05, 1.03, 'rgba(120,96,64,0.16)');
+      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y, 1.02, 'rgba(236,227,207,0.5)');
       return;
     }
     const H = 0.06;
@@ -174,8 +191,7 @@ export class BuildingView {
 
   constructor(b: Building) {
     const t = buildingTex(b.type, b.team, b.rarity || 0);
-    // a building stays inside its own tile: one that spilled onto its neighbours hid their cards
-    const k = Math.min(1, BLD_W / artW(t), BLD_H / artH(t));
+    const k = bldScale(b.type, artW(t), artH(t));
     this.body = artSprite(t, TILE_FOOT);
     this.flash = artSprite(t, TILE_FOOT);
     this.body.scale.set(k / PPU);
