@@ -106,7 +106,7 @@ describe('overlays layout', () => {
 // of the match, and the two offer cards hang in the row right above it: the number used to float
 // a whole row up and cover the prices the player had to read at exactly that moment.
 describe('damage numbers', () => {
-  /** The row pitch, and how far an offer card's plaque reaches below its own tile centre
+  /** The row pitch, and how far an offer card reaches below its own tile centre
    *  (offers.ts: PLQ cy -0.07, h 1.08). A card above a target therefore ends at -1.03. */
   const ROW = 1.5, PLAQUE_BOTTOM = 0.47;
   const CARD_ABOVE = -ROW + PLAQUE_BOTTOM;

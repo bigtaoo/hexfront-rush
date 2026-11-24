@@ -7,6 +7,12 @@
 //   and darkest in the lower right corner;
 // - haze: the far (top) edge washed toward a pale warm sky tone, the air between eye and far ground.
 // The textures are small canvases stretched to size: gradients survive any stretch.
+//
+// All three are now a third of the strength they were. The falloff ran to #8d7a64 in the far
+// corner -- a 40% darkening, which meant the same tile read as two different colours depending on
+// where it sat, and the whole frame carried a value spread no flat board should have. The
+// reference (D:/new/ref) holds its sand within two percent of value corner to corner. Atmosphere
+// is worth a few percent, not forty. See DECISIONS.md D87.
 
 import { Container, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1 } from './viewConst';
@@ -36,7 +42,7 @@ function grainTex(): Texture {
     for (let i = 0; i < 70; i++) {
       const x = r() * N, y = r() * N, rad = 14 + r() * 46;
       const dark = r() < 0.6;
-      const col = dark ? `rgba(150,118,80,${0.05 + r() * 0.07})` : `rgba(255,255,255,0)`;
+      const col = dark ? `rgba(150,118,80,${0.015 + r() * 0.025})` : `rgba(255,255,255,0)`;
       // drawn at the wrapped offsets too, so the tile repeats without a seam
       for (const ox of [-N, 0, N])
         for (const oy of [-N, 0, N]) {
@@ -54,9 +60,9 @@ function falloffTex(): Texture {
   const N = 256;
   return canvasTex(N, N, (c) => {
     const g = c.createRadialGradient(N * 0.3, N * 0.25, N * 0.08, N * 0.3, N * 0.25, N * 1.15);
-    g.addColorStop(0, '#fffdf6');
-    g.addColorStop(0.45, '#ece2d3');
-    g.addColorStop(1, '#8d7a64');
+    g.addColorStop(0, '#fffefb');
+    g.addColorStop(0.45, '#f7f2ea');
+    g.addColorStop(1, '#dcd2c4');
     c.fillStyle = g;
     c.fillRect(0, 0, N, N);
   });
@@ -65,8 +71,8 @@ function falloffTex(): Texture {
 function hazeTex(): Texture {
   return canvasTex(4, 256, (c) => {
     const g = c.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0, 'rgba(250,240,222,0.55)');
-    g.addColorStop(0.22, 'rgba(250,240,222,0.12)');
+    g.addColorStop(0, 'rgba(250,240,222,0.3)');
+    g.addColorStop(0.22, 'rgba(250,240,222,0.06)');
     g.addColorStop(0.4, 'rgba(250,240,222,0)');
     c.fillStyle = g;
     c.fillRect(0, 0, 4, 256);

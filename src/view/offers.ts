@@ -18,39 +18,40 @@ import { sharedCtx, type Pen } from './pen';
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
 /** The symbol's scale on its tile, and where its centre and the price row sit (view units). */
-const GLYPH_K = LOOK_B ? 0.85 : 1.3, GLYPH_Y = LOOK_B ? -0.14 : -0.22, PRICE_Y = LOOK_B ? 0.32 : 0.46;
+const GLYPH_K = LOOK_B ? 1.05 : 1.3, GLYPH_Y = LOOK_B ? -0.14 : -0.22, PRICE_Y = LOOK_B ? 0.32 : 0.46;
 /** The price's height (view units), a picture number (digits.ts). */
 const PRICE_H = LOOK_B ? 0.3 : 0.46;
 /** The price is never drawn shorter than this on screen (px): at a phone's zoom PRICE_H alone came
- *  to about 9 px, too small to read at a glance. It grows only so far, or it would leave the plaque. */
+ *  to about 9 px, too small to read at a glance. It grows only so far, or it would run into the
+ *  symbol above it. */
 const PRICE_MIN_PX = 13, PRICE_MAX_H = PRICE_H * 1.45;
-/** An offer the player cannot pay for: the price is cut into the plaque in a dark red, its coin
- *  dims and the whole price row steps back. The hue has been in and out twice. A dull clay
- *  (#b9a487) was unreadable (D70); a strong rust (#a81f12) was readable but shouted -- on a board
- *  where most prices are out of reach it painted the whole map in the one colour the eye cannot
- *  ignore (D83); carved brown read well but said nothing (D83). What went wrong with the rust was
- *  never the hue, it was the value: it sat lighter than the plaque's own shadow, so it arrived as
- *  an alert. This red is darker than that brown by the measure the contrast test uses, so the
- *  number still reads as cut into the plaque, and the colour only reaches you once you look at it
- *  (D84). */
-const POOR_TINT = '#6b1e14', POOR_ALPHA = 0.45, POOR_FADE = 0.85;
-/** A price the player can pay: the bright sticker face, full strength, with a gold rim around its
- *  plaque (rimCtx). Light-on-cream plus a saturated rim is what the eye picks out of a board of
- *  carved brown, and there are only ever a few of them -- which is the point. */
+/** An offer the player cannot pay for: the price turns red, and that is the whole signal. The hue
+ *  has been in and out three times. A dull clay (#b9a487) was unreadable (D70); a strong rust
+ *  (#a81f12) was readable but shouted over a plaque (D83); a dark red cut into the plaque read
+ *  well and said almost nothing (D84). The reference (D:/new/ref) settles it: no plaque at all, and
+ *  an out-of-reach price is a plain bright red number with the same dark outline every other number
+ *  has -- half the prices on its board are red and it reads fine, because the board under them is
+ *  flat and nothing else on it is red. Nothing dims and nothing steps back: a price you cannot
+ *  meet is still a price you have to read. See DECISIONS.md D87.
+ */
+const POOR_TINT = '#f2382a';
+/** A price the player can pay: the plain white sticker face. */
 const PRICE_TINT = '#ffffff';
 
-/** How a price is drawn. The one invariant, held by offers.test.ts: what the player CAN buy is the
- *  bright one. Since D81 a price never changes, so there is no third colour for a cut one -- what a
- *  card costs is what it has always cost, and the only question the look answers is whether the
- *  player can meet it. `fade` multiplies the price row's alpha; `rich` lights the plaque's rim. */
-export function priceLook(gold: number, cost: number): { tint: string; coinAlpha: number; fade: number; rich: boolean } {
-  if (gold < cost) return { tint: POOR_TINT, coinAlpha: POOR_ALPHA, fade: POOR_FADE, rich: false };
-  return { tint: PRICE_TINT, coinAlpha: 1, fade: 1, rich: true };
+/** How a price is drawn, and where. The one invariant, held by offers.test.ts: what the player CAN
+ *  buy is the bright one. Since D81 a price never changes, so there is no third colour for a cut
+ *  one -- what a card costs is what it has always cost, and the only question the look answers is
+ *  whether the player can meet it. Nothing fades any more (D87): both prices are drawn at full
+ *  strength, exactly as the reference does it, and `afford` only picks the tint and which layer the
+ *  row rides in. */
+export function priceLook(gold: number, cost: number): { tint: string; afford: boolean } {
+  if (gold < cost) return { tint: POOR_TINT, afford: false };
+  return { tint: PRICE_TINT, afford: true };
 }
 
-/** The stamp's two colours: a light cream face and a dark brown ink rim. */
-// lookB: a stamp in the ground's own light tone with a soft brown rim, not white on black
-const FACE = LOOK_B ? '#fbf3e1' : '#fffaf0', INK = LOOK_B ? '#7a6248' : '#2b2118';
+/** The stamp's two colours: a light cream face and a dark brown ink rim. The glyph lies straight on
+ *  the ground now, not on a plaque, so the rim carries it: dark enough to hold against any board. */
+const FACE = LOOK_B ? '#f7ecd6' : '#fffaf0', INK = LOOK_B ? '#5a442e' : '#2b2118';
 /** Ink rim width around a filled shape, and the extra width under a stroked one. */
 const RIM = 0.07, RIM2 = 0.12;
 
@@ -133,39 +134,17 @@ function glyphCtx(key: string) {
 
 const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
 
-/** lookB: the card is a carved plaque lying on its tile, not a symbol printed on it. A flat cream
- *  glyph on flat ground was the one thing on the board with no thickness at all, and thirty of
- *  them at once were what made the field read as paper. Shared by every card: one context. */
-const PLQ = { w: 1.0, h: 1.08, cy: -0.07, r: 0.15 };
+/** lookB: the card is a flat stamp on the ground -- a cream glyph with a dark rim, a small coin and
+ *  the price -- and nothing else. It used to be a carved wooden plaque: a body, a drop shadow, a
+ *  lit lip and a gold rim when you could afford it, thirty of them at once around a castle. The
+ *  reference (D:/new/ref) draws exactly the same information with no card under it at all, and its
+ *  board is the quieter one for it: a plaque is a second object competing with the building it is
+ *  offering you. What marks an offer you can pay for is now the one thing it needs to be, the
+ *  colour of the number. See DECISIONS.md D87. */
 /** The card's geometry as the rest of the view needs it: how far below its own tile centre the
- *  plaque reaches, and the two rows on its face. buildingView.ts sizes the buildings against these
+ *  stamp reaches, and the two rows on its face. buildingView.ts sizes the buildings against these
  *  so a wall never grows into the card on the tile one row up. */
-export const CARD_BOX = { bottom: PLQ.cy + PLQ.h / 2, glyphY: GLYPH_Y, priceY: PRICE_Y } as const;
-const plaqueCtx = () =>
-  sharedCtx('offer|plaque', (p) => {
-    // The plaque is the MIDDLE of the three value bands: the board under it is the lightest
-    // surface in the game (skins.ts, value 0.80-0.90), the rails and panels are the darkest, and
-    // a card lying on the board belongs between them. Its face used to be a cream at value 0.80 --
-    // the board's own value -- so nine of them round a castle read as one paved patch rather than
-    // nine things lying there, and the near-white glyph on top had 2.1:1 to work with. At 0.71 it
-    // sits where the reference board puts its cards (art/ref), the glyph gets 2.9:1, and the
-    // shadow beneath finally has something to fall on. See DECISIONS.md D86.
-    const x = -PLQ.w / 2, t = PLQ.cy - PLQ.h / 2;
-    p.rrect(x + 0.045, t + 0.075, PLQ.w, PLQ.h, PLQ.r, 'rgba(30,19,7,0.26)');
-    p.rrect(x, t + 0.055, PLQ.w, PLQ.h, PLQ.r, '#6d5637');
-    p.rrect(x, t, PLQ.w, PLQ.h, PLQ.r, '#b5a48a', '#5e4727', 0.05);
-    // the lip along the top edge, where the light stands
-    p.line([x + 0.13, t + 0.055, x + PLQ.w - 0.13, t + 0.055], 'rgba(255,247,228,0.38)', 0.045, 'round');
-  });
-
-/** The gold rim that marks a plaque the player can buy from, drawn just inside its face. It is the
- *  positive half of the signal: a board is read by looking for the few lit cards, not by reading
- *  every price on it. */
-const rimCtx = () =>
-  sharedCtx('offer|rim', (p) => {
-    const x = -PLQ.w / 2 + 0.05, t = PLQ.cy - PLQ.h / 2 + 0.05;
-    p.rrect(x, t, PLQ.w - 0.1, PLQ.h - 0.1, PLQ.r * 0.8, null, 'rgba(253,224,71,0.55)', 0.05);
-  });
+export const CARD_BOX = { bottom: PRICE_Y + PRICE_H / 2, glyphY: GLYPH_Y, priceY: PRICE_Y } as const;
 
 interface CardView {
   root: Container;
@@ -176,8 +155,6 @@ interface CardView {
    *  across the soldiers, which is most of what made a fight read as noise. */
   tag: Container;
   glyph: Graphics;
-  /** The gold rim, shown only while the price can be paid (null outside lookB, which has no plaque). */
-  rim: Graphics | null;
   coin: Graphics;
   cost: Num;
   /** Whether the price row currently sits in `tag` (over the troops) rather than in `root`. */
@@ -267,21 +244,18 @@ export class OfferLayer {
         c.key = off.key;
         c.glyph.context = glyphCtx(off.key);
       }
-      // what the player cannot pay for keeps its symbol and its plaque at full strength; only the
-      // price row steps back (priceLook), so a board nothing on it can be bought from still reads
-      // as a board rather than as a greyed-out menu.
+      // what the player cannot pay for keeps its symbol at full strength and turns its price red
+      // (priceLook), so a board nothing on it can be bought from still reads as a board rather
+      // than as a greyed-out menu.
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
       const look = priceLook(Tm.gold, cost);
       c.cost.set(String(cost), { h: ph, tint: look.tint, align: 'left', screen: zoom });
       // the price row rides over the troops only while it can be paid (CardView.tag)
-      if (c.up !== look.rich) {
-        c.up = look.rich;
-        (look.rich ? c.tag : c.root).addChild(c.coin, c.cost);
+      if (c.up !== look.afford) {
+        c.up = look.afford;
+        (look.afford ? c.tag : c.root).addChild(c.coin, c.cost);
       }
-      c.coin.alpha = look.coinAlpha * look.fade;
-      c.cost.alpha = look.fade;
       c.tag.alpha = alpha;
-      if (c.rim) c.rim.visible = look.rich;
     }
     for (const [i, c] of this.cards) {
       if (c.seen === n) continue;
@@ -299,12 +273,6 @@ export class OfferLayer {
     let c = this.cards.get(i);
     if (c) return c;
     const root = new Container();
-    let rim: Graphics | null = null;
-    if (LOOK_B) {
-      root.addChild(new Graphics(plaqueCtx()));
-      rim = new Graphics(rimCtx());
-      root.addChild(rim);
-    }
     const glyph = new Graphics();
     glyph.position.set(0, GLYPH_Y);
     glyph.scale.set(GLYPH_K);
@@ -318,7 +286,7 @@ export class OfferLayer {
     tag.addChild(cg, cost);
     this.root.addChild(root);
     this.tags.addChild(tag);
-    c = { root, tag, glyph, rim, coin: cg, cost, up: true, key: '', seen: 0 };
+    c = { root, tag, glyph, coin: cg, cost, up: true, key: '', seen: 0 };
     this.cards.set(i, c);
     return c;
   }

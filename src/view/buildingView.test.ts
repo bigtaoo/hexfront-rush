@@ -20,7 +20,7 @@ const HALF_TILE = 0.866;
 const GATE_HALF = 0.2;
 /** How far apart two rows of hexes are, and the lane of bare ground to leave between two
  *  buildings. Where the card on a tile one row up reaches to comes from offers.ts itself
- *  (CARD_BOX), so these tests cannot drift from the plaque they are measuring against. */
+ *  (CARD_BOX), so these tests cannot drift from the card they are measuring against. */
 const ROW = 1.5, LANE = 0.35;
 /** A frame's size in view units as the renderer sees it. artW/artH read Texture.width, which Pixi
  *  takes from `orig` -- the untrimmed canvas it restores from sourceSize -- while frame.w/h is the
@@ -63,7 +63,7 @@ describe('how big a building is drawn', () => {
 
   it('keeps every ordinary building clear of the card one row up', () => {
     // The rule is on the constant, not on whatever the cast measures today: a picture of height H
-    // tops out at TILE_FOOT - H, and the plaque one row up reaches down to -ROW + CARD_BOX.bottom.
+    // tops out at TILE_FOOT - H, and the card one row up reaches down to -ROW + CARD_BOX.bottom.
     expect(TILE_FOOT - BLD_BOX.h).toBeGreaterThanOrEqual(-ROW + CARD_BOX.bottom);
     // What the art can still break is the clamp: four of the seven pictures are tall enough that
     // bldScale clips them to exactly BLD_H, so checking their own tops against the line above
@@ -71,10 +71,10 @@ describe('how big a building is drawn', () => {
     for (const b of CAST) if (!b.base) expect(b.h, b.name).toBeLessThanOrEqual(BLD_BOX.h + 1e-9);
   });
 
-  it('lets the castle stand over the plaque but never over the card face', () => {
+  it("lets the castle stand into the card's margin but never over its face", () => {
     // The castle is the one picture that breaks the rule above, because at this model's
     // proportions nothing shorter than 1.87 still comes out the widest building on its side. It
-    // goes 0.50 behind the plaque's bottom corner, on 0.31 of its width (the two up-diagonal
+    // goes 0.50 behind the card's bottom edge, on 0.31 of its width (the two up-diagonal
     // neighbours sit at +/-0.866). What it may not reach is the face: the symbol row, and the
     // price, which is drawn in offers.tags over the buildings (renderer.ts) and so is never hidden.
     for (const b of CAST) {

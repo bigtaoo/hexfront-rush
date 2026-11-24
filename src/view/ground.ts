@@ -14,8 +14,7 @@ import { hexDist } from '../sim/hex';
 import { baseTile, type ThemeKey, type Tile } from '../sim/map';
 import { GUARD, TEAM_BLUE, TEAM_RED, TEAMS } from '../sim/rules';
 import type { Camera } from './camera';
-import { grain, GRAIN_VARIANTS } from './grain';
-import { hexPts, Pen, sharedCtx } from './pen';
+import { Pen, sharedCtx } from './pen';
 import { LOOK_B } from './lookB';
 import { SKINS, skinFor, type MapSkin } from './skins';
 
@@ -26,91 +25,71 @@ import type { Pt } from './viewConst';
 /** The backdrop around the map, for the renderer's clear colour. */
 export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme, seed).bg;
 
-/** A team's ground: mid-tone tops (two shades) and the border line in the full hue. A full team
- *  fill turned the map into a sheet of blue that swallowed the blue roofs, and a pale pastel left
- *  the white offer symbols with nothing to stand out against; mixing the hue into the theme's
- *  ground turned blue on sand grey, so the tone is the same on every theme.
+/** A team's ground, and the line along its front. The reference (D:/new/ref) makes the two sides
+ *  deliberately *unequal*, and that is the whole idea: the enemy's land is the alarm -- louder and
+ *  lighter than the bare ground (saturation 0.71 at value 0.93 over sand at 0.58/0.86) -- while
+ *  your own land is calm, cool and *darker* than the ground (0.31 at 0.71). You glance at the board
+ *  and the only thing shouting is the half you are losing. Matched washes, which is what we had,
+ *  make the player read two equally loud fields and work out which one is theirs.
  *
- *  Held high and light, not pale: saturation 0.42-0.44 at value 0.90, against the 0.24-0.31 these
- *  were first set to, which was half of what the reference board (art/ref/screen_gen_b.png) gives
- *  its two territories. The old pair was the failure the comment above warns about, from the other
- *  side: territory that is the player's own half of the board stopped reading as blue land at all.
- *  Value is what keeps the roofs and the troops on top of it -- the field stays lighter than
- *  anything standing on it -- so the hue can go up without the field swallowing them.
+ *  The line is the loudest mark anywhere in the game and the only near-pure colour in it: #3399ff
+ *  and #ff3333, sitting on the edge itself (LINE_IN), not tucked inside the tile. A dark border is
+ *  a seam between two fills; a bright one is a front. Everything else on the board is a tint by
+ *  comparison, which is what lets one hairline do the work sixty bevels were doing before.
  *
- *  These are the loudest large areas in the game on purpose, and the only ones: the unowned board
- *  is down to a hint of hue (skins.ts, saturation 0.05-0.14) so that who-owns-what is the first
- *  thing the eye resolves and not the last. A board where the ground was as colourful as the
- *  territory is what "cluttered and tiring" was (D86); the fix is not less colour everywhere, it is
- *  all of it spent on the one thing the player has to read. Value still holds the rule above --
- *  0.86-0.90, lighter than any roof, troop or card standing on it. Blue carries a little more
- *  saturation than red for the same reading: at matched HSV the blue field looked washed beside
- *  the red one, which is what blue does at high value. */
+ *  The two shades are all but the same colour now: the sim's per-tile checker is still there, but
+ *  a territory in the reference is one unbroken field, so inside it the checker is felt and not
+ *  seen (the grid stops at the border too, ground.ts tileCtx).
+ *  See DECISIONS.md D85, D86, D87. */
 export const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = LOOK_B
   ? {
-      // lookB: a clear team field (the buildings stand on their pale yard and the troops on their
-      // bases, so the field no longer swallows them), the border carries the darker colour
-      [TEAM_BLUE]: { top: ['#6ea4e6', '#699ddb'], line: '#2f619e' },
-      [TEAM_RED]: { top: ['#e6867c', '#db8176'], line: '#9e3a2f' },
+      // lookB: enemy red lifted off the sand, own blue sunk below it, both lines near-pure
+      [TEAM_BLUE]: { top: ['#7e9fb6', '#7c9db4'], line: '#3399ff' },
+      [TEAM_RED]: { top: ['#ee6745', '#ed6745'], line: '#ff3333' },
     }
   : {
       [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], line: '#2c55a0' },
       [TEAM_RED]: { top: ['#eaa292', '#e69a89'], line: '#b13a2a' },
     };
 
-/** How thick a tile is: what shows below it along the map's rim (view units). The old 0.16 read as
- *  a drawn outline rather than as a board with a side to it. */
+/** How thick a tile is: what shows below it along the map's rim (view units). Only the rim shows
+ *  it now -- the tiles meet edge to edge, so a lower row's top covers the side of the row above. */
 const SIDE_H = LOOK_B ? 0.26 : 0.16;
-/** A tile's bevel, the one thing that makes it a block and not a fill: the light stands upper left
- *  (lookB.ts), so the three edges facing it catch it and the three facing away fall into shade.
- *  Corner k sits at 60k - 30 degrees, so 5 is the top and 2 the bottom: 3-4-5-0 faces the light. */
-const TILE_R = LOOK_B ? 0.975 : 1.01;
-const BEVEL_R = LOOK_B ? 0.915 : 0.945;
-function bevel(ks: readonly number[]): number[] {
-  const c = hexPts(0, 0, BEVEL_R), out: number[] = [];
-  for (const k of ks) out.push(c[k * 2]!, c[k * 2 + 1]!);
-  return out;
-}
-const LIT_EDGE = bevel([3, 4, 5, 0]), SHADE_EDGE = bevel([0, 1, 2, 3]);
+/** The tiles tile exactly: no gap, no carved block, one continuous plane. A board of separate
+ *  blocks -- each with a lit bevel, a shaded groove and wood grain under its paint -- is sixty
+ *  drawn lines and a texture on every hex on screen. The reference board (D:/new/ref) is a flat
+ *  plane with a hairline grid, and reads quiet at far *higher* chroma for it: it is the texture and
+ *  the value noise that tire the eye, not the colour. See DECISIONS.md D87. */
+const TILE_R = LOOK_B ? 1.0 : 1.01;
 
-/** Each tile is its own block set into the board: cut back to TILE_R, so the slab's groove floor
- *  (table.ts SLAB) shows between them. A gap filled with a drawn *line* once made a heavy honeycomb
- *  over the map; a gap that shows a lit side and a shaded groove reads as carved instead. */
-function tileCtx(side: string, top: string, obst: boolean, variant: number, water: boolean) {
-  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${variant}|${water ? 1 : 0}`, (p) => {
+/** One tile: a flat fill, plus on unowned ground a hairline of the ground a shade darker, so the
+ *  hex grid is still legible. Two neighbours stroke their shared edge with the same hairline in the
+ *  same place, so the grid stays one line wide. Inside a territory `grid` is null: a team's land is
+ *  one unbroken field of colour, which is what makes its border the thing the eye lands on. */
+function tileCtx(side: string, top: string, obst: boolean, grid: string | null, water: boolean) {
+  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${grid ?? '-'}|${water ? 1 : 0}`, (p) => {
     p.hex(0, SIDE_H, TILE_R, side);
     p.hex(0, 0, TILE_R, top);
     if (water) {
-      // a pond sunk into the board: no wood grain on it, a pale rim where it meets the bank, and
-      // two ripples so it reads as water and not as a flat blue-green hex
+      // a pond sunk into the board: a pale rim where it meets the bank, and two ripples, so it
+      // reads as water and not as a flat blue-green hex
       p.hex(0, 0, TILE_R * 0.9, null, 'rgba(255,255,255,0.3)', 0.07);
       p.hex(0.06, 0.1, TILE_R * 0.52, 'rgba(255,255,255,0.1)');
       p.line([-0.4, -0.18, 0.1, -0.24], 'rgba(255,255,255,0.4)', 0.07, 'round');
       p.line([-0.16, 0.26, 0.36, 0.2], 'rgba(255,255,255,0.28)', 0.06, 'round');
-      p.line(SHADE_EDGE, 'rgba(20,40,42,0.26)', 0.09, 'round');
       return;
     }
-    if (LOOK_B) {
-      // the wood under the paint (grain.ts), stretched over the top's bounds
-      p.g.poly(hexPts(0, 0, TILE_R), true).fill({ texture: grain(variant), color: 0xffffff });
-      // the top is not flat: two translucent passes toward the light stand in for a gradient the
-      // Pen cannot fill, so each block reads as slightly domed rather than as a cut-out colour
-      p.hex(-0.05, -0.07, TILE_R * 0.78, 'rgba(255,250,232,0.09)');
-      p.hex(-0.09, -0.12, TILE_R * 0.5, 'rgba(255,250,232,0.08)');
-      // the bevel: strong enough that a block is carved and not a fill, no stronger. It went to
-      // 0.42 / 0.30 once because the grain made the corners soft -- over a boardful of tiles that
-      // is sixty drawn lines on screen, and the board read as a mesh (D86). The grain is quieter
-      // now, so the bevel can be too.
-      p.line(LIT_EDGE, 'rgba(255,250,234,0.26)', 0.075, 'round');
-      p.line(SHADE_EDGE, 'rgba(48,32,14,0.19)', 0.09, 'round');
-    } else p.hex(0, 0, 0.955, null, 'rgba(60,45,25,0.09)', 0.035);
+    if (grid) p.hex(0, 0, TILE_R, null, grid, LOOK_B ? 0.03 : 0.035);
     if (obst) p.hex(0, 0, TILE_R * 0.94, 'rgba(60,40,20,0.05)');
   });
 }
 
-/** Border width and how far inside its tile a team's border line runs, view units. */
-const LINE_W = LOOK_B ? 0.15 : 0.1;
-const LINE_IN = 0.91;
+/** Border width and how far inside its tile a team's border line runs, view units. The reference
+ *  draws the front as a bright, nearly pure line sitting on the edge itself -- the one fully
+ *  saturated mark on the board. Ours was a dark line tucked well inside the tile, which reads as a
+ *  seam between two fills rather than as a front between two countries. */
+const LINE_W = LOOK_B ? 0.16 : 0.1;
+const LINE_IN = LOOK_B ? 0.95 : 0.91;
 
 export class GroundLayer {
   readonly root = new Container({ isRenderGroup: true });
@@ -205,9 +184,7 @@ export class GroundLayer {
     const wet = this.water[t.i] ? sk.water : null;
     const th = wet ? undefined : TEAM_HUE[t.owner];
     const top = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
-    // the grain's turn by a hash of the tile, so no row or column repeats it
-    const variant = Math.imul(t.i + 1, 2654435761) >>> 0;
-    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, variant % GRAIN_VARIANTS, !!wet);
+    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, th || wet ? null : sk.grid, !!wet);
   }
 
   /** Along every edge where an owned tile meets a tile its team does not own, a line in the

@@ -56,16 +56,16 @@ export function badgeSpot(type: string): { x: number; y: number } {
  *  fitting it by total height shrank it below a one-room hut. lookB instead draws the whole cast
  *  at one scale (BLD_K) and only clips the outliers, with the castle allowed its own, larger box.
  *  BLD_H 1.45 is geometry, not taste: a picture of height H tops out at TILE_FOOT - H, and the
- *  plaque on the up-diagonal neighbour reaches down to -1.5 + 0.47 = -1.03, so anything taller
+ *  card on the up-diagonal neighbour reaches down to -1.5 + 0.47 = -1.03, so anything taller
  *  than 1.45 climbs into the card one row up. See buildingView.test.ts. */
 const BLD_K = LOOK_B ? 0.76 : 1;
 const BLD_W = LOOK_B ? 1.3 : 1.35, BLD_H = LOOK_B ? 1.45 : 1.7;
 /** The castle's own box: it is the one landmark per side and may stand a head above the rest.
  *  It is the one picture that breaks the rule above, and it has to: at this model's proportions
  *  nothing under 1.87 tall still comes out the widest building on its side, so a castle that
- *  cleared the plaque entirely would be a castle narrower than a barracks. What it may not reach
+ *  cleared the card entirely would be a castle narrower than a barracks. What it may not reach
  *  is the card's face: its top stops 0.11 short of the glyph row one row up, and the price is
- *  drawn in offers.tags, over the buildings (renderer.ts), so only the plaque's bottom corner
+ *  drawn in offers.tags, over the buildings (renderer.ts), so only the card's bottom corner
  *  goes behind the wall. buildingView.test.ts holds both of those. */
 const BASE_W = LOOK_B ? 1.38 : 1.35, BASE_H = LOOK_B ? 1.95 : 1.7;
 

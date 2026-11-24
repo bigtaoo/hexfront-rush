@@ -4,20 +4,22 @@ import { TEAM_BLUE, TEAM_RED } from '../sim/rules';
 import { TEAM_HUE } from './ground';
 import { SKINS } from './skins';
 
-// The battle screen's palette, pinned where it has already gone wrong twice -- once in each
-// direction.
+// The battle screen's palette, pinned where it has already gone wrong three times -- twice in one
+// direction, once in the other, all three against material that was not the reference.
 //
 // First cut: saturation 0.25 and half grey, snow at 0.02-0.09, which is concrete, not snow. The
-// answer then was to push every theme up to the reference's own 0.30-0.51 (D85). Measured on a real
-// frame that overshot badly the other way: the whole picture came to saturation 0.54 against the
-// reference's 0.33, and a plain tile, a tree standing on it and the card lying on it all landed at
-// value 0.74-0.80 -- one value band where there have to be three. A board as colourful as the
-// territory laid over it is what "cluttered and tiring" meant (D86).
+// answer then was to push every theme up to 0.30-0.51 off an AI mock (D85). Measured on a real
+// frame that read as cluttered and tiring, so the next answer was a saturation *budget*: the ground
+// down to 0.12-0.14, nearly all the colour spent on the two territories (D86). Then the actual
+// reference game turned up (D:/new/ref): its bare ground is #daa75c, saturation 0.578 at value
+// 0.855 -- higher than anything this game has ever shipped -- and it reads perfectly calm, because
+// the board is flat. No grain, no bevel, no dome, no vignette, one hairline grid, and no grid at
+// all inside a territory. Colour was never the problem; texture and value noise were (D87).
 //
-// So the rule these pin is a *budget*, not a floor: the ground keeps its hue and almost none of its
-// chroma, the two team washes get nearly all of it and are the loudest large areas on screen, and
-// the small marks that are meant to be seen -- the ponds -- stay saturated because they are small.
-// Nothing on the ground borrows the blue team's periwinkle. See DECISIONS.md D85, D86.
+// So these pin the reference's own numbers: the ground carries real chroma inside one narrow value
+// band, the two territories are deliberately *unequal* (the enemy's land loud and lighter than the
+// ground, your own calm, cool and darker), and the two border lines are the only near-pure colours
+// anywhere in the game. See DECISIONS.md D85, D86, D87.
 
 installCanvas();
 
@@ -62,13 +64,29 @@ describe("the map's palette", () => {
     }
   });
 
-  it('spends almost no colour on the ground, so the team washes can have it all', () => {
+  it("carries the reference's own chroma, inside one narrow value band", () => {
     for (const t of tops) {
-      // the budget, and the reason the board stopped being tiring: nothing the ground wears may get
-      // within reach of a team wash (0.46-0.52), or who-owns-what goes back to being unreadable.
-      expect(hsv(t.c).s, `${t.sk} zone ${t.zone} shade ${t.k} (${t.c})`).toBeLessThanOrEqual(0.16);
-      // and the board is the lightest large surface in the game, under everything standing on it
-      expect(hsv(t.c).v, `${t.sk} zone ${t.zone} shade ${t.k} (${t.c})`).toBeGreaterThanOrEqual(0.8);
+      const { s, v } = hsv(t.c);
+      const where = `${t.sk} zone ${t.zone} shade ${t.k} (${t.c})`;
+      // the reference's sand is 0.578; a board at a tenth of that was the 'budget' this replaces
+      expect(s, where).toBeLessThanOrEqual(0.65);
+      // and the board stays light and, above all, *even*: one band, so the same tile is the same
+      // colour wherever it sits. Value is what the eye reads as texture; it is the one thing kept
+      // quiet, which is exactly what buys the chroma above.
+      expect(v, where).toBeGreaterThanOrEqual(0.74);
+      expect(v, where).toBeLessThanOrEqual(0.93);
+    }
+    const vs = tops.map((t) => hsv(t.c).v);
+    expect(Math.max(...vs) - Math.min(...vs)).toBeLessThanOrEqual(0.2);
+  });
+
+  it('draws the grid in its own colour, a shade darker and no more', () => {
+    for (const sk of SKINS) {
+      const g = hsv(sk.grid), t = hsv(sk.top[1][0]);
+      // a hairline you can follow but never look at: about 5% of value, not a drawn honeycomb
+      expect(g.v, sk.key).toBeLessThan(t.v);
+      expect(t.v - g.v, sk.key).toBeLessThan(0.09);
+      expect(hueGap(g.h, t.h), sk.key).toBeLessThan(6);
     }
   });
 
@@ -112,19 +130,35 @@ describe("the map's palette", () => {
     }
   });
 
-  it("holds both team washes high and light, so the field reads as that team's land", () => {
-    for (const tm of [TEAM_BLUE, TEAM_RED]) {
-      for (const c of TEAM_HUE[tm]!.top) {
-        const { s, v } = hsv(c);
-        // high: a wash at 0.24 stopped reading as territory at all. light: value is what keeps the
-        // roofs and the troops on top of it, so the hue can rise without the field swallowing them.
-        expect(s).toBeGreaterThanOrEqual(0.4);
-        expect(v).toBeGreaterThanOrEqual(0.85);
-        // and loud against the ground, by a wide margin: this is where the whole budget went (D86)
-        expect(s).toBeGreaterThan(3 * Math.max(...tops.map((t) => hsv(t.c).s)));
-      }
+  it('makes the two territories unequal on purpose: enemy loud, own land calm', () => {
+    const red = TEAM_HUE[TEAM_RED]!.top.map(hsv), blue = TEAM_HUE[TEAM_BLUE]!.top.map(hsv);
+    const groundV = tops.map((t) => hsv(t.c).v), groundS = tops.map((t) => hsv(t.c).s);
+    for (const r of red) {
+      // the enemy's land is the alarm: louder and lighter than any bare ground on any board
+      expect(r.s).toBeGreaterThan(Math.max(...groundS));
+      expect(r.v).toBeGreaterThanOrEqual(Math.max(...groundV));
     }
-    expect(hsv(TEAM_HUE[TEAM_BLUE]!.top[0]).h).toBeGreaterThan(195);
-    expect(hsv(TEAM_HUE[TEAM_RED]!.top[0]).h).toBeLessThan(35);
+    // snow is the one board paler than your own field, so saturation is measured against the
+    // coloured boards and value -- which holds everywhere -- carries the reading on the snow ones
+    const coloured = tops.filter((t) => SKINS.find((k) => k.key === t.sk)!.theme !== 'snow');
+    for (const b of blue) {
+      // your own land is the calm half: cooler, quieter and *darker* than the ground it sits in,
+      // so a glance at the board shows only the part you are losing
+      expect(b.s).toBeLessThan(Math.min(...coloured.map((t) => hsv(t.c).s)));
+      expect(b.v).toBeLessThan(Math.min(...groundV));
+    }
+    expect(blue[0]!.h).toBeGreaterThan(195);
+    expect(red[0]!.h).toBeLessThan(35);
+  });
+
+  it('keeps the two border lines the only near-pure colours in the game', () => {
+    for (const tm of [TEAM_BLUE, TEAM_RED]) {
+      const l = hsv(TEAM_HUE[tm]!.line);
+      // the front, not a seam: nothing else on the board comes near this, which is what lets one
+      // hairline carry what sixty bevels used to (ground.ts, D87)
+      expect(l.s).toBeGreaterThanOrEqual(0.7);
+      expect(l.v).toBeGreaterThanOrEqual(0.95);
+      expect(l.s).toBeGreaterThan(Math.max(...tops.map((t) => hsv(t.c).s)) + 0.1);
+    }
   });
 });
