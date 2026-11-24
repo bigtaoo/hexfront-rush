@@ -162,14 +162,19 @@ const rimCtx = () =>
 
 interface CardView {
   root: Container;
-  /** The coin and the price, in a layer over the troops (renderer.ts): one walking across a card
-   *  hid what it cost just when the player was deciding. */
+  /** The layer over the troops (renderer.ts) a price row rides in while it can be paid: a soldier
+   *  walking across a card hid what it cost just when the player was deciding. A price out of
+   *  reach moves down into `root` instead and lets the troops cover it -- nobody is deciding about
+   *  a card they cannot pay for, and in a melee four or five of them were being stamped in dark red
+   *  across the soldiers, which is most of what made a fight read as noise. */
   tag: Container;
   glyph: Graphics;
   /** The gold rim, shown only while the price can be paid (null outside lookB, which has no plaque). */
   rim: Graphics | null;
   coin: Graphics;
   cost: Num;
+  /** Whether the price row currently sits in `tag` (over the troops) rather than in `root`. */
+  up: boolean;
   key: string;
   seen: number;
 }
@@ -261,8 +266,14 @@ export class OfferLayer {
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
       const look = priceLook(Tm.gold, cost);
       c.cost.set(String(cost), { h: ph, tint: look.tint, align: 'left', screen: zoom });
-      c.coin.alpha = look.coinAlpha;
-      c.tag.alpha = alpha * look.fade;
+      // the price row rides over the troops only while it can be paid (CardView.tag)
+      if (c.up !== look.rich) {
+        c.up = look.rich;
+        (look.rich ? c.tag : c.root).addChild(c.coin, c.cost);
+      }
+      c.coin.alpha = look.coinAlpha * look.fade;
+      c.cost.alpha = look.fade;
+      c.tag.alpha = alpha;
       if (c.rim) c.rim.visible = look.rich;
     }
     for (const [i, c] of this.cards) {
@@ -300,7 +311,7 @@ export class OfferLayer {
     tag.addChild(cg, cost);
     this.root.addChild(root);
     this.tags.addChild(tag);
-    c = { root, tag, glyph, rim, coin: cg, cost, key: '', seen: 0 };
+    c = { root, tag, glyph, rim, coin: cg, cost, up: true, key: '', seen: 0 };
     this.cards.set(i, c);
     return c;
   }

@@ -80,7 +80,14 @@ class CardView {
     if (key !== this.key) {
       this.key = key;
       const rc = RARITY_COLOR[cd.rarity] ?? '#ffffff';
-      this.bg.p.clear().rrect(0, 0, cw, ch, 14, 'rgba(50,30,12,0.94)', rc, 3);
+      // The pop is a wooden token like everything else on the rails (viewConst UI), not a panel of
+      // its own: its own dark brown and a bare 3 px rarity ring read as a cold hole punched in the
+      // board for the two seconds it hangs there. So the rail's wood with the warm rim every token
+      // carries, and the rarity colour kept as a line INSIDE it -- still the first thing the eye
+      // gets off the card, without the card leaving the set.
+      this.bg.p.clear()
+        .rrect(0, 0, cw, ch, 14, UI.rail, UI.tokenRim, 3)
+        .rrect(3.5, 3.5, cw - 7, ch - 7, 11, null, rc, 2);
       const def = UNITS[cd.unit];
       this.unit.update({
         type: cd.unit, team, s: def.size / FP, face: 1, lunge: false, bob: 0, flash: 0,
