@@ -14,7 +14,7 @@ import { hexDist } from '../sim/hex';
 import { baseTile, type ThemeKey, type Tile } from '../sim/map';
 import { GUARD, TEAM_BLUE, TEAM_RED, TEAMS } from '../sim/rules';
 import type { Camera } from './camera';
-import { Pen, sharedCtx } from './pen';
+import { hexPts, Pen, sharedCtx } from './pen';
 import { LOOK_B } from './lookB';
 import { SKINS, skinFor, type MapSkin } from './skins';
 
@@ -75,12 +75,47 @@ const TILE_R = LOOK_B ? 1.0 : 1.01;
  *  as a honeycomb of cells and not as a painted field. Two neighbours stroke their shared edge in
  *  the same place, so the grid stays one line wide.
  *
- *  GRID_W is measured, not chosen: in the reference (D:/new/ref) the line on bare sand is 8 px
- *  against a tile radius of 117, which is 0.07 of the radius, and it is 14% down in value and 14%
- *  up in saturation from the fill it edges (#b27e4b -> #996535). The first cut of this drew it at
- *  0.03 and 5% down -- a quarter of the ink -- and at a phone's zoom the honeycomb simply was not
- *  there. See DECISIONS.md D88. */
+ *  GRID_W is measured, not chosen: in the reference (D:/new/ref) the line on bare sand is 5-8 px
+ *  against a tile radius of 78, so a fifteenth of the radius, and it is only a thirtieth down in
+ *  value from the fill it edges (0.855 -> 0.827). The first cut drew it at 0.03 and 5% down -- a
+ *  quarter of the ink, and at a phone's zoom the honeycomb simply was not there; the second went to
+ *  14% down off a shadowed patch, which inked an outline on every hex. What actually closes a cell
+ *  in the reference is the rim below. See DECISIONS.md D88, D89. */
 const GRID_W = LOOK_B ? 0.07 : 0.035;
+
+/** The same colour, value scaled by f (1.04 is 4% lighter), clamped. Only #rrggbb goes in. */
+export function vUp(hex: string, f: number): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => Math.min(255, Math.round(x * f)));
+  return `#${c.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** The lit lip inside a tile's edge. Measured off the reference (D:/new/ref, IMG_3660), scanning
+ *  straight down the middle of a clean column of sand at x=860 and again at x=900, both the same:
+ *
+ *    0.855 flat for two thirds of the tile, then a slow climb to 0.882 at the bottom edge, then
+ *    five pixels of 0.827 line, then 0.855 flat again -- no climb on the far side of the line.
+ *
+ *  So the tile's inside is one constant colour (every pixel of it), and everything that makes it
+ *  read as a *plate* rather than as an area filled with paint sits in the bottom ~0.3 of a radius:
+ *  a 3% lift along the two lower edges only, with the dark line above it. It is directional, which
+ *  is why a symmetric ring -- the first cut of this -- still looked painted: a ring is an outline,
+ *  a lit bottom rim is a thickness. The side edges get a sixth of it, the weak lift a scan across
+ *  the tile shows, so the cell still closes on all six sides.
+ *
+ *  D87 was right to delete the bevel it found -- a hard lit edge on three sides and a shaded groove
+ *  on the other three, plus wood grain and two dome highlights -- and wrong to leave nothing in its
+ *  place. This is a tenth of that ink: three value steps, no texture, no second hue.
+ *  See DECISIONS.md D87, D89. */
+const RIM_W = 0.3, RIM_V = 1.035, SIDE_LIP_V = 1.015;
+
+/** The band along a hex's two lower edges, `w` radii deep: the outer three vertices, then the same
+ *  three pulled in toward the centre. Scaling a regular polygon moves every edge in by the same
+ *  distance, so the band keeps an even depth. */
+function lowerRim(p: Pen, r: number, w: number, col: string): void {
+  const o = hexPts(0, 0, r), i = hexPts(0, 0, r - w);
+  p.poly([o[6]!, o[7]!, o[4]!, o[5]!, o[2]!, o[3]!, i[2]!, i[3]!, i[4]!, i[5]!, i[6]!, i[7]!], col);
+}
 function tileCtx(side: string, top: string, obst: boolean, grid: string | null, water: boolean, stamp: string | null) {
   return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${grid ?? '-'}|${water ? 1 : 0}|${stamp ?? '-'}`, (p) => {
     p.hex(0, SIDE_H, TILE_R, side);
@@ -94,7 +129,14 @@ function tileCtx(side: string, top: string, obst: boolean, grid: string | null, 
       p.line([-0.16, 0.26, 0.36, 0.2], 'rgba(255,255,255,0.28)', 0.06, 'round');
       return;
     }
-    if (grid) p.hex(0, 0, TILE_R, null, grid, GRID_W);
+    if (grid) {
+      // two steps, not a ramp: the far half of the lip at a third of the lift, the near half at all
+      // of it. Three steps were not worth the stroke; one read as a drawn ring.
+      p.hex(0, 0, TILE_R * 0.89, null, vUp(top, SIDE_LIP_V), TILE_R * 0.22);
+      lowerRim(p, TILE_R, TILE_R * RIM_W, vUp(top, 1 + (RIM_V - 1) * 0.55));
+      lowerRim(p, TILE_R, TILE_R * RIM_W * 0.5, vUp(top, RIM_V));
+      p.hex(0, 0, TILE_R, null, grid, GRID_W);
+    }
     if (stamp) {
       // the territory's crest: a lozenge, struck a little low on the tile so a unit standing on it
       // leaves the bottom of the mark showing. It was a pair of chevrons first, which at a phone's

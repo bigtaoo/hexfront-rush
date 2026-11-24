@@ -99,12 +99,16 @@ describe("the map's palette", () => {
   it('draws the grid in its own colour, a shade darker and no more', () => {
     for (const sk of SKINS) {
       const g = hsv(sk.grid), t = hsv(sk.top[1][0]);
-      // 14% of value down and a sixth of saturation up: the reference's own grid, measured off bare
-      // sand (#b27e4b edged in #996535). A 5% line, which is where this started, is a quarter of
-      // that ink and at a phone's zoom there was no honeycomb on the board at all (D88).
+      // A tenth of value down and an eighth of saturation up. Measured twice off the reference, and
+      // the second reading is the one these numbers keep: on *bright* sand its line is only 0.855 ->
+      // 0.827, a thirtieth of value, and the cell reads from the lit rim along its lower edges
+      // instead (ground.ts). The first reading, 14% down, came off a shadowed patch and made our
+      // line nearly four times the reference's -- an inked outline on every hex, which is what made
+      // the board look drawn. A 5% line, where this started, was the other extreme: at a phone's
+      // zoom there was no honeycomb at all. See DECISIONS.md D88, D89.
       expect(g.v, sk.key).toBeLessThan(t.v);
-      expect(t.v - g.v, sk.key).toBeGreaterThanOrEqual(0.08);
-      expect(t.v - g.v, sk.key).toBeLessThanOrEqual(0.18);
+      expect(t.v - g.v, sk.key).toBeGreaterThanOrEqual(0.055);
+      expect(t.v - g.v, sk.key).toBeLessThanOrEqual(0.13);
       expect(g.s, sk.key).toBeGreaterThan(t.s);
       expect(hueGap(g.h, t.h), sk.key).toBeLessThan(6);
     }
