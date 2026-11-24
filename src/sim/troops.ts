@@ -7,7 +7,7 @@ import type { Engine } from './engine';
 import { dist, dist2, isqrt, muldiv } from './fixed';
 import { WORLD_H, WORLD_W } from './hex';
 import { baseTile } from './map';
-import { ALLY_BUBBLE, enemyOf, PROJ, UNITS } from './rules';
+import { ALLY_BUBBLE, enemyOf, PROJ, TEAM_BLUE, UNITS } from './rules';
 import type { Entity, Unit } from './types';
 
 export function updateUnits(e: Engine): void {
@@ -47,7 +47,8 @@ export function updateUnits(e: Engine): void {
         }
         if (Math.abs(tg.x - u.x) > 50) u.face = tg.x > u.x ? 1 : -1;
       } else unitStepToward(e, u, tg, def.speed);
-    } else if (!u.hold) unitMarch(e, u, def.speed);
+    } else if (u.hold) unitMuster(e, u, def.speed);
+    else unitMarch(e, u, def.speed);
   }
   separate(e);
   // tile capture, and the dead swept out in the same pass
@@ -220,6 +221,28 @@ function unitStepToward(e: Engine, u: Unit, tg: Entity, speed: number): void {
 }
 
 /** Down the enemy castle's flow field; ties between equally good tiles split by the unit's lane. */
+/** Where a troop waits for the wave: a rank on the enemy's side of its own barracks, each troop at
+ *  its own place along it by lane. It used to wait on the spot it was trained, a few hundred units
+ *  from the door, which stood a squad inside the building's own picture without moving for as much
+ *  as a whole wave (15 s) -- the one place on the board where nothing ever happened was the place
+ *  troops came from. The rank is still on the barracks' own tile, so the wave sets off from where
+ *  it always did and nothing about the march changes.
+ *  MUSTER_OUT clears the building's picture (about 1.3 tiles wide, so ~650 to its side) and stays
+ *  inside the tile (866 to an edge, 1000 to a corner); MUSTER_SPAN keeps the rank inside it too.
+ *  MUSTER_NEAR is the dead zone that keeps `separate` and the walk from trading a troop back and
+ *  forth across its spot once it is standing there. */
+const MUSTER_OUT = 700, MUSTER_SPAN = 450, MUSTER_NEAR = 150;
+
+function unitMuster(e: Engine, u: Unit, speed: number): void {
+  const bar = e.live(u.bar);
+  // its barracks is gone: it waits where it stands rather than marching off before the wave
+  if (!bar) return;
+  const tx = bar.x + muldiv(u.lane - 500, MUSTER_SPAN, 500);
+  const ty = bar.y + (u.team === TEAM_BLUE ? -MUSTER_OUT : MUSTER_OUT);
+  if (dist(tx - u.x, ty - u.y) <= MUSTER_NEAR) return;
+  walk(e, u, tx, ty, speed);
+}
+
 function unitMarch(e: Engine, u: Unit, speed: number): void {
   const field = e.flow[enemyOf(u.team)]!;
   const cur = e.tileAt(u.x, u.y);

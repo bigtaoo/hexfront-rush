@@ -3,11 +3,12 @@ import { priceLook } from './offers';
 import { COL } from './viewConst';
 
 // The price under an offer's symbol is the one number a player reads while deciding, and it has
-// been wrong in both directions. First a dull clay (#b9a487) on the plaque's own cream (#cbb086),
+// been wrong in three directions. First a dull clay (#b9a487) on the plaque's own cream (#cbb086),
 // unreadable (D70). Then a strong rust red -- readable, but on a board where most prices are out
 // of reach it painted the whole map in the one colour the eye cannot ignore, so everything the
-// player could NOT do was the loudest thing on screen (D83). These hold the direction: what can be
-// bought is the bright one, what cannot stays readable without a hue to chase.
+// player could NOT do was the loudest thing on screen (D83). Then a carved brown, which read
+// cleanly and said nothing at all. These hold what survived all three: what can be bought is the
+// bright one, and what cannot is red at the brown's own value, never at the rust's.
 
 const lum = (hex: string): number => {
   const n = parseInt(hex.slice(1), 16);
@@ -34,6 +35,17 @@ const mix = (a: string, b: string, f: number): string => {
   const [ar, ag, ab] = ch(a), [br, bg, bb] = ch(b);
   const m = (x: number, y: number) => Math.round(x * f + y * (1 - f));
   return '#' + [m(ar, br), m(ag, bg), m(ab, bb)].map((v) => v.toString(16).padStart(2, '0')).join('');
+};
+
+/** The carved brown D83 settled on, and the rust it had replaced: the two marks this colour is
+ *  held between. */
+const BROWN = '#4a3729', RUST = '#a81f12';
+
+/** True when red leads the other two channels by a clear margin -- red, not a warm brown. */
+const isRed = (hex: string): boolean => {
+  const n = parseInt(hex.slice(1), 16);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255] as [number, number, number];
+  return r > g * 2 && r > b * 2;
 };
 
 const sat = (hex: string): number => {
@@ -72,11 +84,19 @@ describe('an offer price', () => {
     expect(contrast(mix(poor.tint, PLAQUE, poor.fade), PLAQUE)).toBeGreaterThan(2.5);
   });
 
-  it("never chases the eye with a hue, nor wears the red team's own colour", () => {
+  it("says it in red without ever wearing the red team's own colour", () => {
     const poor = priceLook(0, 1);
-    // a saturated price is what D83 took out: no rust red, no green, nothing that reads as an alert
-    expect(sat(poor.tint)).toBeLessThan(0.45);
+    // D84 put the hue back. The guard that matters is not whether it is red but how light it is:
+    // the rust D83 removed (#a81f12) was lighter than the carved brown that replaced it, which is
+    // how it came across as an alert rather than as a number. So red, clearly -- and no brighter
+    // than that brown, which is what keeps a board of unpayable prices from shouting.
+    expect(isRed(poor.tint)).toBe(true);
+    expect(sat(poor.tint)).toBeGreaterThan(0.5);
+    expect(lum(poor.tint)).toBeLessThanOrEqual(lum(BROWN));
+    expect(lum(poor.tint)).toBeLessThan(lum(RUST));
+    // and it stays far off both of the red team's tones, so a price is never read as a team mark
     expect(poor.tint).not.toBe(COL.red);
     expect(poor.tint).not.toBe(COL.redDark);
+    expect(lum(poor.tint)).toBeLessThan(lum(COL.redDark));
   });
 });

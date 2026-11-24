@@ -24,14 +24,16 @@ const PRICE_H = LOOK_B ? 0.3 : 0.46;
 /** The price is never drawn shorter than this on screen (px): at a phone's zoom PRICE_H alone came
  *  to about 9 px, too small to read at a glance. It grows only so far, or it would leave the plaque. */
 const PRICE_MIN_PX = 13, PRICE_MAX_H = PRICE_H * 1.45;
-/** An offer the player cannot pay for: the price is cut into the plaque in the plaque's own dark
- *  brown, its coin dims and the whole price row steps back. It was a dull clay (#b9a487) once,
- *  within a shade of the plaque's tone and unreadable (D70); the answer then was a strong rust red,
- *  which over-corrected -- on a board where most prices are out of reach that painted the whole map
- *  in the one colour the eye cannot ignore, so the loudest thing on screen was everything the
- *  player could NOT do. Dark on cream stays readable (the digits' own outline merges into it and
- *  the number reads as carved), but it has no hue to chase. */
-const POOR_TINT = '#4a3729', POOR_ALPHA = 0.45, POOR_FADE = 0.85;
+/** An offer the player cannot pay for: the price is cut into the plaque in a dark red, its coin
+ *  dims and the whole price row steps back. The hue has been in and out twice. A dull clay
+ *  (#b9a487) was unreadable (D70); a strong rust (#a81f12) was readable but shouted -- on a board
+ *  where most prices are out of reach it painted the whole map in the one colour the eye cannot
+ *  ignore (D83); carved brown read well but said nothing (D83). What went wrong with the rust was
+ *  never the hue, it was the value: it sat lighter than the plaque's own shadow, so it arrived as
+ *  an alert. This red is darker than that brown by the measure the contrast test uses, so the
+ *  number still reads as cut into the plaque, and the colour only reaches you once you look at it
+ *  (D84). */
+const POOR_TINT = '#6b1e14', POOR_ALPHA = 0.45, POOR_FADE = 0.85;
 /** A price the player can pay: the bright sticker face, full strength, with a gold rim around its
  *  plaque (rimCtx). Light-on-cream plus a saturated rim is what the eye picks out of a board of
  *  carved brown, and there are only ever a few of them -- which is the point. */
