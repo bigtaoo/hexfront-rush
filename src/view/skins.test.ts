@@ -4,16 +4,20 @@ import { TEAM_BLUE, TEAM_RED } from '../sim/rules';
 import { TEAM_HUE } from './ground';
 import { SKINS } from './skins';
 
-// The battle screen's palette, pinned where it has already gone wrong once.
+// The battle screen's palette, pinned where it has already gone wrong twice -- once in each
+// direction.
 //
-// Measured against art/ref/screen_gen_b.png, the reference board averages saturation 0.55 and is
-// 96% coloured. The first cut of these skins averaged 0.25 and was half grey: the snow themes sat
-// at 0.02-0.09, which is concrete, not snow, and both team washes at 0.24-0.31, which is half of
-// what the reference gives its two territories. The board read as a grey backdrop with the cream
-// card plaques -- at 0.33 the most saturated thing on it -- floating as the only colour.
+// First cut: saturation 0.25 and half grey, snow at 0.02-0.09, which is concrete, not snow. The
+// answer then was to push every theme up to the reference's own 0.30-0.51 (D85). Measured on a real
+// frame that overshot badly the other way: the whole picture came to saturation 0.54 against the
+// reference's 0.33, and a plain tile, a tree standing on it and the card lying on it all landed at
+// value 0.74-0.80 -- one value band where there have to be three. A board as colourful as the
+// territory laid over it is what "cluttered and tiring" meant (D86).
 //
-// So: every ground tile carries a hue, every water stays a green-teal, and nothing on the ground
-// borrows the blue team's periwinkle. See DECISIONS.md D85.
+// So the rule these pin is a *budget*, not a floor: the ground keeps its hue and almost none of its
+// chroma, the two team washes get nearly all of it and are the loudest large areas on screen, and
+// the small marks that are meant to be seen -- the ponds -- stay saturated because they are small.
+// Nothing on the ground borrows the blue team's periwinkle. See DECISIONS.md D85, D86.
 
 installCanvas();
 
@@ -51,17 +55,30 @@ describe("the map's palette", () => {
 
   it('gives every ground tile a hue: none of them is a grey', () => {
     for (const t of tops) {
-      // 0.12 is the floor the snow themes sit on; meadow and desert run 0.30-0.49, the reference's
-      // own range. Below this a tile reads as concrete and the cards become the board's colour.
+      // a hint of hue, but a hue: 0.05 is the snow floor. At zero a tile is literally grey and the
+      // three themes stop telling themselves apart, which is where the first cut went wrong (D85).
       expect(hsv(t.c).s, `${t.sk} zone ${t.zone} shade ${t.k} (${t.c})`)
-        .toBeGreaterThanOrEqual(0.12);
+        .toBeGreaterThanOrEqual(0.05);
     }
   });
 
-  it('keeps the desert at the saturation the reference sand has', () => {
-    for (const sk of SKINS.filter((s) => s.theme === 'desert')) {
-      for (const pair of sk.top) expect(hsv(pair[0]).s).toBeGreaterThanOrEqual(0.3);
+  it('spends almost no colour on the ground, so the team washes can have it all', () => {
+    for (const t of tops) {
+      // the budget, and the reason the board stopped being tiring: nothing the ground wears may get
+      // within reach of a team wash (0.46-0.52), or who-owns-what goes back to being unreadable.
+      expect(hsv(t.c).s, `${t.sk} zone ${t.zone} shade ${t.k} (${t.c})`).toBeLessThanOrEqual(0.16);
+      // and the board is the lightest large surface in the game, under everything standing on it
+      expect(hsv(t.c).v, `${t.sk} zone ${t.zone} shade ${t.k} (${t.c})`).toBeGreaterThanOrEqual(0.8);
     }
+  });
+
+  it('still tells the three themes apart by saturation, desert warmest of them', () => {
+    const satOf = (theme: string) =>
+      Math.max(...tops.filter((t) => SKINS.find((s) => s.key === t.sk)!.theme === theme)
+        .map((t) => hsv(t.c).s));
+    // desert > meadow > snow, the same order as before, just an eighth of the distance apart
+    expect(satOf('desert')).toBeGreaterThan(satOf('meadow'));
+    expect(satOf('meadow')).toBeGreaterThan(satOf('snow'));
   });
 
   it('keeps the snow themes the brightest board, and warm rather than blue', () => {
@@ -102,7 +119,9 @@ describe("the map's palette", () => {
         // high: a wash at 0.24 stopped reading as territory at all. light: value is what keeps the
         // roofs and the troops on top of it, so the hue can rise without the field swallowing them.
         expect(s).toBeGreaterThanOrEqual(0.4);
-        expect(v).toBeGreaterThanOrEqual(0.86);
+        expect(v).toBeGreaterThanOrEqual(0.85);
+        // and loud against the ground, by a wide margin: this is where the whole budget went (D86)
+        expect(s).toBeGreaterThan(3 * Math.max(...tops.map((t) => hsv(t.c).s)));
       }
     }
     expect(hsv(TEAM_HUE[TEAM_BLUE]!.top[0]).h).toBeGreaterThan(195);

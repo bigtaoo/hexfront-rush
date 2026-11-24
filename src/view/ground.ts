@@ -36,13 +36,22 @@ export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme
  *  its two territories. The old pair was the failure the comment above warns about, from the other
  *  side: territory that is the player's own half of the board stopped reading as blue land at all.
  *  Value is what keeps the roofs and the troops on top of it -- the field stays lighter than
- *  anything standing on it -- so the hue can go up without the field swallowing them. */
+ *  anything standing on it -- so the hue can go up without the field swallowing them.
+ *
+ *  These are the loudest large areas in the game on purpose, and the only ones: the unowned board
+ *  is down to a hint of hue (skins.ts, saturation 0.05-0.14) so that who-owns-what is the first
+ *  thing the eye resolves and not the last. A board where the ground was as colourful as the
+ *  territory is what "cluttered and tiring" was (D86); the fix is not less colour everywhere, it is
+ *  all of it spent on the one thing the player has to read. Value still holds the rule above --
+ *  0.86-0.90, lighter than any roof, troop or card standing on it. Blue carries a little more
+ *  saturation than red for the same reading: at matched HSV the blue field looked washed beside
+ *  the red one, which is what blue does at high value. */
 export const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = LOOK_B
   ? {
       // lookB: a clear team field (the buildings stand on their pale yard and the troops on their
       // bases, so the field no longer swallows them), the border carries the darker colour
-      [TEAM_BLUE]: { top: ['#86b2e6', '#81abdd'], line: '#2c55a0' },
-      [TEAM_RED]: { top: ['#eea286', '#e59c81'], line: '#b13a2a' },
+      [TEAM_BLUE]: { top: ['#6ea4e6', '#699ddb'], line: '#2f619e' },
+      [TEAM_RED]: { top: ['#e6867c', '#db8176'], line: '#9e3a2f' },
     }
   : {
       [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], line: '#2c55a0' },
@@ -88,10 +97,12 @@ function tileCtx(side: string, top: string, obst: boolean, variant: number, wate
       // Pen cannot fill, so each block reads as slightly domed rather than as a cut-out colour
       p.hex(-0.05, -0.07, TILE_R * 0.78, 'rgba(255,250,232,0.09)');
       p.hex(-0.09, -0.12, TILE_R * 0.5, 'rgba(255,250,232,0.08)');
-      // the bevel a step stronger than at first (0.3 / 0.22): with the grain on the top, a faint
-      // edge left the blocks soft-cornered, more cushion than carved wood
-      p.line(LIT_EDGE, 'rgba(255,250,234,0.42)', 0.075, 'round');
-      p.line(SHADE_EDGE, 'rgba(48,32,14,0.3)', 0.09, 'round');
+      // the bevel: strong enough that a block is carved and not a fill, no stronger. It went to
+      // 0.42 / 0.30 once because the grain made the corners soft -- over a boardful of tiles that
+      // is sixty drawn lines on screen, and the board read as a mesh (D86). The grain is quieter
+      // now, so the bevel can be too.
+      p.line(LIT_EDGE, 'rgba(255,250,234,0.26)', 0.075, 'round');
+      p.line(SHADE_EDGE, 'rgba(48,32,14,0.19)', 0.09, 'round');
     } else p.hex(0, 0, 0.955, null, 'rgba(60,45,25,0.09)', 0.035);
     if (obst) p.hex(0, 0, TILE_R * 0.94, 'rgba(60,40,20,0.05)');
   });
@@ -166,14 +177,12 @@ export class GroundLayer {
     const p = this.ringPen.clear();
     for (const tm of TEAMS) {
       const v = cam.tv[baseTile(tm)]!;
-      // A white dash is a line that only exists on a dark board: at 0.42 over the snow themes' home
-      // band (#f4ead1) it lifts the luminance by 9/255, under 4% Weber contrast, and that band is
-      // most of what the leash crosses -- the ring reaches well past the few tiles a team owns at
-      // the start. A dark rim under a brighter dash is what the offer symbols already do
-      // (offers.ts), and it holds on sand, on snow and on either team's field. Same radius and
-      // dash on both passes, so they line up.
-      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, 'rgba(36,24,10,0.34)', 0.1);
-      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, 'rgba(255,250,236,0.62)', 0.05);
+      // One dark dash, not a dark rim under a bright one. A white dash is a line that only exists
+      // on a dark board -- at 0.42 over the snow themes' home band (#f4ead1) it lifts the luminance
+      // by 9/255, under 4% Weber contrast -- and every board is lighter now (skins.ts), so the dark
+      // pass is the one that carries. Two passes on a ring that crosses most of the map was a
+      // second honeycomb drawn over the first (D86).
+      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, 'rgba(36,24,10,0.26)', 0.085);
     }
     this.update(eng);
   }

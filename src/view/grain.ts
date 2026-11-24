@@ -4,6 +4,10 @@
 // speckle, light and dark strokes over its own colour (one texture works on every theme and team
 // colour). Three variants turn the grain 0, 60 and 120 degrees, so neighbouring blocks differ the
 // way cut blocks do. Drawn once per variant on a canvas, then shared by every tile.
+//
+// Faint is the whole job. At twice these alphas the grain was per-pixel noise the eye cannot
+// fuse at play zoom, and a boardful of it is most of what made the picture tiring (D86): it has
+// to read as a surface you could run a thumb over, never as texture you can pick out.
 
 import { Texture } from 'pixi.js';
 
@@ -28,7 +32,7 @@ function grainTex(variant: number): Texture {
   const L = N * 0.75;
   for (let i = 0; i < 30; i++) {
     const y = (r() * 2 - 1) * L, light = r() < 0.5;
-    c.strokeStyle = light ? `rgba(255,247,228,${0.05 + r() * 0.09})` : `rgba(74,50,24,${0.045 + r() * 0.08})`;
+    c.strokeStyle = light ? `rgba(255,247,228,${0.026 + r() * 0.045})` : `rgba(74,50,24,${0.024 + r() * 0.04})`;
     c.lineWidth = 0.7 + r() * 1.8;
     const amp = 0.6 + r() * 2.6, ph = r() * 7, k = 1.5 + r() * 2;
     c.beginPath();
@@ -37,9 +41,9 @@ function grainTex(variant: number): Texture {
   }
   c.restore();
   // paint speckle: the brush's tooth, single pixels a shade lighter or darker
-  for (let i = 0; i < 520; i++) {
+  for (let i = 0; i < 320; i++) {
     const light = r() < 0.5;
-    c.fillStyle = light ? `rgba(255,250,236,${0.05 + r() * 0.08})` : `rgba(60,40,20,${0.05 + r() * 0.07})`;
+    c.fillStyle = light ? `rgba(255,250,236,${0.026 + r() * 0.04})` : `rgba(60,40,20,${0.026 + r() * 0.035})`;
     c.fillRect(Math.floor(r() * N), Math.floor(r() * N), 1, 1);
   }
   return Texture.from(cv);

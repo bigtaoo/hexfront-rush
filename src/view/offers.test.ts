@@ -3,7 +3,7 @@ import { priceLook } from './offers';
 import { COL } from './viewConst';
 
 // The price under an offer's symbol is the one number a player reads while deciding, and it has
-// been wrong in three directions. First a dull clay (#b9a487) on the plaque's own cream (#cbb086),
+// been wrong in three directions. First a dull clay (#b9a487) on the plaque's own cream (then #cbb086),
 // unreadable (D70). Then a strong rust red -- readable, but on a board where most prices are out
 // of reach it painted the whole map in the one colour the eye cannot ignore, so everything the
 // player could NOT do was the loudest thing on screen (D83). Then a carved brown, which read
@@ -24,7 +24,7 @@ const contrast = (a: string, b: string): number => {
   return (x + 0.05) / (y + 0.05);
 };
 /** The carved plaque a price is stamped on (PLQ's face in offers.ts). */
-const PLAQUE = '#cbb086';
+const PLAQUE = '#b5a48a';
 
 /** `a` laid over `b` at alpha `f`, as the renderer composites a faded label onto its plaque. */
 const mix = (a: string, b: string, f: number): string => {

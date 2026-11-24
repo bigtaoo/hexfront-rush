@@ -17,14 +17,25 @@
 // the way the reference's water reads against its sand. The four snow skins fan from rosy ivory
 // through gold and olive to green, all bright, none of them blue.
 //
-// Every ground tile carries a hue. Measured against art/ref/screen_gen_b.png, whose board averages
-// saturation 0.55, the first cut of these skins sat at 0.25: the snow themes were 0.02-0.09, i.e.
-// concrete, and the desert themes about half of the reference's sand (0.40-0.47). The whole board
-// then read as grey, and the cream card plaques -- at 0.33 the most saturated thing on screen --
-// read as the ground while the ground read as a backdrop. So each theme now holds its own hue at a
-// floor of its own: desert at the reference's own 0.38-0.49, meadow (already there) at 0.30-0.51,
-// snow at 0.12-0.22, bright but unmistakably warm. Snow stays the lightest board of the three; it
-// is the saturation, not the value, that tells the themes apart. See DECISIONS.md D85.
+// The board is the LIGHTEST large surface in the game and very nearly the only colourless one.
+// Three value bands -- light board, mid cast and cards, dark chrome -- and one saturation budget,
+// nearly all of which is spent on the two territories (ground.ts TEAM_HUE), because who owns what
+// is the thing a player has to read first. The first cut of these skins sat at saturation 0.25,
+// which read as concrete (D85), and the answer then was to push every theme back up -- meadow to
+// 0.30-0.51, desert to 0.38-0.49. Measured against art/ref that went far the other way: the whole
+// frame came to saturation 0.54 against the reference's 0.33, a plain tile, a tree standing on it
+// and the card lying on it all measured value 0.74-0.80 -- one band where there should be two --
+// and the pale team tint of the day had no chance of standing out from a ground as colourful as
+// itself. So a theme now keeps its hue and almost none of its chroma: meadow 0.12, desert 0.14,
+// snow 0.055, all at value 0.82-0.91, stepping down 0.014 a shade so the three zones (home, field,
+// contested) still read. At that chroma a theme is a tint of the table rather than a colour of its
+// own, which is exactly what lets a red or blue field laid over it be the loudest thing on screen.
+// Snow stays the lightest board of the three; it is still the saturation, not the value, that tells
+// the themes apart. The sides stay dark and keep more of their chroma than the tops: a block is
+// carved by its edge, not by its top. The ponds keep their chroma too and now sit *darker* than
+// the board, which is what a hole in the ground should do: a pond covers a few tiles, so colour
+// there is cheap, and it stays the one cool mark on a warm board.
+// See DECISIONS.md D85, D86.
 
 import type { ThemeKey } from '../sim/map';
 
@@ -46,63 +57,63 @@ export interface MapSkin {
 export const SKINS: readonly MapSkin[] = [
   {
     key: 'meadow-spring', theme: 'meadow',
-    top: [['#b2d98a', '#aad282'], ['#a3cc78', '#9bc570'], ['#8fba66', '#88b35f']],
-    side: '#5d8a3e', bg: '#2f4a2b', water: ['#6fb3a8', '#3d7a72'],
+    top: [['#d7e4c9', '#d3e1c6'], ['#d0ddc3', '#ccdabf'], ['#c9d6bc', '#c6d2b9']],
+    side: '#7d8f70', bg: '#2f4a2b', water: ['#6fb3a8', '#3d7a72'],
   },
   {
     key: 'meadow-summer', theme: 'meadow',
-    top: [['#9ec873', '#96c16b'], ['#8cbb66', '#85b45f'], ['#76a455', '#6f9d4f']],
-    side: '#4c7733', bg: '#274024', water: null,
+    top: [['#d6e4c9', '#d3e1c6'], ['#ceddc3', '#cbdabf'], ['#c8d6bc', '#c4d2b9']],
+    side: '#718366', bg: '#274024', water: null,
   },
   {
     key: 'meadow-autumn', theme: 'meadow',
-    top: [['#d8c178', '#d1ba70'], ['#c4ab63', '#bda45c'], ['#a98f52', '#a2884c']],
-    side: '#846233', bg: '#44331f', water: ['#6ea89c', '#3c7067'],
+    top: [['#e4dec9', '#e1dbc6'], ['#ddd6c3', '#dad2bf'], ['#d6cebc', '#d2cab9']],
+    side: '#8b7e6c', bg: '#44331f', water: ['#6ea89c', '#3c7067'],
   },
   {
     key: 'meadow-marsh', theme: 'meadow',
-    top: [['#a6cc8a', '#9ec582'], ['#8fbd84', '#87b67c'], ['#79a876', '#72a16f']],
-    side: '#4f7b4d', bg: '#263d31', water: ['#62a9a4', '#36756f'],
+    top: [['#d4e4c9', '#d1e1c6'], ['#c7ddc3', '#c4dabf'], ['#bed6bc', '#bbd2b9']],
+    side: '#698669', bg: '#263d31', water: ['#62a9a4', '#36756f'],
   },
   {
     key: 'desert-pale', theme: 'desert',
-    top: [['#ecce93', '#e3c68d'], ['#e3c384', '#dabc7f'], ['#ceac6f', '#c6a56b']],
-    side: '#ad8b5a', bg: '#5f4936', water: null,
+    top: [['#e6dac5', '#e2d7c2'], ['#ded4bf', '#dbd1bc'], ['#d7cdb9', '#d4c9b6']],
+    side: '#ad9c83', bg: '#5f4936', water: null,
   },
   {
     key: 'desert-red', theme: 'desert',
-    top: [['#e5b485', '#dcad80'], ['#d29e6e', '#ca986a'], ['#bd8460', '#b67f5c']],
-    side: '#96643c', bg: '#4e3326', water: null,
+    top: [['#e6d5c5', '#e2d2c2'], ['#decebf', '#dbcbbc'], ['#d7c5b9', '#d4c1b6']],
+    side: '#978373', bg: '#4e3326', water: null,
   },
   {
     key: 'desert-canyon', theme: 'desert',
-    top: [['#dfae8a', '#d7a785'], ['#c9906b', '#c18b67'], ['#ad7a5a', '#a67557']],
-    side: '#8a5540', bg: '#472b22', water: ['#5f9e92', '#346b63'],
+    top: [['#e6d3c5', '#e2cfc2'], ['#deccbf', '#dbc9bc'], ['#d7c5b9', '#d4c1b6']],
+    side: '#8f776d', bg: '#472b22', water: ['#5f9e92', '#346b63'],
   },
   {
     key: 'desert-oasis', theme: 'desert',
-    top: [['#cdd48f', '#c5cc8a'], ['#ddc987', '#d5c182'], ['#c9ae72', '#c1a76e']],
-    side: '#9b8150', bg: '#53432f', water: ['#5aab9a', '#2f7368'],
+    top: [['#e2e6c5', '#dfe2c2'], ['#ded7bf', '#dbd4bc'], ['#d7ceb9', '#d4cbb6']],
+    side: '#9b8e76', bg: '#53432f', water: ['#5aab9a', '#2f7368'],
   },
   {
     key: 'snow-field', theme: 'snow',
-    top: [['#f3e3d2', '#eadbca'], ['#e9d6c1', '#e0ceba'], ['#d7c4ad', '#cfbda6']],
-    side: '#a28e76', bg: '#473a2d', water: null,
+    top: [['#e9e3dc', '#e6dfd9'], ['#e2dcd6', '#dfd8d2'], ['#dbd5cf', '#d7d2cc']],
+    side: '#a2998f', bg: '#473a2d', water: null,
   },
   {
     key: 'snow-tundra', theme: 'snow',
-    top: [['#e2dcc0', '#d9d4b9'], ['#cfc9a8', '#c7c1a2'], ['#b9b291', '#b2ab8b']],
-    side: '#8a7f5e', bg: '#3e3827', water: null,
+    top: [['#e9e7dc', '#e6e3d9'], ['#e2e0d6', '#dfddd2'], ['#dbd9cf', '#d7d5cc']],
+    side: '#8f8b7e', bg: '#3e3827', water: null,
   },
   {
     key: 'snow-glacier', theme: 'snow',
-    top: [['#f4ead1', '#ebe1c9'], ['#e9dcbe', '#e0d4b7'], ['#d9cbab', '#d1c3a5']],
-    side: '#a19176', bg: '#46392b', water: ['#6aa6a2', '#3a6f6c'],
+    top: [['#e9e5dc', '#e6e1d9'], ['#e2ded6', '#dfdbd2'], ['#dbd7cf', '#d7d4cc']],
+    side: '#a19a8e', bg: '#46392b', water: ['#6aa6a2', '#3a6f6c'],
   },
   {
     key: 'snow-thaw', theme: 'snow',
-    top: [['#dde0bd', '#d5d7b6'], ['#c7cfa9', '#bfc7a3'], ['#afba93', '#a8b38d']],
-    side: '#7f8a62', bg: '#39412c', water: ['#67a8a0', '#376f69'],
+    top: [['#e8e9dc', '#e4e6d9'], ['#dfe2d6', '#dcdfd2'], ['#d8dbcf', '#d4d7cc']],
+    side: '#8a8f7e', bg: '#39412c', water: ['#67a8a0', '#376f69'],
   },
 ];
 

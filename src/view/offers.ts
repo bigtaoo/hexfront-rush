@@ -143,12 +143,19 @@ const PLQ = { w: 1.0, h: 1.08, cy: -0.07, r: 0.15 };
 export const CARD_BOX = { bottom: PLQ.cy + PLQ.h / 2, glyphY: GLYPH_Y, priceY: PRICE_Y } as const;
 const plaqueCtx = () =>
   sharedCtx('offer|plaque', (p) => {
+    // The plaque is the MIDDLE of the three value bands: the board under it is the lightest
+    // surface in the game (skins.ts, value 0.80-0.90), the rails and panels are the darkest, and
+    // a card lying on the board belongs between them. Its face used to be a cream at value 0.80 --
+    // the board's own value -- so nine of them round a castle read as one paved patch rather than
+    // nine things lying there, and the near-white glyph on top had 2.1:1 to work with. At 0.71 it
+    // sits where the reference board puts its cards (art/ref), the glyph gets 2.9:1, and the
+    // shadow beneath finally has something to fall on. See DECISIONS.md D86.
     const x = -PLQ.w / 2, t = PLQ.cy - PLQ.h / 2;
     p.rrect(x + 0.045, t + 0.075, PLQ.w, PLQ.h, PLQ.r, 'rgba(30,19,7,0.26)');
     p.rrect(x, t + 0.055, PLQ.w, PLQ.h, PLQ.r, '#6d5637');
-    p.rrect(x, t, PLQ.w, PLQ.h, PLQ.r, '#cbb086', '#5e4727', 0.05);
+    p.rrect(x, t, PLQ.w, PLQ.h, PLQ.r, '#b5a48a', '#5e4727', 0.05);
     // the lip along the top edge, where the light stands
-    p.line([x + 0.13, t + 0.055, x + PLQ.w - 0.13, t + 0.055], 'rgba(255,247,228,0.5)', 0.045, 'round');
+    p.line([x + 0.13, t + 0.055, x + PLQ.w - 0.13, t + 0.055], 'rgba(255,247,228,0.38)', 0.045, 'round');
   });
 
 /** The gold rim that marks a plaque the player can buy from, drawn just inside its face. It is the
