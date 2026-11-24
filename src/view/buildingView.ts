@@ -168,12 +168,20 @@ export class WallLayer {
     }
     const p = this.p.clear();
     if (LOOK_B) {
-      // lookB: one paved yard under the built tiles, no wall per tile: a block of built tiles reads
-      // as one place, not as a grid of boxes
-      // the paving lets the ground through: opaque cream it read as one more card face, and the
-      // smaller buildings leave more of it bare
+      // lookB: a paved yard under the built tiles, and a stone kerb standing on its rim.
+      // The first cut of lookB threw the kerb away and left the paving alone, on the theory that a
+      // block of built tiles should read as one place rather than a grid of boxes. Measured against
+      // the reference game (D:/new/ref, IMG_3660) that was simply wrong: the reference's build plot
+      // is edged with exactly this -- a near-black outline (34,34,34), a grey face (133,131,128) and
+      // a lit top (181..197) -- and it is the strongest piece of structure anywhere on its board.
+      // Flat paving alone is a stain on the ground; the kerb is what makes the plot a *place*.
+      // The paving stays translucent so the ground reads through it (D87, D88).
       for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y + 0.05, 1.03, 'rgba(120,96,64,0.16)');
       for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y, 1.02, 'rgba(236,227,207,0.5)');
+      const HB = 0.07;
+      for (const s of segs) p.line([s[0]!, s[1]! + HB * 0.5, s[2]!, s[3]! + HB * 0.5], 'rgba(34,34,34,0.9)', 0.22, 'round');
+      for (const s of segs) p.line([s[0]!, s[1]! + HB, s[2]!, s[3]! + HB], '#858380', 0.15, 'round');
+      for (const s of segs) p.line([s[0]!, s[1]!, s[2]!, s[3]!], '#c5c5c2', 0.13, 'round');
       return;
     }
     const H = 0.06;

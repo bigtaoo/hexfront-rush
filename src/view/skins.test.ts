@@ -70,22 +70,42 @@ describe("the map's palette", () => {
       const where = `${t.sk} zone ${t.zone} shade ${t.k} (${t.c})`;
       // the reference's sand is 0.578; a board at a tenth of that was the 'budget' this replaces
       expect(s, where).toBeLessThanOrEqual(0.65);
-      // and the board stays light and, above all, *even*: one band, so the same tile is the same
-      // colour wherever it sits. Value is what the eye reads as texture; it is the one thing kept
-      // quiet, which is exactly what buys the chroma above.
-      expect(v, where).toBeGreaterThanOrEqual(0.74);
+      // the board stays light, and its darkest tile is no darker than the reference's own darker
+      // sand band (#b27d4c, value 0.698). Value is what the eye reads as texture, so it is spent
+      // deliberately: in zone-wide steps, never per tile.
+      expect(v, where).toBeGreaterThanOrEqual(0.69);
       expect(v, where).toBeLessThanOrEqual(0.93);
     }
     const vs = tops.map((t) => hsv(t.c).v);
-    expect(Math.max(...vs) - Math.min(...vs)).toBeLessThanOrEqual(0.2);
+    expect(Math.max(...vs) - Math.min(...vs)).toBeLessThanOrEqual(0.24);
+  });
+
+  it('steps the value from zone to zone so the board has patches, not one field', () => {
+    // the reference's bare ground is two value bands a sixth apart (0.855 and 0.702), which is what
+    // makes it read as land instead of as a painted table. A first cut of this made the step one
+    // hundredth 'to be felt, not seen' -- which is to say not there at all (D87, D88). A full sixth
+    // across three zones would put the contested middle in shadow, so ours is about 0.095 of value
+    // home country to middle -- six tenths of the reference's -- and the snow boards half of that.
+    for (const sk of SKINS) {
+      const step = hsv(sk.top[0][0]).v - hsv(sk.top[2][0]).v;
+      expect(step, sk.key).toBeGreaterThanOrEqual(0.05);
+      expect(step, sk.key).toBeLessThanOrEqual(0.11);
+      // and it only ever gets darker, home country to contested middle
+      expect(hsv(sk.top[1][0]).v, sk.key).toBeLessThan(hsv(sk.top[0][0]).v);
+      expect(hsv(sk.top[2][0]).v, sk.key).toBeLessThan(hsv(sk.top[1][0]).v);
+    }
   });
 
   it('draws the grid in its own colour, a shade darker and no more', () => {
     for (const sk of SKINS) {
       const g = hsv(sk.grid), t = hsv(sk.top[1][0]);
-      // a hairline you can follow but never look at: about 5% of value, not a drawn honeycomb
+      // 14% of value down and a sixth of saturation up: the reference's own grid, measured off bare
+      // sand (#b27e4b edged in #996535). A 5% line, which is where this started, is a quarter of
+      // that ink and at a phone's zoom there was no honeycomb on the board at all (D88).
       expect(g.v, sk.key).toBeLessThan(t.v);
-      expect(t.v - g.v, sk.key).toBeLessThan(0.09);
+      expect(t.v - g.v, sk.key).toBeGreaterThanOrEqual(0.08);
+      expect(t.v - g.v, sk.key).toBeLessThanOrEqual(0.18);
+      expect(g.s, sk.key).toBeGreaterThan(t.s);
       expect(hueGap(g.h, t.h), sk.key).toBeLessThan(6);
     }
   });

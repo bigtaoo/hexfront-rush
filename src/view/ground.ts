@@ -38,18 +38,27 @@ export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme
  *  comparison, which is what lets one hairline do the work sixty bevels were doing before.
  *
  *  The two shades are all but the same colour now: the sim's per-tile checker is still there, but
- *  a territory in the reference is one unbroken field, so inside it the checker is felt and not
- *  seen (the grid stops at the border too, ground.ts tileCtx).
- *  See DECISIONS.md D85, D86, D87. */
-export const TEAM_HUE: Record<number, { top: readonly [string, string]; line: string }> = LOOK_B
+ *  it is felt and not seen. The hex grid does NOT stop at the border, though -- the first cut of
+ *  this dropped it inside a territory and the owned land read as one shapeless blob you could not
+ *  count tiles in. The reference draws the edge there too, at about a fiftieth of a value, which is
+ *  invisible at our tile size; `grid` here is 6% down instead -- still far quieter than the 14% on
+ *  open ground, loud enough to see a cell.
+ *
+ *  `stamp` is the mark struck on every tile of a territory, the one piece of the reference's board
+ *  this had nothing at all for: it stamps a crest on each tile of its fields, #bb2421 on #ef6845 --
+ *  saturation up a sixth, value down a fifth. Both of these are that ratio off their own field, so
+ *  the enemy's stamp is as loud as its field is and yours stays as quiet as yours. A flat wash over
+ *  twenty hexes is a shape on the map; a stamped one is twenty tiles you can count.
+ *  See DECISIONS.md D85, D86, D87, D88. */
+export const TEAM_HUE: Record<number, { top: readonly [string, string]; grid: string; line: string; stamp: string }> = LOOK_B
   ? {
       // lookB: enemy red lifted off the sand, own blue sunk below it, both lines near-pure
-      [TEAM_BLUE]: { top: ['#7e9fb6', '#7c9db4'], line: '#3399ff' },
-      [TEAM_RED]: { top: ['#ee6745', '#ed6745'], line: '#ff3333' },
+      [TEAM_BLUE]: { top: ['#7897ad', '#7695ab'], grid: '#6d8da2', line: '#3399ff', stamp: '#577387' },
+      [TEAM_RED]: { top: ['#ee6745', '#ed6745'], grid: '#e05937', line: '#ff3333', stamp: '#ba4021' },
     }
   : {
-      [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], line: '#2c55a0' },
-      [TEAM_RED]: { top: ['#eaa292', '#e69a89'], line: '#b13a2a' },
+      [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], grid: '#8098bb', line: '#2c55a0', stamp: '#6683a7' },
+      [TEAM_RED]: { top: ['#eaa292', '#e69a89'], grid: '#d18e7e', line: '#b13a2a', stamp: '#b77667' },
     };
 
 /** How thick a tile is: what shows below it along the map's rim (view units). Only the rim shows
@@ -62,12 +71,18 @@ const SIDE_H = LOOK_B ? 0.26 : 0.16;
  *  the value noise that tire the eye, not the colour. See DECISIONS.md D87. */
 const TILE_R = LOOK_B ? 1.0 : 1.01;
 
-/** One tile: a flat fill, plus on unowned ground a hairline of the ground a shade darker, so the
- *  hex grid is still legible. Two neighbours stroke their shared edge with the same hairline in the
- *  same place, so the grid stays one line wide. Inside a territory `grid` is null: a team's land is
- *  one unbroken field of colour, which is what makes its border the thing the eye lands on. */
-function tileCtx(side: string, top: string, obst: boolean, grid: string | null, water: boolean) {
-  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${grid ?? '-'}|${water ? 1 : 0}`, (p) => {
+/** One tile: a flat fill plus a line of its own colour a shade darker around it, so the board reads
+ *  as a honeycomb of cells and not as a painted field. Two neighbours stroke their shared edge in
+ *  the same place, so the grid stays one line wide.
+ *
+ *  GRID_W is measured, not chosen: in the reference (D:/new/ref) the line on bare sand is 8 px
+ *  against a tile radius of 117, which is 0.07 of the radius, and it is 14% down in value and 14%
+ *  up in saturation from the fill it edges (#b27e4b -> #996535). The first cut of this drew it at
+ *  0.03 and 5% down -- a quarter of the ink -- and at a phone's zoom the honeycomb simply was not
+ *  there. See DECISIONS.md D88. */
+const GRID_W = LOOK_B ? 0.07 : 0.035;
+function tileCtx(side: string, top: string, obst: boolean, grid: string | null, water: boolean, stamp: string | null) {
+  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${grid ?? '-'}|${water ? 1 : 0}|${stamp ?? '-'}`, (p) => {
     p.hex(0, SIDE_H, TILE_R, side);
     p.hex(0, 0, TILE_R, top);
     if (water) {
@@ -79,7 +94,14 @@ function tileCtx(side: string, top: string, obst: boolean, grid: string | null, 
       p.line([-0.16, 0.26, 0.36, 0.2], 'rgba(255,255,255,0.28)', 0.06, 'round');
       return;
     }
-    if (grid) p.hex(0, 0, TILE_R, null, grid, LOOK_B ? 0.03 : 0.035);
+    if (grid) p.hex(0, 0, TILE_R, null, grid, GRID_W);
+    if (stamp) {
+      // the territory's crest: a lozenge, struck a little low on the tile so a unit standing on it
+      // leaves the bottom of the mark showing. It was a pair of chevrons first, which at a phone's
+      // zoom read as arrows pointing up the board -- a mark that looks like a movement hint is
+      // worse than no mark, so the shape it settled on is the one with no direction in it.
+      p.poly([0, -0.14, 0.24, 0.14, 0, 0.42, -0.24, 0.14], null, stamp, 0.11);
+    }
     if (obst) p.hex(0, 0, TILE_R * 0.94, 'rgba(60,40,20,0.05)');
   });
 }
@@ -87,8 +109,10 @@ function tileCtx(side: string, top: string, obst: boolean, grid: string | null, 
 /** Border width and how far inside its tile a team's border line runs, view units. The reference
  *  draws the front as a bright, nearly pure line sitting on the edge itself -- the one fully
  *  saturated mark on the board. Ours was a dark line tucked well inside the tile, which reads as a
- *  seam between two fills rather than as a front between two countries. */
-const LINE_W = LOOK_B ? 0.16 : 0.1;
+ *  seam between two fills rather than as a front between two countries. 0.10 is the reference's
+ *  own width (11 px against a tile radius of 117); 0.16, where this started, drew a front thicker
+ *  than the reference's and started to eat the corner tiles. */
+const LINE_W = LOOK_B ? 0.1 : 0.1;
 const LINE_IN = LOOK_B ? 0.95 : 0.91;
 
 export class GroundLayer {
@@ -184,7 +208,8 @@ export class GroundLayer {
     const wet = this.water[t.i] ? sk.water : null;
     const th = wet ? undefined : TEAM_HUE[t.owner];
     const top = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
-    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, th || wet ? null : sk.grid, !!wet);
+    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, wet ? null : th ? th.grid : sk.grid, !!wet,
+      wet || t.obst || !th ? null : th.stamp);
   }
 
   /** Along every edge where an owned tile meets a tile its team does not own, a line in the
