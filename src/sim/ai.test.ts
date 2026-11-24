@@ -154,7 +154,12 @@ describe('the skill levels', () => {
     let won = 0;
     for (const seed of [7, 31, 404, 11, 99, 2026]) for (const red of [true, false]) if (duel(seed, red)) won++;
     expect(won).toBeGreaterThanOrEqual(9); // 12 matches; it takes 11 of them as these tables stand
-  });
+    // Twelve whole matches: about 7 s here, and this is the only test in the suite between the
+    // 30 s default and the handful of replay tests that already carry 180_000. A CI runner's two
+    // cores, shared with the rest of the suite, stretch a sim run by a factor the collector test
+    // measured the hard way (23.7 s here, over 30 s there), which would put this one on the line.
+    // So it gets the room the work takes rather than waiting to go red.
+  }, 120_000);
 
   it('still let the beginner play: it builds, it just builds worse', () => {
     const e = new Engine({ seed: 7, aiBlue: false, aiRed: true, red: { skill: 0 } });
