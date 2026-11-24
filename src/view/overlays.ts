@@ -3,11 +3,12 @@
 // card popup and the big banners (countdown, FIGHT!, results). After Potion Siege's fly.ts and
 // floaters and Holy Kicker's merged numbers and onboarding finger.
 
-import { Container, type Text } from 'pixi.js';
+import { Container, Sprite, type Text } from 'pixi.js';
 import { T } from '../app/i18n';
 import type { Tile } from '../sim/map';
 import { FP } from '../sim/fixed';
 import { PHASE_PLAY, RARITY, UNITS, type UnitKey } from '../sim/rules';
+import { tex } from './art';
 import { coin } from './bodies';
 import type { Frame, Juice } from './frame';
 import { Num, snapPx } from './digits';
@@ -139,8 +140,7 @@ export class Overlays {
   private dmgBox = new Container();
   private coinG = liveGraphics();
   private ringG = liveGraphics();
-  private hand = liveGraphics();
-  private handS = 0;
+  private hand = new Sprite(tex('hand'));
   private pill = liveGraphics();
   private hintText = label('', { size: 16, color: HINT_INK, weight: 900 });
   private cardView = new CardView();
@@ -155,13 +155,14 @@ export class Overlays {
   guide: Tile | null = null;
 
   constructor(private juice: Juice) {
+    this.hand.anchor.set(HAND_TIP_X, 1);
     // Ordered by how long a thing lives, longest first: the standing furniture at the bottom, the
     // things that flash and are gone on top. A damage number is on screen for well under a second
     // and it is the one piece of feedback that has to arrive on the frame it is about -- it used to
     // sit UNDER the hint line, the tutorial hand and the pick-up card, any of which could eat it at
     // the exact moment a fight turned. The tug band and the banner stay above everything, as they
     // always have: they are the match talking, not the field.
-    this.root.addChild(this.cardView.root, this.pill.g, this.hintText, this.hand.g, this.ringG.g, this.dmgBox, this.coinG.g, this.bandG.g, this.bannerBox);
+    this.root.addChild(this.cardView.root, this.pill.g, this.hintText, this.hand, this.ringG.g, this.dmgBox, this.coinG.g, this.bandG.g, this.bannerBox);
   }
 
   reset(): void {
@@ -310,7 +311,7 @@ export class Overlays {
   private drawGuide(f: Frame, play: boolean): void {
     const rp = this.ringG.p.clear();
     const at = this.guide && play ? f.cam.tv[this.guide.i] : null;
-    this.hand.g.visible = !!at;
+    this.hand.visible = !!at;
     if (!at) return;
     const cam = f.cam;
     const p = cam.worldToScreen(at.x, at.y);
@@ -321,27 +322,12 @@ export class Overlays {
       const k = (u - 0.25) / 0.6;
       rp.circle(p.x, p.y, s * (0.3 + k * 0.9), null, `rgba(255,255,255,${(1 - k).toFixed(3)})`, 3);
     }
-    if (s !== this.handS) {
-      this.handS = s;
-      const h = this.hand.p.clear();
-      const lw = Math.max(2, s * 0.075);
-      const body = handPath(s);
-      h.poly(body.map((v, k) => (k & 1 ? v + s * 0.07 : v)), 'rgba(20,14,6,0.22)', null);
-      h.poly(body, '#fdf6ea', '#2a2118', lw);
-      // the creases that tell a fist from a blob: the finger's base and the two folds beside it
-      const crease = (x0: number, y0: number, x1: number, y1: number) =>
-        h.line([x0 * s, y0 * s, x1 * s, y1 * s], 'rgba(42,33,24,0.5)', lw * 0.62, 'round');
-      crease(-0.14, 0.9, 0.2, 0.82);
-      crease(0.32, 0.96, 0.6, 0.98);
-      crease(0.3, 1.2, 0.58, 1.22);
-      // a cuff, so the wrist ends somewhere instead of being cut off
-      h.g.roundRect(-s * 0.13, s * 1.42, s * 0.65, s * 0.26, s * 0.11).fill('#c08a4e').stroke({ color: '#2a2118', width: lw, join: 'round' });
-    }
-    // the hand comes down from above onto the card's symbol, its palm above the card: it used to
-    // reach up from below and sat on the price the player was being taught to read
-    const gy = p.y - cam.scale * 0.14;
-    this.hand.g.position.set(p.x + s * 0.12, gy - s * 0.45 * (1 - press));
-    this.hand.g.rotation = Math.PI - 0.35;
+    this.hand.scale.set((s * HAND_S) / HAND_PX);
+    // the fingertip taps the card's top edge and the whole hand stands above it: the hand used to
+    // reach up from below and sit on the price the player was being taught to read, and a tip in
+    // the middle of the tile buries the glyph under the fist (the picture is 1.3 tiles tall)
+    const gy = p.y - cam.scale * 0.55;
+    this.hand.position.set(p.x, gy - s * 0.45 * (1 - press));
   }
 
   /** On a short landscape screen the card popup goes top left instead of top centre. */
@@ -401,30 +387,9 @@ export class Overlays {
   }
 }
 
-/** The tutorial hand: a pointing fist, finger up, as one silhouette in units of `s`. Three
- *  overlapping rounded rects used to be the hand, and every stroke crossed the next one, so it
- *  read as a white blob on a stick. One closed outline strokes cleanly at any size. */
-function handPath(s: number): number[] {
-  const pts: number[] = [];
-  const at = (x: number, y: number) => pts.push(x * s, y * s);
-  const arc = (cx: number, cy: number, r: number, a0: number, a1: number, n: number) => {
-    for (let k = 0; k <= n; k++) {
-      const a = a0 + ((a1 - a0) * k) / n;
-      at(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
-    }
-  };
-  // the index finger, at the fist's near edge and not in the middle of it: a finger standing up
-  // out of the centre of a fist with no thumb beside it is a different gesture entirely
-  at(-0.16, 0.86);
-  arc(0, 0.26, 0.16, Math.PI, 2 * Math.PI, 12);
-  at(0.16, 0.58);
-  arc(0.32, 0.64, 0.17, Math.PI, 2 * Math.PI, 8); // the knuckle of the folded middle finger
-  arc(0.57, 0.82, 0.19, -0.5 * Math.PI, 0.5 * Math.PI, 8); // and the three fingers down the side
-  arc(0.55, 1.12, 0.19, -0.5 * Math.PI, 0.5 * Math.PI, 8);
-  arc(0.52, 1.34, 0.17, -0.5 * Math.PI, 0.5 * Math.PI, 8);
-  at(0.5, 1.5);
-  at(-0.11, 1.5);
-  arc(-0.23, 1.18, 0.26, 0.5 * Math.PI, 1.34 * Math.PI, 12); // the thumb, out to the near side
-  at(-0.18, 0.9);
-  return pts;
-}
+/** The tutorial hand (art/ui/src/hand.png, packed into the atlas): a painted wooden mannequin
+ *  hand, the finger already pointing down and to the left, so nothing here rotates it. It replaces
+ *  a dozen strokes of vector fist -- an outline, three creases and a cuff, rebuilt on every zoom --
+ *  that still read as a white blob on a stick. `HAND_TIP` is where the fingertip sits inside that
+ *  picture, measured off its alpha: anchoring there puts the tip on the tile, press bob and all. */
+const HAND_PX = 256, HAND_S = 2.6, HAND_TIP_X = 0.082;

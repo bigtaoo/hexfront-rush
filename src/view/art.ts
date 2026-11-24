@@ -56,6 +56,10 @@ export const unitAnim = (type: UnitKey, team: number): boolean =>
 /** Whether the atlas carries the two views a troop turns through (tools/art3d/pose.py TURN). */
 export const unitTurn = (type: UnitKey, team: number): boolean =>
   !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_t0`];
+/** Whether the atlas carries the two frames a troop breathes through while it stands
+ *  (tools/art3d/pose.py IDLE): without them a waiting piece is the still and nothing else. */
+export const unitIdle = (type: UnitKey, team: number): boolean =>
+  !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_i0`];
 /** Whether the atlas carries the frames a troop topples through when it is killed
  *  (tools/art3d/pose.py FALL): without them a fallen piece is the still, spun in the picture. */
 export const unitFall = (type: UnitKey, team: number): boolean =>

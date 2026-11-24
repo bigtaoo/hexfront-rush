@@ -9,7 +9,7 @@
 import { Container, Graphics, Texture, type Sprite } from 'pixi.js';
 import { TICK_RATE } from '../sim/fixed';
 import { LUNGE_TICKS, type UnitKey } from '../sim/rules';
-import { artH, artSprite, castSprite, PPU, setCast, unitAnim, unitFall, unitTex, unitTurn } from './art';
+import { artH, artSprite, castSprite, PPU, setCast, unitAnim, unitFall, unitIdle, unitTex, unitTurn } from './art';
 import { BIRTH } from './birth';
 import { hpBar, shadowCtx } from './bodies';
 import { CAST, LOOK_B, LOOKB_UNIT_K } from './lookB';
@@ -75,6 +75,23 @@ export const STRIKE_FRAMES = 4;
 /** Frames in the rendered topple (tools/art3d/pose.py FALL), and the share of DEATH_S they play
  *  over: the piece is down well before it has finished fading out. */
 export const FALL_FRAMES = 3, FALL_S = 0.55;
+/** Frames in the rendered breath a standing troop plays (tools/art3d/pose.py IDLE), and how long
+ *  one whole breath takes. */
+export const IDLE_FRAMES = 2, IDLE_S = 2.2;
+/** Which breath frame a troop standing at `time` shows, '' being the still it stands in.
+ *
+ *  The two drawn frames are the weight over one foot and then over the other, and the still is the
+ *  pose between them, so the cycle is four beats -- still, i0, still, i1 -- and two pictures buy a
+ *  breath that goes out and comes back rather than a two-frame flicker. At 2.2 s that is a beat
+ *  every 0.55 s: a man shifting his weight while he waits, not a man marking time.
+ *
+ *  Why this is needed at all: a troop that is not walking had exactly one picture, so a squad
+ *  waiting for the wave was a row of statues. The only motion it had was a 0.8 degree rock in the
+ *  sprite's own rotation, which at 40 px is less than a pixel at the shoulder. */
+export function idleTag(time: number): string {
+  const b = Math.floor((((time % IDLE_S) + IDLE_S) % IDLE_S) / (IDLE_S / (2 * IDLE_FRAMES)));
+  return b & 1 ? `_i${(b >> 1) % IDLE_FRAMES}` : '';
+}
 /** The share of the topple the piece spends still on its feet. The first drawn frame is already
  *  a third of the way over, so cutting to it on the frame of death snapped the figure into a
  *  lean; a struck toy stands for an instant, then goes. */
@@ -150,6 +167,8 @@ export class UnitView {
   private turns = false;
   /** Whether it carries the three frames it topples through when killed. */
   private falls = false;
+  /** Whether it carries the two frames it breathes through while it stands. */
+  private idles = false;
   /** The still this troop falls back to (the strike and walk frames are read off the atlas). */
   private still = Texture.EMPTY;
   /** Picture height, view units. */
@@ -192,6 +211,7 @@ export class UnitView {
       this.anim = unitAnim(u.type, u.team);
       this.turns = this.anim && unitTurn(u.type, u.team);
       this.falls = this.anim && unitFall(u.type, u.team);
+      this.idles = this.anim && unitIdle(u.type, u.team);
       this.body.texture = t;
       this.flash.texture = t;
       if (this.cast) this.cast.texture = t;
@@ -333,7 +353,9 @@ export class UnitView {
       if (k < 1) return `_a${Math.min(STRIKE_FRAMES - 1, Math.floor(k * STRIKE_FRAMES))}`;
     }
     const ph = u.phase ?? -1;
-    return ph < 0 ? '' : `_w${Math.min(WALK_FRAMES - 1, Math.floor(ph * WALK_FRAMES))}`;
+    // standing: the breath, offset per troop so a squad does not shift its weight as one body
+    if (ph < 0) return this.idles ? idleTag(u.time + u.id * 0.41) : '';
+    return `_w${Math.min(WALK_FRAMES - 1, Math.floor(ph * WALK_FRAMES))}`;
   }
 
   /** The troop has fallen: `k` 0..1 over DEATH_S. It goes over backwards on its heels, as a

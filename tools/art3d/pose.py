@@ -26,6 +26,7 @@ ARM = math.radians(26)
 WALK, STRIKE = 6, 4              # frames in each cycle
 TURN = 2                         # and the two the figure passes through as it turns round
 FALL = 3                         # and the three it topples through when it is killed
+IDLE = 2                         # and the two it breathes through while it stands
 
 # the big troops are not built on the chibi body, so their joints sit where their own legs and
 # shoulders are: (hip z, shoulder z). Anything missing here is a foot troop.
@@ -510,6 +511,67 @@ def strike(i: int, name: str):
     return turns, 0.012 * (1 if i == 2 else 0)
 
 
+# ------------------------------------------------------------- standing still (the 'i' cycle)
+# How far a waiting piece tips, and how far its arms hang behind the tip. A third of the walk's,
+# and over the same foot by the same argument: the rock's comment above measures that a tip to the
+# side lands 85% of itself on this camera while a move fore and aft lands 15%, so if a standing
+# figure is to move at all at 40 px, it moves SIDEWAYS. A third is the number because the still is
+# the middle of the breath: the board plays still, i0, still, i1 (unitView.ts idleTag), so what
+# the eye sees between two drawn poses is two thirds of a walk's tip, in four beats over two
+# seconds instead of six frames over one. At a half it read as a man losing his balance.
+IDLE_ROLL = ROCK_ROLL / 3
+IDLE_ARM = ROCK_ARM / 3
+
+
+def breathe(i: int, name: str):
+    """One frame of standing still: the weight settles over one foot, then over the other.
+
+    A troop waiting for the wave used to BE the still frame, with a sway of under a degree laid
+    over it in the view. At board size that is not a sway, it is a shelf of ornaments - the one
+    complaint this cycle exists to answer. Two frames are enough because the still is the pose
+    between them: the board returns to it every other beat, so the piece is never caught halfway
+    between two drawn views, and the whole cycle costs 36 frames of atlas rather than 108.
+
+    Nothing new is invented here. It is walk_rock's own tip, a third of the size, about the same
+    belly pivot over the same loaded sole, with the head keeping its ROCK_HEAD of upright against
+    it and the arms hanging a beat behind. What it must NOT carry is any of SIG's constant
+    attitude (lean, gaze, peer, tilt): those live in the walk, the still has none of them, and a
+    standing piece that picked them up would snap into a new posture the moment it stopped.
+
+    The drake has no feet to stand on. His wait is the slow half of his own beat instead - wings
+    high, wings low - which is the only thing he ever does.
+    """
+    if name == 'drake':
+        f = 1.0 if i == 0 else -1.0
+        _, sh = _joints('drake')
+        return [('wingL', WING, -HOVER * 0.55 * f, 'y'), ('wingR', WING, HOVER * 0.55 * f, 'y'),
+                ('head', sh, math.radians(4) * -f),
+                ('^', (0.0, 0.0, sh), math.radians(3) * f)], HOVER_BOB * (0.5 - 0.35 * f)
+
+    def q(key, default=1.0):
+        return _sig(name, key, default)
+
+    f = 1.0 if i == 0 else -1.0
+    hip, sh = _joints(name)
+    k = GAIT.get(name, 1.0)
+    roll = IDLE_ROLL * k * q('roll') * f
+    arm = IDLE_ARM * k * q('arm')
+    # the arms lag the tip by half a beat, which at two frames is the other frame: they hang the
+    # way the weight has just come FROM. Without it both arms swing with the body and the piece
+    # reads as one carved block rocking, which is what the still already was.
+    turns = [('armL', sh, arm * f * q('armL')), ('armR', sh, -arm * f * 0.6 * q('armR')),
+             ('head', sh, -q('head', ROCK_HEAD) * roll, 'y')]
+    if name == 'colossus':
+        # a cart does not shift its weight: it settles in its ruts. The wheels stand still (a
+        # wheel that turned while the machine waited would be the one thing on the board that
+        # says it is moving when it is not) and only the chassis and the slung ram breathe.
+        turns += [('ram', (0.0, 0.0, RAM_PIVOT), math.radians(0.8) * f),
+                  ('^', 0.0, math.radians(1.2) * f)]
+    foot = ROCK_FOOT * (hip / HIP) * (1 if roll >= 0 else -1)
+    turns.append(('^', (foot, 0.0, (hip + sh) / 2), roll, 'y'))
+    return turns, 0.0
+
+
 def swivel(i: int, name: str):
     """One frame of a turn: the same standing pose, only swung towards the camera.
 
@@ -561,7 +623,8 @@ TURN_YAW = (0.0, 0.5)
 # across it, so a scissor has to open to 45 degrees to be seen at all and then reads as a pair of
 # scissors rather than a walk, while a side-to-side tip lands 85% on screen. HF_WALK=scissor puts
 # the old one back for a side-by-side.
-CYCLES = {'w': (walk_rock, WALK), 'a': (strike, STRIKE), 't': (swivel, TURN), 'd': (fall, FALL)}
+CYCLES = {'w': (walk_rock, WALK), 'a': (strike, STRIKE), 't': (swivel, TURN),
+          'd': (fall, FALL), 'i': (breathe, IDLE)}
 if os.environ.get('HF_WALK') == 'scissor':
     CYCLES['w'] = (walk, WALK)
 

@@ -233,6 +233,13 @@ the in-match HUD read as one set:
   opening (the castle, its guard and its first six priced cards), cropped from the canvas at
   495x360. It shows what the first rule describes; re-take it when the offers or tiles change.
   Hidden in the short landscape layout, where the rules go to two columns.
+- Canvas interface art goes in the atlas, not in public/ui: the tutorial hand is
+  `art/ui/src/hand.png` cut to `art/ui/out/hand.png`, which `pack.py` packs from its "ui" group as
+  the frame `hand` (view/overlays.ts reads it with `tex('hand')`). A frame of the atlas the game
+  already awaits costs no second request and cannot arrive late; `public/ui/` stays the route for
+  anything an `<img>` shows. Such a piece is also drawn around 60 px tall on a phone, so the prompt
+  asks for a bold even outline, almost no interior detail and "readable at 48 pixels": a handsome
+  rendered hand with 6 px fingers is mush at that size.
 - An icon button's picture is decoration (`alt=""`); the button's own name is its `aria-label`,
   which index.html holds in English and `data-ta="<key>"` replaces from the player's language
   (dom.ts applyTexts). A new icon button needs both, and its key in every lang/ table.

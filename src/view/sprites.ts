@@ -18,7 +18,7 @@ import { inView, type Frame } from './frame';
 import { type Live, liveGraphics } from './pen';
 import { CAST, LOOK_B } from './lookB';
 import {
-  DEATH_S, dotCtx, fallTag, lungeK, LUNGE_S, STRIKE_FRAMES, TURN_MIN, TURN_RATE,
+  DEATH_S, dotCtx, fallTag, idleTag, lungeK, LUNGE_S, STRIKE_FRAMES, TURN_MIN, TURN_RATE,
   turnTag, type UnitLook, UnitView, WALK_FRAMES,
 } from './unitView';
 
@@ -143,7 +143,7 @@ class GuardView {
     // it turns through the drawn views the atlas carries, like a troop (unitView.ts turnTag):
     // at full width throughout, rather than squashing to a sliver and back
     const turn = turnTag(this.faceCur);
-    this.show(this.anim ? this.frameTag(f.time, turn, ph) : turn);
+    this.show(this.anim ? this.frameTag(f.time, turn, ph, tm) : turn);
     const fx = turn
       ? this.faceCur < 0
         ? -1
@@ -207,13 +207,16 @@ class GuardView {
 
   /** Which rendered frame it shows, as a troop's (unitView.ts frameTag): the turn first, then the
    *  shot it is playing, then the walk cycle, else '' for the still. */
-  private frameTag(time: number, turn: string, ph: number): string {
+  private frameTag(time: number, turn: string, ph: number, tm: number): string {
     if (turn) return turn;
     if (this.lungeAt >= 0) {
       const k = (time - this.lungeAt) / LUNGE_S;
       if (k < 1) return `_a${Math.min(STRIKE_FRAMES - 1, Math.floor(k * STRIKE_FRAMES))}`;
     }
-    return ph < 0 ? '' : `_w${Math.min(WALK_FRAMES - 1, Math.floor(ph * WALK_FRAMES))}`;
+    // standing its post: the same breath the troops take (unitView.ts idleTag), the two guards
+    // offset from each other so the pair does not shift its weight on the same beat
+    if (ph < 0) return idleTag(time + tm * 1.1);
+    return `_w${Math.min(WALK_FRAMES - 1, Math.floor(ph * WALK_FRAMES))}`;
   }
 
   /** The guard has been felled: it topples where it stood and fades out, and is hidden once it
@@ -397,9 +400,10 @@ export class SpriteLayer {
       const moving = u.x !== u.px || u.y !== u.py;
       const ph = moving ? walkPhase(f.time + u.id * 0.37, def.speed) : -1;
       const step = moving ? Math.sin(ph * 2 * Math.PI) : 0;
-      // a troop mustering for the next wave stood perfectly still for up to WAVE_TICKS, which read
-      // as a model the view had forgotten rather than a soldier waiting: it breathes, and now and
-      // then it looks the other way (the turn frames are already drawn, so it costs nothing)
+      // a troop waiting for the wave used to stand perfectly still, which read as a model the view
+      // had forgotten rather than a soldier waiting. The breath is drawn now (unitView.ts idleTag,
+      // tools/art3d/pose.py `breathe`); this sine is what a troop with no rendered frames gets
+      // instead, and the glance turns it round now and then on frames that are already in the atlas
       const idle = moving ? 0 : 0.012 * Math.sin(f.time * 1.1 + u.id * 0.7);
       const glance = u.hold && !moving && (f.time + u.id * 1.37) % GLANCE_EVERY < GLANCE_S;
       LOOK.type = u.type;
@@ -413,7 +417,10 @@ export class SpriteLayer {
       // a newborn troop is still in the air: birth.ts draws the light carrying it, and hands back
       // the age of the piece itself -- below zero while there is no piece to draw yet
       const age = unitAge(eng.tick, u.bornT, f.alpha);
-      LOOK.age = age < BIRTH_MAX ? this.birth.step(u, age, p) : age;
+      // the orb leaves the barracks door, so the fly needs the door. `live`, not `ent`: a barracks
+      // that has just been destroyed has no doorway for anything to come out of
+      const bar = u.bar ? eng.live(u.bar) : null;
+      LOOK.age = age < BIRTH_MAX ? this.birth.step(u, age, p, bar && cam.view(bar.x, bar.y)) : age;
       if (LOOK.age < 0) {
         uv.root.visible = false;
         continue;

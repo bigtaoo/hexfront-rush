@@ -43,6 +43,9 @@ export const BIRTH_MAX = BIRTH.sky + 2 * STAGGER + BIRTH_TOTAL + 0.01;
 const SKY_H = 1.2;
 /** How high the arc goes over a troop's own height, view units. */
 const ARC_H = 0.55, ARC_SIZE = 0.25;
+/** How far up the barracks' facade its door is, view units: the orb leaves the doorway, not the
+ *  building's foot, so the toss starts where a troop would actually walk out. */
+const DOOR_H = 0.38;
 /** At most this many births animate at once; past it a troop simply sets into the board where it
  *  stands. A wave of training rarely finishes together, so this is a ceiling, not a working number. */
 export const MAX_LIVE = 12;
@@ -149,10 +152,12 @@ export class BirthFx {
     this.glow(0, v.x, v.y, r, a * (0.92 + 0.08 * Math.sin(f.time * Math.PI * 3.2)));
   }
 
-  /** Draws the birth of `u`, `age` seconds old, whose sim position this frame is `p`.
+  /** Draws the birth of `u`, `age` seconds old, whose sim position this frame is `p`, out of the
+   *  door at `door` (its barracks' foot on the board, or null if it has none or it has been
+   *  destroyed since).
    *  Returns the age to draw the piece itself at: below zero while the light is still in the air
    *  (the sprite layer hides the piece), otherwise the seconds since it landed. */
-  step(u: Unit, age: number, p: Pt): number {
+  step(u: Unit, age: number, p: Pt, door: Pt | null = null): number {
     let b = this.live.get(u.id);
     if (!b) {
       // a troop that already set into the board is never pulled back into the air: without this a
@@ -166,7 +171,7 @@ export class BirthFx {
         this.land?.(p.x, p.y, u.team);
         return age;
       }
-      b = this.born(u, p);
+      b = this.born(u, p, door);
       this.live.set(u.id, b);
     }
     b.seen = this.n;
@@ -227,10 +232,22 @@ export class BirthFx {
     this.root.destroy({ children: true });
   }
 
-  /** Where this troop's light comes from: its barracks' door, or the sky if it has no barracks. */
-  private born(u: Unit, p: Pt): Live1 {
+  /** Where this troop's light comes from: its barracks' door, or the sky if it has no barracks.
+   *
+   *  The door matters. This used to start the orb at `p` -- the troop's own position -- which makes
+   *  x0 === p.x and y0 === p.y, so the "arc" collapsed to a 0.55 s vertical bob on the spot the
+   *  piece was about to stand on, with nothing to say it had come out of anywhere. With the door as
+   *  the origin the orb crosses the ground between the doorway and the piece, which is the whole
+   *  point of the beat; and since `p` is read fresh every frame and a trained troop now marches off
+   *  (troops.ts, unitMuster), the orb chases a target that is itself walking away from the door. */
+  private born(u: Unit, p: Pt, door: Pt | null): Live1 {
     const h = ARC_H + ARC_SIZE * (UNITS[u.type].size / 1000);
-    if (u.bar) return { x0: p.x, y0: p.y, delay: 0, h, landed: false, seen: this.n };
+    if (u.bar) {
+      if (door) return { x0: door.x, y0: door.y - DOOR_H, delay: 0, h, landed: false, seen: this.n };
+      // its barracks went down between the sim's tick and this frame: no door to leave, so it
+      // rises out of its own ground rather than flying in from a building that is not there
+      return { x0: p.x, y0: p.y, delay: 0, h, landed: false, seen: this.n };
+    }
     // a mystery tile's squad was never trained: it falls out of the sky, the three of them in turn
     return { x0: p.x, y0: p.y - SKY_H, delay: BIRTH.sky + (u.id % 3) * STAGGER, h: 0.12, landed: false, seen: this.n };
   }

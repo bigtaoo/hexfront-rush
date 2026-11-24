@@ -5,9 +5,9 @@ import { claimTile, damage, fire, moveToward, nearestEnemyBuilding, nearestEnemy
 import { bfsStep } from './path';
 import type { Engine } from './engine';
 import { dist, dist2, isqrt, muldiv } from './fixed';
-import { WORLD_H, WORLD_W } from './hex';
-import { baseTile } from './map';
-import { ALLY_BUBBLE, enemyOf, PROJ, TEAM_BLUE, UNITS } from './rules';
+import { hexDist, WORLD_H, WORLD_W } from './hex';
+import { BASE_POS, baseTile } from './map';
+import { ALLY_BUBBLE, enemyOf, PROJ, UNITS } from './rules';
 import type { Entity, Unit } from './types';
 
 export function updateUnits(e: Engine): void {
@@ -220,29 +220,46 @@ function unitStepToward(e: Engine, u: Unit, tg: Entity, speed: number): void {
   } else walk(e, u, tg.x, tg.y, speed);
 }
 
-/** Down the enemy castle's flow field; ties between equally good tiles split by the unit's lane. */
-/** Where a troop waits for the wave: a rank on the enemy's side of its own barracks, each troop at
- *  its own place along it by lane. It used to wait on the spot it was trained, a few hundred units
- *  from the door, which stood a squad inside the building's own picture without moving for as much
- *  as a whole wave (15 s) -- the one place on the board where nothing ever happened was the place
- *  troops came from. The rank is still on the barracks' own tile, so the wave sets off from where
- *  it always did and nothing about the march changes.
- *  MUSTER_OUT clears the building's picture (about 1.3 tiles wide, so ~650 to its side) and stays
- *  inside the tile (866 to an edge, 1000 to a corner); MUSTER_SPAN keeps the rank inside it too.
- *  MUSTER_NEAR is the dead zone that keeps `separate` and the walk from trading a troop back and
- *  forth across its spot once it is standing there. */
-const MUSTER_OUT = 700, MUSTER_SPAN = 450, MUSTER_NEAR = 150;
+/** Where a troop waits for the wave. It marches off down the same flow field as everyone else and
+ *  stops when it has made enough ground; the squad arrives as a line standing across the board
+ *  instead of a knot at the door.
+ *
+ *  Two earlier tries both failed the same way, and the reason is worth keeping: a waiting troop has
+ *  to have somewhere to walk TO, and that somewhere has to be far enough that the walk is a walk.
+ *  First it waited on the spot it was trained -- a squad standing inside the barracks' own picture,
+ *  the one place on the board where nothing ever happened. Then it waited on a rank a few hundred
+ *  units out from the door (MUSTER_OUT 700, two fifths of a tile): at militia speed that is half a
+ *  second of walking out of each 15 s wave, which from a player's seat is still standing still.
+ *
+ *  So the distance is measured in hexes now, not in fractions of one. HOLD_MARCH is how far from
+ *  its own door a troop gets before it stands: four hexes is five to nine seconds of walking
+ *  depending on the unit, a third to a half of the wave, and it leaves the squad spread across four
+ *  rows of hexes rather than stacked on one tile. HOLD_LINE is the brake: measured from the ENEMY
+ *  castle, because what must not happen is a waiting troop drifting into something that shoots
+ *  back. The bases sit 16 hexes apart, so two lines at 11 from each other's castle stand 6 hexes
+ *  apart -- clear of the widest aggro (the adept's 3.5 tiles) and of `seek` (4), so the lines face
+ *  each other and wait instead of trickling into a fight a few at a time.
+ *
+ *  The brake lifts when the door itself is already inside the line: a barracks built that far
+ *  forward is the player's own doing, and a troop that cannot step out of its own building is the
+ *  bug this replaces. A troop whose barracks has been destroyed keeps the brake and nothing else,
+ *  so it walks up to the same line the rest of its wave is holding rather than stopping where the
+ *  building used to be. */
+const HOLD_MARCH = 4, HOLD_LINE = 11;
 
 function unitMuster(e: Engine, u: Unit, speed: number): void {
+  const here = e.tileAt(u.x, u.y);
+  if (!here) return;
+  const foe = BASE_POS[enemyOf(u.team)]!;
   const bar = e.live(u.bar);
-  // its barracks is gone: it waits where it stands rather than marching off before the wave
-  if (!bar) return;
-  const tx = bar.x + muldiv(u.lane - 500, MUSTER_SPAN, 500);
-  const ty = bar.y + (u.team === TEAM_BLUE ? -MUSTER_OUT : MUSTER_OUT);
-  if (dist(tx - u.x, ty - u.y) <= MUSTER_NEAR) return;
-  walk(e, u, tx, ty, speed);
+  const bt = bar ? e.tileAt(bar.x, bar.y) : null;
+  if (bt && hexDist(here.c, here.r, bt.c, bt.r) >= HOLD_MARCH) return;
+  if (hexDist(here.c, here.r, foe.c, foe.r) <= HOLD_LINE &&
+    (!bt || hexDist(bt.c, bt.r, foe.c, foe.r) > HOLD_LINE)) return;
+  unitMarch(e, u, speed);
 }
 
+/** Down the enemy castle's flow field; ties between equally good tiles split by the unit's lane. */
 function unitMarch(e: Engine, u: Unit, speed: number): void {
   const field = e.flow[enemyOf(u.team)]!;
   const cur = e.tileAt(u.x, u.y);
