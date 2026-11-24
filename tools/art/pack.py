@@ -21,12 +21,14 @@ ROOT = Path(__file__).resolve().parents[2]
 # it rides the atlas so it needs no second request and no loading race, while art/ui/src ->
 # public/ui/icons stays the route for anything an <img> shows (art/STYLE.md).
 GROUPS = ("units", "buildings", "props", "ui")
-# 3072, not 2048: the sheet is one texture, and a GL ES 3.0 phone is only promised 4096 px on a
-# side - plenty of low-end Android reports exactly that. At 2048 wide the 315 frames stack 5128 px
-# high, over the cap, and such a device cannot upload the atlas at all (a blank game, not a slow
-# one). Widening lays the same frames out 3072x3472, both sides inside 4096, for 0.7 MB more video
-# memory and a byte less on disk. Non-power-of-two is fine: Pixi 8 is WebGL2 / WebGPU only.
-WIDTH = 3072
+# The sheet is one texture, and a GL ES 3.0 phone is only promised 4096 px on a side - plenty of
+# low-end Android reports exactly that, and a sheet over the cap cannot be uploaded at all (a blank
+# game, not a slow one). So BOTH sides must stay inside 4096, and the only lever is the width: the
+# frames stack 5128 px high at 2048, and 4152 px - just over - at 3072 now that the troops carry two
+# idle frames each (352 frames). 4096 wide lays the same frames out well inside the cap on both
+# sides. Non-power-of-two is fine: Pixi 8 is WebGL2 / WebGPU only.
+# Check the printed size after every pack: a frame added at the wrong moment pushes it over again.
+WIDTH = 4096
 PAD = 4
 
 
