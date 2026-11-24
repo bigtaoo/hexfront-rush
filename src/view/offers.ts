@@ -135,6 +135,10 @@ const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
  *  glyph on flat ground was the one thing on the board with no thickness at all, and thirty of
  *  them at once were what made the field read as paper. Shared by every card: one context. */
 const PLQ = { w: 1.0, h: 1.08, cy: -0.07, r: 0.15 };
+/** The card's geometry as the rest of the view needs it: how far below its own tile centre the
+ *  plaque reaches, and the two rows on its face. buildingView.ts sizes the buildings against these
+ *  so a wall never grows into the card on the tile one row up. */
+export const CARD_BOX = { bottom: PLQ.cy + PLQ.h / 2, glyphY: GLYPH_Y, priceY: PRICE_Y } as const;
 const plaqueCtx = () =>
   sharedCtx('offer|plaque', (p) => {
     const x = -PLQ.w / 2, t = PLQ.cy - PLQ.h / 2;

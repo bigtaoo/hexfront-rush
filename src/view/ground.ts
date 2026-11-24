@@ -166,7 +166,14 @@ export class GroundLayer {
     const p = this.ringPen.clear();
     for (const tm of TEAMS) {
       const v = cam.tv[baseTile(tm)]!;
-      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, 'rgba(255,255,255,0.42)', 0.06);
+      // A white dash is a line that only exists on a dark board: at 0.42 over the snow themes' home
+      // band (#f4ead1) it lifts the luminance by 9/255, under 4% Weber contrast, and that band is
+      // most of what the leash crosses -- the ring reaches well past the few tiles a team owns at
+      // the start. A dark rim under a brighter dash is what the offer symbols already do
+      // (offers.ts), and it holds on sand, on snow and on either team's field. Same radius and
+      // dash on both passes, so they line up.
+      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, 'rgba(36,24,10,0.34)', 0.1);
+      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, 'rgba(255,250,236,0.62)', 0.05);
     }
     this.update(eng);
   }

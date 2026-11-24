@@ -60,8 +60,18 @@ export function badgeSpot(type: string): { x: number; y: number } {
  *  than 1.45 climbs into the card one row up. See buildingView.test.ts. */
 const BLD_K = LOOK_B ? 0.76 : 1;
 const BLD_W = LOOK_B ? 1.3 : 1.35, BLD_H = LOOK_B ? 1.45 : 1.7;
-/** The castle's own box: it is the one landmark per side and may stand a head above the rest. */
-const BASE_W = LOOK_B ? 1.45 : 1.35, BASE_H = LOOK_B ? 1.95 : 1.7;
+/** The castle's own box: it is the one landmark per side and may stand a head above the rest.
+ *  It is the one picture that breaks the rule above, and it has to: at this model's proportions
+ *  nothing under 1.87 tall still comes out the widest building on its side, so a castle that
+ *  cleared the plaque entirely would be a castle narrower than a barracks. What it may not reach
+ *  is the card's face: its top stops 0.11 short of the glyph row one row up, and the price is
+ *  drawn in offers.tags, over the buildings (renderer.ts), so only the plaque's bottom corner
+ *  goes behind the wall. buildingView.test.ts holds both of those. */
+const BASE_W = LOOK_B ? 1.38 : 1.35, BASE_H = LOOK_B ? 1.95 : 1.7;
+
+/** The boxes bldScale clips to, for the geometry tests: the rules live on these constants, not on
+ *  whatever the current render of the cast happens to measure. */
+export const BLD_BOX = { k: BLD_K, w: BLD_W, h: BLD_H, baseW: BASE_W, baseH: BASE_H } as const;
 
 /** How far down a building's picture is scaled from its modelled size (view units in, factor out).
  *  A building stays inside its own tile: one that spilled onto its neighbours hid their cards. */
