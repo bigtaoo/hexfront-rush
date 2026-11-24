@@ -3,13 +3,13 @@
 
 import type { Engine } from '../sim/engine';
 import { makeReplay } from '../sim/replay';
-import { SIEGE, TEAM_BLUE } from '../sim/rules';
+import { SIEGE } from '../sim/rules';
 import type { SimEvent } from '../sim/types';
 import { $ } from './dom';
 import { haptics } from './haptics';
 import type { Game } from './game';
 import { T } from './i18n';
-import { COL } from '../view/viewConst';
+import { COL, teamCol } from '../view/viewConst';
 
 /** full: sound, visuals and flow; visual: the menu's demo; none: a fast-forward, flow only. */
 export type Fx = 'full' | 'visual' | 'none';
@@ -35,7 +35,11 @@ export function handleEvents(g: Game, eng: Engine, fx: Fx): void {
         S.play('beep');
         break;
       case 'fight':
-        R.banner(T('fight'), { size: 64, life: 1.1, color: '#ffffff', band: me === TEAM_BLUE ? 'rgba(37,99,235,0.55)' : 'rgba(220,38,38,0.55)' });
+        // the band is wood like every other banner's (BannerOpts.bandEdge); the side's colour is
+        // the rule along its edges
+        R.banner(T('fight'), {
+          size: 64, life: 1.1, color: '#ffffff', band: 'rgba(46,26,10,0.62)', bandEdge: teamCol(me),
+        });
         S.play('go');
         break;
       case 'wave':
@@ -136,11 +140,16 @@ function onMatchEnd(g: Game, eng: Engine, e: SimEvent, loud: boolean): void {
   if (loud) {
     const won = e.winner === me;
     g.sound.play(won ? 'win' : e.winner ? 'lose' : 'beep');
+    // the same wood band as the fight banner, not a neutral black veil: this one hangs two seconds
+    // in front of the carved-wood result panel, and black over a warm board greyed the whole screen
+    // out just before the panel slid in warm
+    const tint = won ? '#93c5fd' : e.winner ? '#fca5a5' : '#ffffff';
     g.renderer.banner(won ? T('victory') : e.winner ? T('defeat') : T('draw'), {
       size: 64,
       life: 2.2,
-      color: won ? '#93c5fd' : e.winner ? '#fca5a5' : '#ffffff',
-      band: 'rgba(0,0,0,0.45)',
+      color: tint,
+      band: 'rgba(46,26,10,0.62)',
+      bandEdge: tint,
     });
   }
   g.pendingResult = loud ? 2.0 : 0.01;

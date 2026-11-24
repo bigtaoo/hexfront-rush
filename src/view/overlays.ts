@@ -24,6 +24,12 @@ export interface BannerOpts {
   y?: number;
   /** A full-width band behind the text. */
   band?: string;
+  /** A thin rule along the band's two edges. A side's own colour belongs here, not in `band`:
+   *  the fight banner used to wash the whole screen in team blue at 0.55, which over a pale board
+   *  composited to a flat lavender bar across the middle of it -- a colour in nothing else the game
+   *  draws, and read as a glitch rather than as "your side". The band stays the panels' wood, which
+   *  is also what white text reads best on. */
+  bandEdge?: string;
   stroke?: string;
 }
 interface Banner extends BannerOpts {
@@ -378,8 +384,14 @@ export class Overlays {
       cy = Math.max(top + half, Math.min(bot - half, cy));
       taken.push([cy - half, cy + half]);
       if (b.band) {
+        const by = cy - fs * 0.85, bh = fs * 1.7;
         band.a = alpha;
-        band.rect(0, cy - fs * 0.85, W, fs * 1.7, b.band);
+        band.rect(0, by, W, bh, b.band);
+        if (b.bandEdge) {
+          const e = Math.max(2, fs * 0.05);
+          band.rect(0, by, W, e, b.bandEdge);
+          band.rect(0, by + bh - e, W, e, b.bandEdge);
+        }
         band.a = 1;
       }
       b.view.position.set(W / 2, cy);
