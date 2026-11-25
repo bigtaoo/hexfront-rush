@@ -33,15 +33,27 @@ def srgb(hexstr: str, a: float = 1.0):
     return (*out, a)
 
 
+# WHY THE GREENS ARE TEAL. Three rounds painted the foliage a yellow-olive (#5f8a3a, hue 92)
+# because that is what grass is. Measured on the reference game's forest boards (D:/new/ref,
+# IMG_3717) its whole picture sits in ONE hue family -- ground hue 171, crowns 171-180, stumps,
+# obelisks and rocks all between 160 and 190 -- and separates by value and saturation alone:
+# crown 0.35 against ground 0.45, saturation 0.76 against 0.54. That is the answer to 'the
+# board is cluttered and tiring': a yellow-green crown 57 degrees of hue off a teal board is a
+# second subject fighting the first on every tile, and no amount of value tuning fixes it.
+# So the foliage keeps its old saturation and value exactly and only turns hue, to 172 -- one
+# family with the meadow skins (skins.ts, hue 163-176) and the water. See DECISIONS.md D96.
 TEAM = {'blue': '#1d58d8', 'red': '#cc2216'}  # deeper than the UI's: lit paint reads lighter
 PAL = {
     'cream': '#ead7ae', 'white': '#f4f1ea', 'black': '#26201c', 'brown': '#6b4428',
-    'darkwood': '#4a3020', 'skin': '#e9b98b', 'green': '#5f8a3a', 'moss': '#7d9a48',
+    'darkwood': '#4a3020', 'skin': '#e9b98b', 'green': '#2f8a79', 'moss': '#499989',
     'tan': '#c6a56e', 'stone': '#a99b85', 'grey': '#8a857d', 'yellow': '#f2c14e', 'pink': '#e89a8c',
     'opening': '#1b1410', 'slate': '#5d5a57',
     # the terrain props (props.py): a colder blue-white for ice, and a second,
     # darker green so a tree's crown has two values and does not read as one blob
-    'ice': '#9fd8e8', 'frost': '#dff2f7', 'deepgreen': '#44682a',
+    'ice': '#9fd8e8', 'frost': '#dff2f7', 'deepgreen': '#2a6860',
+    # the one yellow-green left in the set: a desert cactus and the ogre's brow, which both
+    # have to sit over warm hide and sand and would read as a hole in the teal above
+    'ogredark': '#5f8a3a',
     # the militia's own colours: 'hair' and 'mouth' stay clear of INK (#2b1d14), or at
     # 40 px the outline swallows them; 'cloth' is the work trousers, 'leather' boots/belt
     'hair': '#6d4526', 'mouth': '#5a241c', 'leather': '#55361f', 'cloth': '#9a7a46',

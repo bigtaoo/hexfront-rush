@@ -9,10 +9,11 @@ import type { Engine } from '../sim/engine';
 import { FP, TICK_RATE } from '../sim/fixed';
 import { EVENT_LIST, GUARD, HIT_FLASH, LUNGE_TICKS, TEAM_BLUE, TEAMS, UNITS } from '../sim/rules';
 import { TILE } from '../sim/hex';
-import { artH, artSprite, castSprite, setCast, eventTex, guardAnim, guardTex, obstacleTex, PPU, rubbleTex, TILE_FOOT } from './art';
+import { artH, artSprite, castSprite, setCast, eventTex, guardAnim, guardTex, PPU, rubbleTex, TILE_FOOT } from './art';
 import { BIRTH_MAX, BirthFx, unitAge } from './birth';
 import { hpBar, shadowCtx } from './bodies';
 import { BuildingView, WallLayer } from './buildingView';
+import { obstacleGroup } from './obstacleView';
 import type { Camera } from './camera';
 import { inView, type Frame } from './frame';
 import { type Live, liveGraphics } from './pen';
@@ -283,18 +284,8 @@ export class SpriteLayer {
     this.root.addChild(this.walls.g);
     this.obst = eng.tiles.map((t) => {
       if (!t.obst) return null;
-      const { t: tx, flip } = obstacleTex(t.obst, t.deco, eng.themeKey);
-      const g = new Container();
-      const sh = new Graphics(shadowCtx(0.5));
-      sh.position.set(0, TILE_FOOT - 0.08);
-      const sp = artSprite(tx, TILE_FOOT, flip ? -1 : 1);
-      if (LOOK_B) {
-        // lookB: decoration sinks into the ground (a warm tint, part see-through)
-        sp.tint = 0xf2e6cc;
-        g.alpha = 0.62;
-      }
-      g.addChild(sh, sp);
-      if (LOOK_B) g.addChildAt(castSprite(tx, TILE_FOOT), 0);
+      // a tree tile is a little grove, not one tree (obstacleView.ts)
+      const g = obstacleGroup(t, eng.themeKey);
       const v = cam.tv[t.i]!;
       g.position.set(v.x, v.y);
       g.zIndex = v.y;

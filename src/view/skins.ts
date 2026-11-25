@@ -42,13 +42,23 @@
 // ground at the reference's own value and the pieces have somewhere to go in both directions.
 //
 // So: desert stays exactly as it was -- it is the one theme that was measured off the right
-// material. Meadow is re-pitched to the reference's deep biome green, value 0.45-0.54 at saturation
-// 0.45-0.52, which is a forest seen from above and not a lawn. Snow is cooled from cream to the
-// reference's white-with-a-breath-of-blue. Value is what tells the themes apart now; the zone step
-// is what tells the zones apart, and nothing at all is spent on per-tile noise.
+// material. Meadow is re-pitched to the reference's deep biome green, value 0.466-0.502 at
+// saturation 0.49-0.55, which is a forest seen from above and not a lawn. Snow is cooled from cream
+// to the reference's white-with-a-breath-of-blue. Value is what tells the themes apart now; the
+// zone step is what tells the zones apart, and nothing at all is spent on per-tile noise.
 //
-// Every skin keeps a `grid`, an eighth up in saturation from its own colour and *as far down in
-// value as its board needs*, and it is the only line drawn on open ground. Two cuts of this missed
+// AND THE MEADOW'S HUE IS PINNED, not picked. The reference's forest frames sit in one hue family
+// from edge to edge -- ground 171, crowns 171-180, stumps, obelisks and rocks all between 160 and
+// 190 -- and separate by value and saturation alone. That single family is most of why it reads
+// calm. So the four meadow skins are built on hue 163-176 (spring 168, summer 163, autumn 174,
+// marsh 176; marsh was pulled off 178 to keep 30 degrees clear of the blue team's 210), and the
+// foliage was turned onto the same family rather than the other way round (tools/art3d/prim.py
+// D96). The four are then told apart by saturation and value inside it, not by hue.
+//
+// Every skin keeps a `grid`, *as far down in value as its board needs* and a touch up in
+// saturation -- an eighth on desert and snow, a fiftieth on the meadow boards, whose own colour is
+// already saturated enough that an eighth more turned the line into a seam -- and it is the only
+// line drawn on open ground. Two cuts of this missed
 // either way: 5% was a quarter of the ink and at a phone's zoom there was no honeycomb on the board
 // at all, and 14% -- measured off a *shadowed* patch of the reference's sand -- inked an outline
 // round every hex, which is what made the board look drawn rather than made of anything.
@@ -66,7 +76,7 @@
 //
 // The two territories are no longer painted here at all: they are mixed off whichever ground they
 // sit on, 0.55 of the way to the team's line colour (ground.ts teamLook), which is the rule the
-// reference's own four territory patches fit. See DECISIONS.md D85, D86, D87, D88, D89, D91, D92.
+// reference's own four territory patches fit. See DECISIONS.md D85, D86, D87, D88, D89, D91, D92, D94, D96.
 
 import type { ThemeKey } from '../sim/map';
 
@@ -78,8 +88,9 @@ export interface MapSkin {
   theme: ThemeKey;
   /** Tile tops by zone: 0 home country, 1 the open field, 2 the contested middle. */
   top: readonly [Shades, Shades, Shades];
-  /** The hex grid: this skin's colour an eighth up in saturation, and down in value by what the
-   *  board needs -- 0.082 on desert, 0.090 on snow, 0.110 on the dark meadow boards (D92). */
+  /** The hex grid: this skin's colour a touch up in saturation (an eighth on desert and snow, a
+   *  fiftieth on meadow), and down in value by what the board needs -- 0.082 on desert, 0.090 on
+   *  snow, 0.110 on the dark meadow boards (D92). */
   grid: string;
   /** Below the tile, so only the map's rim shows it. */
   side: string;
@@ -92,23 +103,23 @@ export interface MapSkin {
 export const SKINS: readonly MapSkin[] = [
   {
     key: 'meadow-spring', theme: 'meadow',
-    top: [['#418275', '#408174'], ['#3b786c', '#3a776b'], ['#356f63', '#346d62']],
-    grid: '#275c52', side: '#245249', bg: '#152c28', water: ['#5fa99e', '#397067'],
+    top: [['#3b7c6f', '#3b7b6e'], ['#377266', '#367165'], ['#32685d', '#31675c']],
+    grid: '#28564d', side: '#214e45', bg: '#132a26', water: ['#5fa99e', '#397067'],
   },
   {
     key: 'meadow-summer', theme: 'meadow',
-    top: [['#3b7a5d', '#3a795c'], ['#357155', '#346f54'], ['#2f674d', '#2e654c']],
-    grid: '#22553d', side: '#204d38', bg: '#132a1f', water: null,
+    top: [['#377a67', '#367966'], ['#32705e', '#326f5d'], ['#2e6556', '#2d6455']],
+    grid: '#255446', side: '#1e4c3f', bg: '#112822', water: null,
   },
   {
     key: 'meadow-autumn', theme: 'meadow',
-    top: [['#778a4c', '#76884b'], ['#6e8045', '#6d7e44'], ['#65763e', '#64753d']],
-    grid: '#546430', side: '#4a572b', bg: '#282f19', water: ['#6ca89a', '#436f65'],
+    top: [['#41807a', '#417f79'], ['#3c7670', '#3c756f'], ['#376c66', '#366b65']],
+    grid: '#2d5a55', side: '#26524e', bg: '#172e2c', water: ['#6ca89a', '#436f65'],
   },
   {
     key: 'meadow-marsh', theme: 'meadow',
-    top: [['#3e736f', '#3d716e'], ['#386a67', '#376965'], ['#32615e', '#32605d']],
-    grid: '#254e4b', side: '#234846', bg: '#142726', water: ['#58a596', '#346d62'],
+    top: [['#387773', '#377672'], ['#336d69', '#336c68'], ['#2e625f', '#2e615e']],
+    grid: '#25514e', side: '#1e4946', bg: '#112524', water: ['#58a596', '#346d62'],
   },
   {
     key: 'desert-pale', theme: 'desert',

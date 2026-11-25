@@ -78,7 +78,7 @@ def model_ogre():
             ball(0.032, 'black', (x, -0.198, 0.972), scale=(1.0, 0.5, 1.0), name='pupil')
             ball(0.011, 'white', (x - 0.010, -0.210, 0.982), name='spark')
             ball(0.066, 'ogre', (x * 2.3, -0.010, 0.900), scale=(0.40, 0.9, 1.15), name='ear')
-        ball(0.040, 'green', (0, -0.172, 1.012), scale=(2.4, 0.5, 0.34), name='brow')
+        ball(0.040, 'ogredark', (0, -0.172, 1.012), scale=(2.4, 0.5, 0.34), name='brow')
     for x in (-0.300, 0.300):               # arms swung clear of the belly, hands as big as feet
         with group('armL' if x < 0 else 'armR'):
             lathe([(0.104, 0.560), (0.112, 0.700), (0.100, 0.766), (0.0, 0.776)], 'ogre',

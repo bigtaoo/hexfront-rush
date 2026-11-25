@@ -88,7 +88,8 @@ MAX_GROW = 1.3
 #         the rest hardly at all. A band across that gap lifts the third and leaves the rest where
 #         the darkening put it. On a faceted model it gives flat lit planes rather than a gradient,
 #         which is the painted look this art is after anyway.
-TONE = {'floor': 0.22, 'mul': 0.36, 'lit': 0.22, 'n0': 0.45, 'n1': 0.82}
+TONE = {'floor': 0.22, 'mul': 0.36, 'lit': 0.30, 'n0': 0.45, 'n1': 0.82,
+        'sat': 1.62, 's0': 0.12, 's1': 0.28}
 # Which props get it: the ones that read as a mass of vegetation or rock. Not the five pieces the
 # player has to notice (camp, chest, hoard, mystery, warband) -- the reference's own chests are the
 # brightest thing on its board -- and not ice or drift, whose material IS white.
@@ -156,7 +157,30 @@ def tone(im: Image.Image, geo) -> Image.Image:
         # already there rather than inventing a second one from a guessed world-up.
         u = np.clip((nrm[..., 1] - TONE['n0']) / (TONE['n1'] - TONE['n0']), 0, 1)
         lit = np.where(cov > 0.99, u * u * (3 - 2 * u), 0.0)
-        out = out + (TONE['lit'] * lit)[..., None] * (1 - out)
+        # The lift SCALES value instead of mixing toward white (D96). Mixing toward white is how a
+        # lit face loses its colour: at an oak's brightest the old form took the crown's saturation
+        # from 0.56 to 0.36, well under the reference's own lit crowns (0.53), so the lobes read as
+        # pale grey-green patches instead of light on a green thing. Multiplying leaves hue and
+        # saturation exactly where the material put them and only raises value, which is what a key
+        # light on a diffuse surface actually does. The factor is larger than the old addend
+        # because it buys less: 0.30 of multiply at value 0.40 is the same +0.12 the old 0.22 gave.
+        out = out * (1 + TONE['lit'] * lit)[..., None]
+    # D96: and then saturate. The reference's crowns carry their lit lobes in SATURATION, not in
+    # value -- S 0.57-0.82 against its own ground's 0.54, all on one hue -- which is the half of D93
+    # that was left undone, and the lift above makes it worse by mixing the lit faces toward white.
+    # Pulling each channel away from the max scales saturation and leaves hue and value untouched.
+    # The ramp is what keeps it off the white and grey materials: frost, ice and drift sit at
+    # S 0.03-0.09 and stone at 0.12, where a multiply would only amplify the render's own noise into
+    # coloured speckle, so nothing under s0 is touched at all and the full factor only arrives at s1.
+    # 1.62, not 1.45: measured per value bucket, the reference's crown shadows are its most saturated
+    # pixels of all (S 0.76 at value 0.35, against 0.53 on its lit faces and 0.54 on its ground),
+    # where a render's own ambient leaves shadows GREY -- ours sat at 0.63. The factor is what buys
+    # the shadow back its colour, and the cap below is why a flat factor is safe at this size.
+    mx = out.max(-1, keepdims=True)
+    sat0 = np.where(mx[..., 0] > 1e-6, (mx[..., 0] - out.min(-1)) / np.maximum(mx[..., 0], 1e-6), 0)
+    w = np.clip((sat0 - TONE['s0']) / (TONE['s1'] - TONE['s0']), 0, 1)
+    k = 1 + (TONE['sat'] - 1) * (w * w * (3 - 2 * w))
+    out = mx - (mx - out) * k[..., None]
     a[..., :3] = np.clip(out, 0, 1) * 255
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 

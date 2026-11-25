@@ -54,11 +54,16 @@ export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme
  *  and the owned land read as one shapeless blob you could not count tiles in. `grid` is 6% down in
  *  value from the field it edges -- quieter than the line on open ground, loud enough to see a cell.
  *
- *  `stamp` is the mark struck on every tile of a territory: the field pulled a third further toward
- *  the line colour and a fifth down in value, so the enemy's stamp is as loud as its field is and
- *  yours stays as quiet as yours. A flat wash over twenty hexes is a shape on the map; a stamped
- *  one is twenty tiles you can count.
- *  See DECISIONS.md D85, D86, D87, D88, D91. */
+ *  THERE IS NO STAMP ON A TERRITORY TILE ANY MORE. There used to be one -- a lozenge struck on
+ *  every owned hex, the field pulled a third further toward the line colour and a fifth down in
+ *  value -- put there so a wash over twenty hexes would read as twenty tiles you can count instead
+ *  of as one shape. The reference does the same job with the grid line and nothing else: zoom its
+ *  own territory (IMG_3717, the offer cluster at 1.6x) and the blue hexes are a flat #348cbf with
+ *  one line between them at #2e82b7, 0.031 of value down, and not a mark inside any of them. Our
+ *  grid already runs inside a territory for exactly that reason (below), so the lozenge was the
+ *  same statement a second time, on up to a hundred and ten hexes at once -- and it is the kind of
+ *  repeated small mark that the board was called cluttered for.
+ *  See DECISIONS.md D85, D86, D87, D88, D91, D94. */
 export const TEAM_LINE: Record<number, string> = LOOK_B
   ? { [TEAM_BLUE]: '#3399ff', [TEAM_RED]: '#ff3333' }
   : { [TEAM_BLUE]: '#2c55a0', [TEAM_RED]: '#b13a2a' };
@@ -71,7 +76,6 @@ export interface TeamLook {
   top: readonly [string, string];
   grid: string;
   line: string;
-  stamp: string;
 }
 const teamLooks = new Map<string, TeamLook>();
 
@@ -88,7 +92,6 @@ export function teamLook(sk: MapSkin, team: number): TeamLook {
     top,
     grid: vUp(top[0], 0.94),
     line,
-    stamp: vUp(mix(top[0], line, 0.3), 0.8),
   };
   teamLooks.set(key, look);
   return look;
@@ -140,24 +143,41 @@ export function mix(a: string, b: string, t: number): string {
   return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** The lit lip inside a tile's edge. Measured off the reference (D:/new/ref, IMG_3660), scanning
- *  straight down the middle of a clean column of sand at x=860 and again at x=900, both the same:
+/** The lit lip inside a tile's edge, and THE ONLY SHADING A TILE HAS. Measured off the reference
+ *  twice, on two different biomes, and the second reading is what the numbers now say.
  *
- *    0.855 flat for two thirds of the tile, then a slow climb to 0.882 at the bottom edge, then
- *    five pixels of 0.827 line, then 0.855 flat again -- no climb on the far side of the line.
+ *  On its sand (IMG_3660), scanning straight down the middle of a clean column at x=860 and again
+ *  at x=900: 0.855 flat for two thirds of the tile, then a slow climb to 0.882 at the bottom edge,
+ *  then five pixels of 0.827 line, then 0.855 flat again -- no climb on the far side of the line.
+ *  On its forest (IMG_3717), folding ten bare hexes together, a hex 136 px tall: 0.4392 flat from
+ *  the top edge down to 0.75 of the height (every sample of it, to within JPEG noise), then 0.451
+ *  at 0.84, 0.467 at 0.93, then the 0.322 line.
  *
- *  So the tile's inside is one constant colour (every pixel of it), and everything that makes it
- *  read as a *plate* rather than as an area filled with paint sits in the bottom ~0.3 of a radius:
- *  a 3% lift along the two lower edges only, with the dark line above it. It is directional, which
- *  is why a symmetric ring -- the first cut of this -- still looked painted: a ring is an outline,
- *  a lit bottom rim is a thickness. The side edges get a sixth of it, the weak lift a scan across
- *  the tile shows, so the cell still closes on all six sides.
+ *  Two things come out of that. The tile's inside is one constant colour -- D92 recorded a vertical
+ *  gradient here, top lit and bottom shaded, and there is none; the reading was off a board-wide
+ *  vignette and the gradient is in the opposite direction anyway. And the lift at the bottom edge
+ *  is +0.027 of value on sand and +0.028 on forest: THE SAME ABSOLUTE STEP on a board 0.42 of value
+ *  brighter, which is the grid line's rule (skins.ts) a second time. A 3.5% multiplier, which is
+ *  what this was, is +0.030 on sand and +0.015 on the meadow -- half the lift on the boards that
+ *  have the least light to spend and need the plate read most.
+ *
+ *  So it is an absolute lift now, 0.027 of value along the two lower edges in the bottom 0.3 of a
+ *  radius, with the dark line above it. It is directional, which is why a symmetric ring -- the
+ *  first cut of this -- still looked painted: a ring is an outline, a lit bottom rim is a
+ *  thickness. The side edges get 0.012, the weak lift a scan across the tile shows, so the cell
+ *  still closes on all six sides.
  *
  *  D87 was right to delete the bevel it found -- a hard lit edge on three sides and a shaded groove
  *  on the other three, plus wood grain and two dome highlights -- and wrong to leave nothing in its
  *  place. This is a tenth of that ink: three value steps, no texture, no second hue.
- *  See DECISIONS.md D87, D89. */
-const RIM_W = 0.3, RIM_V = 1.035, SIDE_LIP_V = 1.015;
+ *  See DECISIONS.md D87, D89, D94. */
+const RIM_W = 0.3, RIM_D = 0.027, SIDE_LIP_D = 0.012;
+
+/** The same colour, `d` of value brighter, hue and saturation untouched: scaling every channel by
+ *  (v + d) / v is what adds value without adding grey. */
+function vAdd(hex: string, d: number): string {
+  return vUp(hex, 1 + d / Math.max(val(hex), 1e-6));
+}
 
 /** The band along a hex's two lower edges, `w` radii deep: the outer three vertices, then the same
  *  three pulled in toward the centre. Scaling a regular polygon moves every edge in by the same
@@ -166,8 +186,8 @@ function lowerRim(p: Pen, r: number, w: number, col: string): void {
   const o = hexPts(0, 0, r), i = hexPts(0, 0, r - w);
   p.poly([o[6]!, o[7]!, o[4]!, o[5]!, o[2]!, o[3]!, i[2]!, i[3]!, i[4]!, i[5]!, i[6]!, i[7]!], col);
 }
-function tileCtx(side: string, top: string, obst: boolean, grid: string | null, water: boolean, stamp: string | null) {
-  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${grid ?? '-'}|${water ? 1 : 0}|${stamp ?? '-'}`, (p) => {
+function tileCtx(side: string, top: string, obst: boolean, grid: string | null, water: boolean) {
+  return sharedCtx(`tile|${side}|${top}|${obst ? 1 : 0}|${grid ?? '-'}|${water ? 1 : 0}`, (p) => {
     p.hex(0, SIDE_H, TILE_R, side);
     p.hex(0, 0, TILE_R, top);
     if (water) {
@@ -182,17 +202,10 @@ function tileCtx(side: string, top: string, obst: boolean, grid: string | null, 
     if (grid) {
       // two steps, not a ramp: the far half of the lip at a third of the lift, the near half at all
       // of it. Three steps were not worth the stroke; one read as a drawn ring.
-      p.hex(0, 0, TILE_R * 0.89, null, vUp(top, SIDE_LIP_V), TILE_R * 0.22);
-      lowerRim(p, TILE_R, TILE_R * RIM_W, vUp(top, 1 + (RIM_V - 1) * 0.55));
-      lowerRim(p, TILE_R, TILE_R * RIM_W * 0.5, vUp(top, RIM_V));
+      p.hex(0, 0, TILE_R * 0.89, null, vAdd(top, SIDE_LIP_D), TILE_R * 0.22);
+      lowerRim(p, TILE_R, TILE_R * RIM_W, vAdd(top, RIM_D * 0.55));
+      lowerRim(p, TILE_R, TILE_R * RIM_W * 0.5, vAdd(top, RIM_D));
       p.hex(0, 0, TILE_R, null, grid, GRID_W);
-    }
-    if (stamp) {
-      // the territory's crest: a lozenge, struck a little low on the tile so a unit standing on it
-      // leaves the bottom of the mark showing. It was a pair of chevrons first, which at a phone's
-      // zoom read as arrows pointing up the board -- a mark that looks like a movement hint is
-      // worse than no mark, so the shape it settled on is the one with no direction in it.
-      p.poly([0, -0.14, 0.24, 0.14, 0, 0.42, -0.24, 0.14], null, stamp, 0.11);
     }
     if (obst) p.hex(0, 0, TILE_R * 0.94, 'rgba(60,40,20,0.05)');
   });
@@ -303,8 +316,7 @@ export class GroundLayer {
     const wet = this.water[t.i] ? sk.water : null;
     const th = wet || !TEAM_LINE[t.owner] ? undefined : teamLook(sk, t.owner);
     const top = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
-    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, wet ? null : th ? th.grid : sk.grid, !!wet,
-      wet || t.obst || !th ? null : th.stamp);
+    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, wet ? null : th ? th.grid : sk.grid, !!wet);
   }
 
   /** Along every edge where an owned tile meets a tile its team does not own, a line in the
