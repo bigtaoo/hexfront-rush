@@ -45,15 +45,16 @@ import { LOOK_B } from './lookB';
  *  which a cut of this treated as the fault to fix and the reference treats as the board. See the
  *  note at the top for why half was the wrong number. */
 const DENSITY = 0.22;
-/** ...except on the meadow boards, where it is none at all (D97). The note above already read the
- *  reference's forest frames correctly -- "the open ground carries nothing at all: no litter, no
- *  sprigs, one flat hex after another" -- and then kept a fifth of the tiles decorated on every
- *  theme anyway. Looking at our own board next to IMG_3717 the sprigs are the most pattern-like
- *  thing on it: sixty copies of the same little chevron, all in the ground's own hue now that the
- *  foliage turned teal (D96), spaced about every fifth hex. On sand it works and the reference does
- *  it too (IMG_3660 scatters small cacti over its bare sand); on a dark green field the same pieces
- *  are scribbles on a surface that is supposed to be quiet. */
-const THEME_DENSITY: Record<string, number> = { meadow: 0 };
+/** A theme that needs a different number puts it here. None does: the `meadow: 0` that sat here
+ *  from D97 to D101 is gone. It was put there because the reference's forest frames (D:/new/ref
+ *  IMG_3707, IMG_3717) carry nothing on their open ground, and on our own board the pieces read as
+ *  "sixty copies of the same little chevron in the ground's own hue". The second half of that was
+ *  true and the diagnosis was wrong: a tuft is toned BELOW the board on purpose (sprite.py
+ *  SCENERY), and what put it back into the ground's own hue was this layer's own alpha, which at
+ *  0.62 over a dark teal board mixes a dark piece 38% of the way back to the tile it stands on.
+ *  Turning the whole theme off was treating a transparency bug as a density problem, and it left
+ *  270 of 325 hexes with nothing in them at all. The alpha is fixed below instead. D101. */
+const THEME_DENSITY: Record<string, number> = {};
 /** Where in the tile a piece lands, as a fraction of the hex radius: never the centre (a unit
  *  stands there and a building goes there), and the far end is then pulled in by the piece's own
  *  width, below -- a dry bush is three times as wide as a pebble and cannot be pushed as far. */
@@ -69,15 +70,20 @@ const PAIR = 0.26;
 /** How far from the centre the far edge of a piece may reach, in hex radii. 0.78, not the apothem's
  *  0.866: a piece whose edge touches the grid line reads as part of the line. */
 const SPAN = 0.78;
-/** lookB sinks the scenery into the board: a good deal of the ground shows through, because there
- *  are five times as many of these as there are props and they must stay quieter than anything the
- *  player has to read.
+/** lookB sinks the scenery into the board -- a little. 0.62 was the number here for five versions
+ *  and it was too much by far on the dark boards: alpha mixes a piece toward the tile under it in
+ *  BOTH directions, so a tuft whose body sprite.py already toned down to 0.28 of value lands at
+ *  0.62*0.28 + 0.38*0.47 = 0.352 over a meadow -- a tenth of a step off the ground it stands on,
+ *  which is no picture at all. That is the same mistake the obstacle group's own 0.62 was
+ *  (obstacleView.ts D100), one tier down. Where a piece sits in value is the material's question
+ *  and the tone pass answers it; this is only here to keep the litter under the props, which a
+ *  tenth does.
  *
  *  No warm tint, which is the one lookB treatment of the obstacle props this tier does not take.
  *  That tint (0xf2e6cc) is there to sit a *toy* on the board, and it costs a piece its own hue: it
  *  turned the snow drift's #f4f1ea into the snow ground's own #ebdfca and left nothing but an
- *  outline, and it pulled the blue out of the ice. Alpha alone sinks these in far enough. */
-const ALPHA = 0.62;
+ *  outline, and it pulled the blue out of the ice. */
+const ALPHA = 0.9;
 
 /** How many of a theme's tiles get a piece. */
 export function density(theme: string): number {
@@ -121,10 +127,16 @@ export class DecorLayer {
   private put(t: Tile, cam: Camera, theme: string, k: number, turn: number): Sprite {
     const { t: tx, flip } = decorTex(theme, Math.floor(roll(t.deco, t.i, k) * 4096));
     const a = roll(t.deco, t.i, k + 1) * Math.PI * 2 + turn;
-    const room = Math.max(OFF_MIN, SPAN - artW(tx) / 2);
+    // and it is not the same size twice. Four pieces over sixty tiles, drawn at one size, is sixty
+    // copies of four stamps, and the repeat is what the eye finds first -- the same thing the main
+    // obstacle piece's jitter answers one tier up (obstacleView.ts D101). A quarter either way is a
+    // lot for a piece this small and still nothing next to a unit. D101.
+    const k2 = 0.78 + roll(t.deco, t.i, k + 9) * 0.44;
+    const room = Math.max(OFF_MIN, SPAN - (artW(tx) * k2) / 2);
     const d = Math.min(room, OFF_MIN + roll(t.deco, t.i, k + 2) * (OFF_MAX - OFF_MIN));
     const v = cam.tv[t.i]!;
     const s = artSprite(tx, 0, flip ? -1 : 1);
+    s.scale.set(s.scale.x * k2, s.scale.y * k2);
     // y is squashed with the board's own foreshortening, so a ring of offsets stays a ring
     s.position.set(v.x + Math.cos(a) * d, v.y + Math.sin(a) * d * 0.72);
     if (LOOK_B) s.alpha = ALPHA;

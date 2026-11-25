@@ -96,6 +96,15 @@ export function generateMap(seed: number): GameMap {
     for (let k = 0; k < wl; k++) {
       put(2 + gap + k, wr);
       put(COLS - 3 - gap - k, wr);
+      // a second rank BEHIND the wall, in the wall's own columns: the lanes are the gaps either
+      // side of these columns and the row behind a blocked column changes none of them, so this is
+      // mass and nothing else. It is here because a wall one tile deep reads as a drawn line across
+      // the board, and the reference's woods (D:/new/ref IMG_3717) are a deep irregular block of
+      // crowns, never a row. D100.
+      if (rng.int(3)) {
+        put(2 + gap + k, wr - 1);
+        put(COLS - 3 - gap - k, wr - 1);
+      }
     }
     if (rng.int(2)) {
       // a hook on the wall ends
@@ -120,9 +129,25 @@ export function generateMap(seed: number): GameMap {
         put(mc, MID_ROW - 2);
         break;
     }
-    // groves in the open field
-    const groves = 2 + rng.int(3);
-    for (let g = 0; g < groves; g++) clump(rng.int(COLS), 5 + rng.int(MID_ROW - 5), 1 + rng.int(2));
+    // Groves in the open field, and they are GROVES. A cut of this walked 2-4 clumps of 1-2 tiles,
+    // which after the walk's own revisits came out as a scatter of single trees: measured over
+    // fourteen seeds, every board carried a tail of ones and twos and the whole field sat at 7-12%
+    // of the tiles against a band that allows 20. The reference's woods (D:/new/ref IMG_3717) are
+    // masses -- four to six crowns touching, with bare ground between the masses, never one tree
+    // alone in a hex. So: each grove is long enough that the walk still covers three or four
+    // distinct tiles after doubling back on itself. D100.
+    //
+    // HOW MANY GROVES IS A PACING NUMBER, NOT A LOOK ONE. D100 raised the count to 3-5 as well as
+    // the length, and the count is the half of it that had to come back. Measured over twelve seeds
+    // against a weak player (test/scriptedPlayer.ts, cap 45000 ticks): at 3-5 groves five of the
+    // twelve matches ran past 15000 ticks and two never finished at all, against one long match and
+    // no stalls before D100. Dropping the second wall rank did not fix it and neither did
+    // shortening the clumps -- what the long boards had in common was mass, 42 to 47 obstacles of
+    // 325 where the fast ones carried 25 to 39. The length is what makes a grove read as a mass, so
+    // the length stays and the count goes back: 2-3 long clumps is a median of 37 obstacles, one
+    // long match in twelve and no stall, with the masses D100 was after still on the board. D102.
+    const groves = 2 + rng.int(2);
+    for (let g = 0; g < groves; g++) clump(rng.int(COLS), 5 + rng.int(MID_ROW - 5), 3 + rng.int(3));
 
     const seen = new Uint8Array(NTILES);
     const q = [baseTile(TEAM_BLUE)];
@@ -139,7 +164,12 @@ export function generateMap(seed: number): GameMap {
     for (const t of tiles) if (!t.obst && !seen[t.i]) t.obst = kinds[0]; // fill isolated pockets
     let obst = 0;
     for (const t of tiles) if (t.obst) obst++;
-    if (obst * 100 < NTILES * 7 || obst * 100 > NTILES * 20) continue;
+    // 7% to 12.5% of the tiles. The ceiling used to be 20% and no board ever reached it; what it
+    // has to catch is the heavy tail of the grove walk, which still lands a board past 41 obstacles
+    // about one time in seven, and those are the boards a weak player cannot get through (the grove
+    // note above). 12.5% turns away about a quarter of the attempts, which 40 attempts clear
+    // easily. D102.
+    if (obst * 10 < NTILES || obst * 1000 > NTILES * 125) continue;
     break;
   }
   return { tiles, themeKey };

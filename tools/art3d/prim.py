@@ -45,12 +45,20 @@ def srgb(hexstr: str, a: float = 1.0):
 TEAM = {'blue': '#1d58d8', 'red': '#cc2216'}  # deeper than the UI's: lit paint reads lighter
 PAL = {
     'cream': '#ead7ae', 'white': '#f4f1ea', 'black': '#26201c', 'brown': '#6b4428',
-    'darkwood': '#4a3020', 'skin': '#e9b98b', 'green': '#2f8a79', 'moss': '#499989',
+    'darkwood': '#4a3020', 'skin': '#e9b98b', 'green': '#2f8a7f', 'moss': '#49998e',
     'tan': '#c6a56e', 'stone': '#a99b85', 'grey': '#8a857d', 'yellow': '#f2c14e', 'pink': '#e89a8c',
     'opening': '#1b1410', 'slate': '#5d5a57',
     # the terrain props (props.py): a colder blue-white for ice, and a second,
     # darker green so a tree's crown has two values and does not read as one blob
-    'ice': '#9fd8e8', 'frost': '#dff2f7', 'deepgreen': '#2a6860',
+    'ice': '#9fd8e8', 'frost': '#dff2f7', 'deepgreen': '#2a6864',
+    # 'shade' is the little disc a prop stands on (props.py _ground). It used to be 'moss', and a
+    # flat UP-FACING disc under a 4.9-energy key is the one surface in the whole set that blows out:
+    # moss at value 0.600 rendered near 0.95, and the tone pass (sprite.py) brought that back only to
+    # 0.486 -- as bright as the brightest board tile and 0.17 ABOVE the crown standing on it, which
+    # is why every tree and chest sat on a bright green lollipop stick of a ring. It is a dark of the
+    # board's own hue family instead, so it reads as the piece's shadow on any of the three grounds
+    # (the snow and desert props keep their explicit 'frost' and 'tan'). D100.
+    'shade': '#2a4a44',
     # the one yellow-green left in the set: a desert cactus and the ogre's brow, which both
     # have to sit over warm hide and sand and would read as a hole in the teal above
     'ogredark': '#5f8a3a',

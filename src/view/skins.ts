@@ -50,10 +50,19 @@
 // AND THE MEADOW'S HUE IS PINNED, not picked. The reference's forest frames sit in one hue family
 // from edge to edge -- ground 171, crowns 171-180, stumps, obelisks and rocks all between 160 and
 // 190 -- and separate by value and saturation alone. That single family is most of why it reads
-// calm. So the four meadow skins are built on hue 163-176 (spring 168, summer 163, autumn 174,
-// marsh 176; marsh was pulled off 178 to keep 30 degrees clear of the blue team's 210), and the
-// foliage was turned onto the same family rather than the other way round (tools/art3d/prim.py
-// D96). The four are then told apart by saturation and value inside it, not by hue.
+// calm. So the four meadow skins are built on one hue family with the foliage, which was turned onto
+// it rather than the other way round (tools/art3d/prim.py D96), and the four are told apart by
+// saturation and value inside it, not by hue.
+//
+// AND THE FAMILY IS NARROW (D99). A cut of these spread the four over hue 163-176 -- spring 168,
+// summer 163, autumn 174, marsh 176 -- which is a 13 degree band, and summer, the seed-2 board and
+// the one every screenshot of this game is taken on, sat at the bottom of it. Measured properly, the
+// reference's bare ground does not move: filtering IMG_3717 to ground pixels and reading nine screen
+// cells gives hue 170.0 to 171.7 in every cell, a spread of one and a half degrees over the whole
+// board. So the four are pulled into 169.5-174.5 (spring 169.5, summer 170.5, autumn 172.5, marsh
+// 174.5), a 5 degree band around the reference's own 170.8, with marsh still 35 degrees clear of the
+// blue team's 210. Saturation and value are untouched: each skin's colours were rotated in hue
+// alone.
 //
 // Every skin keeps a `grid`, *as far down in value as its board needs* and a touch up in
 // saturation -- an eighth on desert and snow, a fiftieth on the meadow boards, whose own colour is
@@ -103,23 +112,23 @@ export interface MapSkin {
 export const SKINS: readonly MapSkin[] = [
   {
     key: 'meadow-spring', theme: 'meadow',
-    top: [['#3b7c6f', '#3b7b6e'], ['#377266', '#367165'], ['#32685d', '#31675c']],
-    grid: '#28564d', side: '#214e45', bg: '#132a26', water: ['#5fa99e', '#397067'],
+    top: [['#3b7c71', '#3b7b70'], ['#377267', '#367166'], ['#32685e', '#31675d']],
+    grid: '#28564e', side: '#214e46', bg: '#132a27', water: ['#5fa9a0', '#397068'],
   },
   {
     key: 'meadow-summer', theme: 'meadow',
-    top: [['#377a67', '#367966'], ['#32705e', '#326f5d'], ['#2e6556', '#2d6455']],
-    grid: '#255446', side: '#1e4c3f', bg: '#112822', water: null,
+    top: [['#377a6f', '#36796e'], ['#327066', '#326f65'], ['#2e655d', '#2d645c']],
+    grid: '#25544c', side: '#1e4c45', bg: '#112825', water: null,
   },
   {
     key: 'meadow-autumn', theme: 'meadow',
-    top: [['#41807a', '#417f79'], ['#3c7670', '#3c756f'], ['#376c66', '#366b65']],
-    grid: '#2d5a55', side: '#26524e', bg: '#172e2c', water: ['#6ca89a', '#436f65'],
+    top: [['#418078', '#417f77'], ['#3c766e', '#3c756d'], ['#376c64', '#366b63']],
+    grid: '#2d5a54', side: '#26524d', bg: '#172e2b', water: ['#6ca898', '#436f64'],
   },
   {
     key: 'meadow-marsh', theme: 'meadow',
-    top: [['#387773', '#377672'], ['#336d69', '#336c68'], ['#2e625f', '#2e615e']],
-    grid: '#25514e', side: '#1e4946', bg: '#112524', water: ['#58a596', '#346d62'],
+    top: [['#387771', '#377670'], ['#336d67', '#336c66'], ['#2e625e', '#2e615d']],
+    grid: '#25514d', side: '#1e4945', bg: '#112523', water: ['#58a594', '#346d60'],
   },
   {
     key: 'desert-pale', theme: 'desert',

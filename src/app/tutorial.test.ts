@@ -1,10 +1,13 @@
 // The first match's tutorial (tutorial.ts): where the hand points on the tutorial's own map, and
-// that every step's lesson is up long enough to be read. The step-1 test is a regression: the hand
-// in step 0 points at the nearest card the player can pay for, which on TUTORIAL_SEED is a
-// barracks, so building it used to meet step 1 on the frame step 1 opened and the game's central
-// lesson showed for one frame.
+// that every step's lesson is up long enough to be read. The regression this file was written for:
+// the hand in step 0 points at the nearest card the player can pay for, and when that card is a
+// barracks, building it used to meet step 1 on the frame step 1 opened, so the game's central
+// lesson showed for one frame. MIN_READ answers it, and 'leaves the barracks lesson up long enough
+// to read' pins it by setting built.barracks itself -- not through the map, which is why that test
+// held when the generator's groves changed under seed 2 (D102) and the step-0 one did not.
 
 import { describe, expect, it } from 'vitest';
+import { cardCost } from '../sim/economy';
 import { Engine } from '../sim/engine';
 import { OFFER_LIST, PHASE_PLAY, TEAM_BLUE } from '../sim/rules';
 import type { Game } from './game';
@@ -42,7 +45,12 @@ describe('where the hand points', () => {
     expect(t).not.toBeNull();
     const oi = e.team[TEAM_BLUE]!.offers[e.tiles.indexOf(t!)]!;
     expect(oi).toBeGreaterThanOrEqual(0);
-    expect(OFFER_LIST[oi]!.kind).toBe('barracks');
+    // Step 0 asks for ANY card (tutorial.ts), so what there is to pin here is the "affordable
+    // first, then by distance" rule -- not which kind seed 2's map happens to put nearest the
+    // castle. That was a barracks until D102 moved the groves and made it a mystery, and nothing
+    // about the tutorial changed: the barracks it then asks for is pinned by the step-1 test
+    // below, which is the one that has to hold.
+    expect(cardCost(oi)).toBeLessThanOrEqual(e.team[TEAM_BLUE]!.gold);
   });
 
   it('points at a barracks in step 1 and at a map event in step 2', () => {

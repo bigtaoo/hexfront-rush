@@ -3,16 +3,36 @@
 // up and to the right; this layer adds what lies over everything:
 // - grain: faint large blotches in the sand, in world space (it moves with the map), so the ground
 //   reads as a material and not as a flat fill; multiplied, so it never lightens anything;
-// - falloff: the screen multiplied by a warm grey that is white (no change) in the lit upper left
-//   and darkest in the lower right corner;
-// - haze: the far (top) edge washed toward a pale warm sky tone, the air between eye and far ground.
+// - falloff: the screen multiplied by a NEUTRAL grey that is white (no change) in the lit upper
+//   left and 4% down in the lower right corner.
 // The textures are small canvases stretched to size: gradients survive any stretch.
 //
-// All three are now a third of the strength they were. The falloff ran to #8d7a64 in the far
-// corner -- a 40% darkening, which meant the same tile read as two different colours depending on
-// where it sat, and the whole frame carried a value spread no flat board should have. The
-// reference (D:/new/ref) holds its sand within two percent of value corner to corner. Atmosphere
-// is worth a few percent, not forty. See DECISIONS.md D87.
+// BOTH ARE NEUTRAL NOW, AND THAT IS MEASURED (D99). The reference's bare forest ground
+// (D:/new/ref, IMG_3717) was read over nine screen cells, filtering to ground pixels alone: its hue
+// is 170.0 to 171.7 in every cell -- a spread of one and a half degrees across the whole board --
+// while its value moves 0.443 to 0.486 with no gradient by position at all (the variation is the
+// patches of D98, which run in every direction). So the reference's atmosphere costs it NO hue and
+// no positional value: whatever light it is under does not tint one corner against another.
+//
+// Ours tinted everything. The falloff ran to a warm grey #dcd2c4, whose blue channel sits 24 points
+// under its red, and multiplying the summer meadow #32705e by it turns hue 162.6 into 155.6 and
+// drops saturation 0.554 to 0.545 -- on top of a 14% darkening. The grain's blotches were the warm
+// #967650 too. Between them they are most of why our whole frame sat at hue 155-160 against the
+// reference's 169-172, and a chunk of why our ground ran 0.04 under it in saturation: a warm
+// multiply over a teal-green board eats exactly the channel the green is made of.
+//
+// A grey multiply changes neither hue nor saturation, only value, which is the one thing the
+// reference's own light does. And the far corner keeps only 4%, the grain only 3: measured on our
+// own board at 420x880 the bare tiles then spanned 0.388 to 0.518 of value where the reference's
+// span 0.431 to 0.502 -- nearly twice its spread, because the patches of D98 already spend 0.048 of
+// it and a vignette and a grain stacked on top of them put the board's far corner under the
+// reference's floor. The patches are the measured structure; these two are framing, and framing
+// goes second.
+//
+// The haze is gone with the tint. It washed the far (top) edge toward a pale warm cream, and the
+// reference's far edge is not washed: its top cells read H170.8 S0.539 V0.451 against the bottom's
+// H170.8 S0.579 V0.486 -- the far edge is if anything a shade DARKER, and carries the same hue and
+// the same saturation. There was nothing there to paint. See DECISIONS.md D87, D99.
 
 import { Container, Sprite, Texture, TilingSprite } from 'pixi.js';
 import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1 } from './viewConst';
@@ -42,13 +62,13 @@ function grainTex(): Texture {
     for (let i = 0; i < 70; i++) {
       const x = r() * N, y = r() * N, rad = 14 + r() * 46;
       const dark = r() < 0.6;
-      const col = dark ? `rgba(150,118,80,${0.015 + r() * 0.025})` : `rgba(255,255,255,0)`;
+      const col = dark ? `rgba(128,128,128,${0.010 + r() * 0.020})` : `rgba(255,255,255,0)`;
       // drawn at the wrapped offsets too, so the tile repeats without a seam
       for (const ox of [-N, 0, N])
         for (const oy of [-N, 0, N]) {
           const g = c.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, rad);
           g.addColorStop(0, col);
-          g.addColorStop(1, 'rgba(150,118,80,0)');
+          g.addColorStop(1, 'rgba(128,128,128,0)');
           c.fillStyle = g;
           c.fillRect(x + ox - rad, y + oy - rad, rad * 2, rad * 2);
         }
@@ -60,22 +80,11 @@ function falloffTex(): Texture {
   const N = 256;
   return canvasTex(N, N, (c) => {
     const g = c.createRadialGradient(N * 0.3, N * 0.25, N * 0.08, N * 0.3, N * 0.25, N * 1.15);
-    g.addColorStop(0, '#fffefb');
-    g.addColorStop(0.45, '#f7f2ea');
-    g.addColorStop(1, '#dcd2c4');
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.45, '#fdfdfd');
+    g.addColorStop(1, '#f5f5f5');
     c.fillStyle = g;
     c.fillRect(0, 0, N, N);
-  });
-}
-
-function hazeTex(): Texture {
-  return canvasTex(4, 256, (c) => {
-    const g = c.createLinearGradient(0, 0, 0, 256);
-    g.addColorStop(0, 'rgba(250,240,222,0.3)');
-    g.addColorStop(0.22, 'rgba(250,240,222,0.06)');
-    g.addColorStop(0.4, 'rgba(250,240,222,0)');
-    c.fillStyle = g;
-    c.fillRect(0, 0, 4, 256);
   });
 }
 
@@ -85,7 +94,6 @@ export class LightLayer {
   /** Over the world, under the HUD (screen space). */
   readonly screen = new Container();
   private falloff = new Sprite(falloffTex());
-  private haze = new Sprite(hazeTex());
 
   constructor() {
     const t = grainTex();
@@ -94,15 +102,12 @@ export class LightLayer {
     this.grain.position.set(MAP_X0 - 2, MAP_Y0 - 2);
     this.grain.blendMode = 'multiply';
     this.falloff.blendMode = 'multiply';
-    this.screen.addChild(this.falloff, this.haze);
+    this.screen.addChild(this.falloff);
   }
 
   resize(W: number, top: number, H: number): void {
     this.falloff.position.set(0, top);
     this.falloff.width = W;
     this.falloff.height = H - top;
-    this.haze.position.set(0, top);
-    this.haze.width = W;
-    this.haze.height = H - top;
   }
 }

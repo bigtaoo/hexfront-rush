@@ -12,8 +12,9 @@
 // - a lighter base: one paved yard instead of a stone
 //   wall round every tile, a smaller badge;
 // - one light for the whole scene: every picture throws the same shadow down and to the right,
-//   the screen falls off from a lit upper left into a darker lower right, the far (top) edge hazes
-//   and the sand carries a faint large-scale grain.
+//   the screen falls off from a lit upper left into a slightly darker lower right, and the ground
+//   carries a faint large-scale grain -- both NEUTRAL grey, because the reference's own light costs
+//   it no hue corner to corner (light.ts D99).
 // ?only3 also draws every troop and building with the three Tripo models only (the
 // guard, the ogre, the mine), to judge one consistent style; it is a look test, not playable.
 
@@ -29,4 +30,7 @@ export const LOOKB_UNIT_K = 1.3;
 
 /** The cast shadow: the picture flattened onto the ground and leaned away from the light. */
 // skew leans the flipped picture right as it goes down: drop = squash·cos(skew), lean = squash·sin(skew)
-export const CAST = { squash: 0.55, skew: 0.85, alpha: 0.28, tint: 0x2a1c10 };
+// the tint is near-black and a breath cool for the same reason the contact shadow is (bodies.ts D100):
+// a warm brown cast shadow cost the ground it lay on five degrees of hue, and the reference's own dark
+// end runs COOLER than its midtones, not warmer.
+export const CAST = { squash: 0.55, skew: 0.85, alpha: 0.30, tint: 0x0e1416 };

@@ -114,7 +114,7 @@ export function obstacleTex(kind: Obstacle, deco: number, theme: string): { t: T
  *  the troops walk straight through, so nothing in it has a standing silhouette, a ground patch or
  *  a contact shadow (tools/art3d/props.py). See DECISIONS.md D90. */
 const DECOR: Record<string, readonly string[]> = {
-  meadow: ['tuft', 'tuft', 'tuft', 'tuft', 'flowers', 'pebbles', 'twigs'],
+  meadow: ['tuft', 'tuft', 'tuft', 'flowers', 'pebbles', 'twigs', 'twigs'],
   desert: ['stones', 'stones', 'stones', 'drybush', 'drybush', 'pebbles'],
   snow: ['drift', 'drift', 'drift', 'twigs', 'pebbles'],
 };

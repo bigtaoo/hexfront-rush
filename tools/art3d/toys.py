@@ -57,13 +57,33 @@ def scene(span: float, elev: float, fit, grow: float = 1.0):
     w = bpy.data.worlds.new('world')
     sc.world = w
     w.use_nodes = True
-    w.node_tree.nodes['Background'].inputs['Color'].default_value = srgb('#e9dfcf')
-    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.34
-    # key: warm sun from the front left, soft; rim: a cool light from behind right
+    # NEUTRAL, not the warm cream it was (D99). The world was '#e9dfcf' and the key (1.0, 0.95, 0.86),
+    # and between them they rotated every green in the cast off its own material: prim.py paints the
+    # foliage at hue 169-172 to sit in one family with the board (D96), and the atlas measured 160-164
+    # -- the light was eating 8 degrees of it. A warm light costs a warm material nothing (brown 25.1
+    # stays 25.2, skin 29.4 stays 29.6) and costs a teal-green four to six degrees, because the
+    # channel it presses is the one the green is made of. The reference (D:/new/ref) carries no such
+    # cast at all: its ground reads hue 170.0 to 171.7 in all nine screen cells of IMG_3717, and its
+    # crowns sit just above that. So the key is white.
+    #
+    # AND THE WORLD IS A SKY, not the neutral grey a first cut of D99 made it (D100). Band the
+    # reference's own forest by value and the crown walks: lit face V0.40 H180.8 S0.587, body V0.35
+    # H170.1 S0.812, shadow V0.27 H188.1 S0.853, deepest V0.25 H198.8 S0.825 -- as a crown darkens it
+    # goes BLUER and MORE SATURATED, twenty-nine degrees of hue from its lit face to its deepest
+    # shadow. Our atlas did not walk at all: oak read one hue from top to bottom, because under a grey
+    # world a shadowed face is lit by nothing but the material's own colour. A sky-blue world is what
+    # a shadow is actually lit by, and it costs the LIT faces nothing -- the key is 4.9 against 0.38,
+    # so they stay within a degree or two of the material -- while a pure-ambient green face lands at
+    # hue 182.9 saturation 0.723 against the material's own 168.8/0.657. That is the reference's walk,
+    # got the way the reference's own renderer would have got it. The strength is up four hundredths
+    # because a tinted world carries less luminance than the grey it replaces. The cool rim stays.
+    w.node_tree.nodes['Background'].inputs['Color'].default_value = srgb('#aecee8')
+    w.node_tree.nodes['Background'].inputs['Strength'].default_value = 0.38
+    # key: a white sun from the front left, soft; rim: a cool light from behind right
     key = bpy.data.objects.new('key', bpy.data.lights.new('key', 'SUN'))
     key.data.energy = 4.9
     key.data.angle = math.radians(14)
-    key.data.color = (1.0, 0.95, 0.86)
+    key.data.color = (1.0, 1.0, 1.0)
     key.rotation_euler = (math.radians(48), 0, math.radians(-38))
     sc.collection.objects.link(key)
     rim = bpy.data.objects.new('rim', bpy.data.lights.new('rim', 'SUN'))

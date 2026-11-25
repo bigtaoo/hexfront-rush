@@ -20,8 +20,8 @@ const cam = (eng: Engine): Camera => {
   c.setView(eng, TEAM_BLUE);
   return c;
 };
-/** A seed whose theme actually carries litter: since D97 the meadow boards carry none, so the
- *  density tests below have to be told which boards to measure or they measure nothing. */
+/** A seed whose theme carries litter. Every theme does again (D101), but the helper stays: a theme
+ *  turned off here once already and the density tests below must measure a board, not nothing. */
 const littered = (want: number): number[] => {
   const out: number[] = [];
   for (let seed = 1; out.length < want && seed < 400; seed++) {
@@ -59,15 +59,18 @@ describe('ground decoration', () => {
     expect(placed(c, ec)).not.toEqual(placed(a, ea));
   });
 
-  it("leaves the meadow boards bare: the reference's forest ground carries nothing", () => {
-    expect(density('meadow')).toBe(0);
+  it('litters the meadow boards too: every theme carries the same fifth', () => {
+    // The meadow sat at zero from D97 to D101 on a misread -- the pieces disappearing into the dark
+    // green was this layer's 0.62 alpha, not its density (decor.ts). A board with 270 of its 325
+    // hexes empty is the thing that reading cost us, so this pins that no theme is switched off.
+    for (const theme of ['meadow', 'desert', 'snow']) expect(density(theme)).toBe(density('x'));
     for (let seed = 1, seen = 0; seen < 3 && seed < 400; seed++) {
       const eng = engine(seed);
       if (eng.themeKey !== 'meadow') continue;
       seen++;
       const l = new DecorLayer();
       l.build(eng, cam(eng));
-      expect(placed(l, eng)).toEqual([]);
+      expect(placed(l, eng).length).toBeGreaterThan(20);
     }
   });
 

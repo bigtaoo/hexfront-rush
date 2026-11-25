@@ -34,8 +34,17 @@ const GROVE = new Set(['tree', 'pine']);
 const PAIR: readonly (readonly [number, number, number])[] = [
   [-0.47, -0.17, 0.82], [0.44, -0.21, 0.78], [-0.40, -0.30, 0.72], [0.38, -0.27, 0.86],
 ];
-/** lookB sinks the scenery into the board (sprites.ts): the same treatment, and a companion goes a
- *  shade further under so the grove has a front to it. */
+/** A companion goes a shade under the piece in front of it, so the grove has a front to it. This is
+ *  the ONLY alpha left on an obstacle: the group used to run at 0.62 as well, "sinking the scenery
+ *  into the board", and that was the wrong tool for the job (D100). Alpha mixes a piece toward the
+ *  ground in BOTH directions -- an oak's darkest pixel, 0.20 of value, lands at 0.62*0.20 + 0.38*0.47
+ *  = 0.303 over a meadow -- so it does not just quiet the crown, it throws away the dark end of the
+ *  whole board. That is measurable: our board region's 5th percentile of value sat at 0.318 against
+ *  the reference's 0.271 (D:/new/ref IMG_3717), and 0.303 is where that number comes from. The
+ *  reference's own trees are a DENSE OPAQUE MASS with hard outlines and real contrast inside them,
+ *  not a wash. Where a tree sits in value is a question for the material, and sprite.py's tone pass
+ *  already answers it -- floor 0.22, body compressed to 0.36 of its range, key faces lifted back
+ *  0.30 -- so doing it a second time in alpha was both double and lossy. */
 const BACK_ALPHA = 0.86;
 
 /** A fraction in [0, 1) from a tile's deco roll and a question number: which companions, and which
@@ -72,7 +81,6 @@ function piece(g: Container, kind: string, deco: number, theme: ThemeKey,
 /** The container for `t`'s obstacle, unpositioned: the caller sets it on the tile. */
 export function obstacleGroup(t: Tile, theme: ThemeKey): Container {
   const g = new Container();
-  if (LOOK_B) g.alpha = 0.62;
   if (GROVE.has(t.obst)) {
     // one companion always, a second on a third of the tiles: a wood wants uneven clumps, and
     // three crowns on every single tree tile is the one-per-cell rhythm again at three times the ink
@@ -83,6 +91,15 @@ export function obstacleGroup(t: Tile, theme: ThemeKey): Container {
       piece(g, t.obst, d, theme, p[0], p[1], p[2], BACK_ALPHA);
     }
   }
-  piece(g, t.obst, t.deco, theme, 0, 0, 1, 1);
+  // The piece that marks the tile is jittered a little in size and in where it stands. Every main
+  // piece used to be exactly full size on exactly the tile's centre, and eight pines in a row came
+  // out eight identical pines on eight evenly spaced dots -- the one-per-cell rhythm again, this
+  // time inside a wood. The reference's crowns (D:/new/ref IMG_3717) are all different sizes and
+  // none of them is centred on anything. The amounts are small on purpose: the tile under this
+  // piece is impassable and the player reads that from the piece, so it may lean, not wander. The
+  // foot stays inside the hex at 0.10 of a hex width out. D100.
+  const jx = (roll(t.deco, t.i, 21) - 0.5) * 0.20;
+  const jy = (roll(t.deco, t.i, 22) - 0.5) * 0.12;
+  piece(g, t.obst, t.deco, theme, jx, jy, 0.93 + roll(t.deco, t.i, 23) * 0.14, 1);
   return g;
 }

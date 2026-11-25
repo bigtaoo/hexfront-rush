@@ -27,8 +27,13 @@ ELEVS = {'oak': 32, 'pine': 30, 'snowpine': 30, 'cactus': 34, 'arch': 30, 'rocks
 ELEVS.update({n: 52 for n in ('tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'drift', 'twigs')})
 
 
-def _ground(r, mat='moss', z=0.022, scale=(1.0, 1.0, 1), loc=(0, 0, 0), seg=28):
-    """The little patch of ground a prop stands on: what gives it a base line on the map."""
+def _ground(r, mat='shade', z=0.022, scale=(1.0, 1.0, 1), loc=(0, 0, 0), seg=28):
+    """The little patch of ground a prop stands on: what gives it a base line on the map.
+
+    Dark, not moss (prim.py 'shade', D100): the disc faces straight up into the key and is the one
+    surface in the set that blows out, so a mid green here came back off the board as a bright ring
+    around a dark crown. A base line is a shadow, and a shadow is darker than what it falls on.
+    """
     return lathe([(r, 0), (r, z), (0.0, z)], mat, loc=loc, seg=seg, name='ground', scale=scale)
 
 
