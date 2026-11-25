@@ -111,6 +111,23 @@ GROVE_INK = (31, 66, 62)
 # has measured. The litter is left out for the same reason twice over: the reference's forest frames
 # carry no litter at all, so there is nothing there to measure a ceiling against.
 GROVE_CAP = {'t': 0.40, 'c': 0.25}
+# AND THEN IT IS PAINTED IN STEPS, NOT IN A GRADIENT (D117). A render shades a sphere smoothly and
+# the reference paints a canopy in flat tiers, and that -- more than hue, value or outline -- is why
+# a grove of ours reads as balloons and one of theirs as foliage. Counted rather than eyeballed, by
+# the value histogram of a crop that is nothing but canopy: the reference's (IMG_3682, 595..765 x
+# 1015..1205) piles up at 0.263-0.278, 0.341-0.353 and 0.392, and its six commonest levels +-1 cover
+# 60.0% of the crop. Ours covered 39.4% (oak) and 30.0% (pine) -- a continuum, no tiers at all.
+# So the three grove bodies are snapped to the reference's own tiers, with a fourth at the ceiling
+# GROVE_CAP leaves: value only, each pixel's channels scaled, hue and saturation untouched exactly
+# as the lift above does it. It runs on the full-size render, so each step comes out of the
+# downscale as a one-px anti-aliased edge and not a staircase. Below 0.14 nothing is touched: that
+# is the ink's and the deep undersides' range, and the band would only flatten them together.
+GROVE_BAND = (0.263, 0.345, 0.392, 0.424)
+# And it is a PULL toward the tiers, not a snap onto them. Snapped outright (k = 1) the same six
+# levels covered 88.9% of an oak and 89.6% of a pine against the reference's 60.0% -- past it, and
+# a canopy of hard plates is as wrong as one of balloons. The reference is painted in tiers AND
+# shaded within them; 0.55 lands oak at 55.0% and pine at 63.6%, averaging its 60.0%.
+GROVE_BAND_K = 0.55
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
 from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's sizes and groups
 
@@ -280,6 +297,19 @@ def tone(im: Image.Image, geo, cap=None) -> Image.Image:
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
+def band(im: Image.Image, levels, k: float = 1.0) -> Image.Image:
+    """Pull a body's value toward flat tiers (D117); hue and saturation untouched."""
+    a = np.asarray(im).astype(np.float64)
+    rgb = a[..., :3] / 255
+    v = rgb.max(-1)
+    lv = np.asarray(levels, np.float64)
+    snap = v + k * (lv[np.abs(v[..., None] - lv).argmin(-1)] - v)
+    m = (v > 0.14) & (a[..., 3] > 128)
+    out = np.where(m[..., None], rgb * (snap / np.maximum(v, 1e-6))[..., None], rgb)
+    a[..., :3] = np.clip(out, 0, 1) * 255
+    return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
+
+
 def outline(im: Image.Image, px: int, trim=True, ink_rgb=None) -> Image.Image:
     if px <= 0:
         return im
@@ -350,7 +380,8 @@ def sym(im, b):
     return (int(c - half), b[1], int(round(c + half)), b[3])
 
 
-def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=None, cap=None):
+def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=None, cap=None,
+         bands=None):
     """Size one group of frames together: shared crop box, one scale solved on the first frame."""
     ims = [Image.open(f).convert('RGBA') for f in paths]
     ims, geos = centred(ims, geos)
@@ -379,6 +410,8 @@ def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=
         g = None if geo is None else tuple(q[y0:y1, x0:x1] for q in geo)
         if deep:                       # the body down, the lit faces back up: scenery only
             im = tone(im, g, cap)
+        if bands is not None:          # and then into flat tiers: grove only
+            im = band(im, bands, GROVE_BAND_K)
         if g is not None:
             im = inner_lines(im, g, im.height / lo, ink_rgb)
         out.append(sized(im, lo, px, one, ink_rgb))
@@ -446,7 +479,8 @@ def main():
         ims = make(paths, TARGET[name] * TEX_K,
                    GROVE_PX if grove else max(1, round(px / 2)) if lit else px,
                    None if lit or grove else want, geos, deepen and name in SCENERY,
-                   GROVE_INK if grove else None, GROVE_CAP if grove else None)
+                   GROVE_INK if grove else None, GROVE_CAP if grove else None,
+                   GROVE_BAND if grove else None)
         for f, im in zip(paths, ims):
             im.save(out / f.name)
         print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)
