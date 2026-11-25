@@ -54,6 +54,10 @@ def _ground(r, mat='shade', z=0.022, scale=(1.0, 1.0, 1), loc=(0, 0, 0), seg=28)
 
 
 def _trunk(r0, r1, h, loc=(0, 0, 0), mat='brown'):
+    """The default stays 'brown' and the two MEADOW trees pass 'bark' instead (prim.py D109).
+    The scope is D107's and D108's: the snow and desert pieces stand on grounds no reference
+    frame has been measured on, and snowpine's trunk is 0.26 tall under a skirt that starts at
+    0.20, so almost none of it is on screen to be warm."""
     return lathe([(r0, 0), (r0 * 0.92, h * 0.18), (r1 * 1.06, h * 0.7), (r1, h), (0.0, h)], mat,
                  loc=loc, seg=20, name='trunk')
 
@@ -73,7 +77,7 @@ def _rockpile(slabs, mossy=()):
 def model_oak():
     """A broadleaf: a bare trunk under a crown built from three flattened balls, the back ones
     darker. One ball is a lollipop; three at different heights make a crown with a top to it."""
-    _trunk(0.11, 0.075, 0.52)
+    _trunk(0.11, 0.075, 0.52, mat='bark')
     for (bx, by, bz, r, mat) in ((-0.17, 0.14, 0.60, 0.29, 'deepgreen'),
                                  (0.19, 0.12, 0.66, 0.27, 'deepgreen'),
                                  (-0.09, -0.24, 0.57, 0.25, 'deepgreen'),
@@ -84,14 +88,14 @@ def model_oak():
         ball(r, mat, (bx, by, bz), scale=(1.0, 0.95, 0.78), name='leaf')
     # two boughs showing under the crown, so the trunk does not run straight into a ball
     for s in (1, -1):
-        rod(0.045, 0.26, 'brown', (s * 0.10, 0.02, 0.50), rot=(0, s * 0.8, 0), name='bough')
+        rod(0.045, 0.26, 'bark', (s * 0.10, 0.02, 0.50), rot=(0, s * 0.8, 0), name='bough')
     return 1.2
 
 
 def model_pine():
     """A conifer: three skirts stacked on a short trunk, each one clear of the one above it. The
     steps between skirts are the only thing that tells a pine from a green triangle at 60 px."""
-    _trunk(0.095, 0.07, 0.26)
+    _trunk(0.095, 0.07, 0.26, mat='bark')
     for (z, r, h, mat) in ((0.18, 0.40, 0.40, 'deepgreen'), (0.50, 0.32, 0.38, 'green'),
                            (0.78, 0.23, 0.38, 'green')):
         lathe([(r, 0), (r * 0.98, h * 0.08), (r * 0.55, h * 0.52), (0.0, h)], mat, loc=(0, 0, z),

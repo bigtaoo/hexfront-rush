@@ -51,6 +51,27 @@ PAL = {
     # the terrain props (props.py): a colder blue-white for ice, and a second,
     # darker green so a tree's crown has two values and does not read as one blob
     'ice': '#9fd8e8', 'frost': '#dff2f7', 'deepgreen': '#2a6864',
+    # 'bark' is the meadow trees' trunk and boughs, and it exists because 'brown' (#6b4428,
+    # hue 25) is the ONE warm thing left on a finished board. Masked by hue over the seed-2
+    # board, 3.1% of our pixels sat in hue 0-30 at value 0.26 -- the trunks, and nothing else
+    # is both warm and dark. The reference (D:/new/ref IMG_3717) has no dark warm pixel at all:
+    # 96% of its board is hue 150-210 and its only warm 2.4% sits at value 0.75-1.0, which is
+    # its UI icons. Its own cut stump is COLD, and the measurement that matters is how far it sits
+    # from the ground it stands on, not what it is on its own: masked beside each other, the
+    # reference's stump is hue 172.3 against its open ground's 169.0 -- THREE DEGREES -- at 2.98x
+    # the ground's saturation and 0.85 of its value. It is not a different colour from the board. It
+    # is the board's own colour wrung out dark. A first cut of this put the bark at hue 190 off the
+    # reference stump's own #064655, which rendered at hue 195.9 against our ground's 169.1 -- 27
+    # degrees out -- and two saturated cyan legs under every oak read as the BLUE TEAM, which is the
+    # one thing a colour on this board may not do (STYLE.md). So the hue is the crown's, not the
+    # reference pixel's: 172, four degrees off 'deepgreen', at 0.80 saturation (well over the
+    # ground's 0.37). The value is a sixth OVER brown's, which is the second thing the side-by-side
+    # measurement says: the reference's stump is 0.85 of its ground and 0.78 of its canopy, and a
+    # trunk at brown's own value came out at 0.68 and 0.71 -- darker than the reference's, and dark
+    # enough that the crown looked like it was standing on nothing. 0.49 puts the rendered trunk at
+    # 0.76 of the ground and 0.79 of the crown. The buildings', the chest's and the camp's timber
+    # keep 'brown': those are made things and a warm plank is what says so. D109.
+    'bark': '#197d70',
     # 'shade' is the little disc a prop stands on (props.py _ground). It used to be 'moss', and a
     # flat UP-FACING disc under a 4.9-energy key is the one surface in the whole set that blows out:
     # moss at value 0.600 rendered near 0.95, and the tone pass (sprite.py) brought that back only to
