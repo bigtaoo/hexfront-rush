@@ -196,20 +196,26 @@ const RIM_W = 0.42, RIM_D = 0.025, RIM_N = 4;
  *  patches have ragged hex outlines where a block grid draws rectangles; sixteen spots over 325
  *  tiles is about twenty tiles a patch, four or five across, which is the run length measured.
  *
- *  THE STEPS GO UP, NOT BOTH WAYS. The skins' own meadow green is value 0.439 (#32705e), which is
- *  the reference's FLOOR, not its middle: its four levels sit 0, 0.015, 0.046 and 0.064 above
- *  0.441, and its mean ground is about 0.458. Ours was 0.443 flat, so the board was pitched at the
- *  reference's darkest patch everywhere. Three steps of 0, 0.018 and 0.048 put our floor where it
- *  already was and our mean where the reference's is.
+ *  AND THEY ARE CENTRED ON THE SKIN, NOT STACKED ON IT (D115). This note held for ten versions that
+ *  the skins' green was the reference's FLOOR -- its levels 0, 0.015, 0.046, 0.064 above 0.441 --
+ *  so the steps only went up. Read the careful way, by the MODAL colour of each bare cell at FULL
+ *  resolution (a resize blends and pulls the extremes in, which is how the old reading went wrong),
+ *  the reference's forest is two populations, 0.486 (#347c72) and 0.443 (#357167), over a dark tier
+ *  at 0.396 and 0.322: 0.441 is its MIDDLE, and skins.ts's zones -- 0.478, 0.439, 0.396 -- sit on
+ *  those tiers already. So the ramp was not pitching the board onto the reference's mean, it lifted
+ *  it 0.022 clear of its own skin -- the camera sits over the home country, a third of its tiles
+ *  take the top step, the commonest colour on screen came out 0.510-0.518 against 0.486 and the
+ *  ground-teal median 0.482 against 0.439, and light.ts only multiplies. So the three keep their
+ *  measured shape, 0.018 then 0.030 apart, shifted down by their own mean: the skin is their CENTRE.
  *
  *  And the levels are dealt out k % 3, not rolled: rolling them put eleven of sixteen spots on the
  *  brightest level on seed 2, which is 237 of 325 tiles, and that is not patchiness -- it is the
- *  whole board 0.048 brighter than skins.ts pitched it, with a few dark corners. Dealing fixes the
- *  mean at +0.022 while the spots' positions, which are rolled, still make every board different.
+ *  whole board 0.048 brighter than skins.ts pitched it, with a few dark corners. Dealing holds the
+ *  mean at zero while the spots' positions, which are rolled, still make every board different.
  *
  *  Territory tiles are left flat: the reference's own territory patches are one colour from end to
  *  end (teamLook below), and so is its water. */
-export const PATCH_N = 15, PATCH_D = [0, 0.018, 0.048] as const;
+export const PATCH_N = 15, PATCH_D = [-0.022, -0.004, 0.026] as const;
 
 /** Which patch each tile fell in: nearest of PATCH_N spots scattered over the board from the map
  *  seed, so both clients of one match lay the same patches (nothing here is networked). */

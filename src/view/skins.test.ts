@@ -288,11 +288,16 @@ describe('the ground patches', () => {
     expect([...groundPatches(generateMap(8).tiles, 8)]).not.toEqual([...groundPatches(generateMap(7).tiles, 7)]);
   });
 
-  it("steps up from the skin colour, which is the reference's floor", () => {
-    // the reference's own levels sit 0, 0.015, 0.046 and 0.064 ABOVE its darkest bare tile, so the
-    // skin colour is the floor and nothing may go under it
-    expect(Math.min(...PATCH_D)).toBe(0);
-    expect(Math.max(...PATCH_D)).toBeLessThanOrEqual(0.064);
+  it('is centred on the skin colour, not stacked on top of it', () => {
+    // D115: the skin colour is the patches' MIDDLE, not their floor. A one-sided ramp does not
+    // texture the board, it repitches it -- ours came out 0.022 brighter than skins.ts says, which
+    // light.ts (multiply only) cannot take back. So the steps must average out to nothing.
+    const mean = PATCH_D.reduce((a, b) => a + b, 0) / PATCH_D.length;
+    expect(Math.abs(mean)).toBeLessThan(0.004);
+    expect(Math.min(...PATCH_D)).toBeLessThan(0);
+    expect(Math.max(...PATCH_D)).toBeGreaterThan(0);
+    // and the span stays the measured raggedness, not a gradient
+    expect(Math.max(...PATCH_D) - Math.min(...PATCH_D)).toBeLessThanOrEqual(0.064);
     expect(PATCH_N).toBeGreaterThan(8);
   });
 });
