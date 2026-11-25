@@ -176,8 +176,15 @@ export class WallLayer {
       // a lit top (181..197) -- and it is the strongest piece of structure anywhere on its board.
       // Flat paving alone is a stain on the ground; the kerb is what makes the plot a *place*.
       // The paving stays translucent so the ground reads through it (D87, D88).
-      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y + 0.05, 1.03, 'rgba(120,96,64,0.16)');
-      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y, 1.02, 'rgba(236,227,207,0.5)');
+      //
+      // Its colour is the kerb's own grey, not a near-white. The first cut was (236,227,207) at
+      // half alpha, which was quiet only because every board was then a light one; over the
+      // reference's forest green (value 0.44, D91) the same wash is a pale stone plaque sitting on
+      // a dark field, brighter than anything else on the board and louder than the buildings it is
+      // supposed to be under. Mid grey instead reads the same way on both: a paved yard is darker
+      // than sand and lighter than forest, which is what paving is.
+      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y + 0.05, 1.03, 'rgba(40,32,24,0.20)');
+      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y, 1.02, 'rgba(150,147,141,0.46)');
       const HB = 0.07;
       for (const s of segs) p.line([s[0]!, s[1]! + HB * 0.5, s[2]!, s[3]! + HB * 0.5], 'rgba(34,34,34,0.9)', 0.22, 'round');
       for (const s of segs) p.line([s[0]!, s[1]! + HB, s[2]!, s[3]! + HB], '#858380', 0.15, 'round');

@@ -25,41 +25,74 @@ import type { Pt } from './viewConst';
 /** The backdrop around the map, for the renderer's clear colour. */
 export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme, seed).bg;
 
-/** A team's ground, and the line along its front. The reference (D:/new/ref) makes the two sides
- *  deliberately *unequal*, and that is the whole idea: the enemy's land is the alarm -- louder and
- *  lighter than the bare ground (saturation 0.71 at value 0.93 over sand at 0.58/0.86) -- while
- *  your own land is calm, cool and *darker* than the ground (0.31 at 0.71). You glance at the board
- *  and the only thing shouting is the half you are losing. Matched washes, which is what we had,
- *  make the player read two equally loud fields and work out which one is theirs.
+/** A team's ground, and the line along its front. BOTH ARE DERIVED FROM THE GROUND THEY SIT ON,
+ *  and that is the one thing a hand-written pair of colours cannot do. The reference (D:/new/ref)
+ *  was read again, this time on all 122 frames instead of the one sand board, and its territories
+ *  turn out to be a single rule applied to whatever the ground happens to be: the bare tile mixed
+ *  about 55% toward that team's own front-line colour. Four measurements, two grounds, one mix:
+ *
+ *    sand   #daa75c -> red #ee6745, blue #7e9fb6
+ *    forest #357167 -> red #a4544f, blue #338cbf
+ *
+ *  and `mix(ground, '#ff3333', 0.55)` / `mix(ground, '#3399ff', 0.55)` lands within a few units of
+ *  each of those four. It also reproduces the pair this replaces, which was measured off the sand
+ *  board and is therefore right there and nowhere else: on a dark board a fixed #7897ad is *paler*
+ *  than the ground, and a player's own country stops reading as blue and reads as fog.
+ *
+ *  What looked like a deliberate inequality -- the enemy's land loud and lighter than the ground,
+ *  your own calm and darker -- is this rule plus hue arithmetic, not an authored asymmetry. Both
+ *  line colours are value 1.0; mixing one into warm sand raises its value (0.855 -> 0.93) and the
+ *  other lowers it (-> 0.71), because sand has little blue in it to begin with. The effect is real
+ *  and worth keeping, which is why it is still described here -- but it comes out of the mix for
+ *  free on every skin, instead of holding only on the one the numbers were taken from.
  *
  *  The line is the loudest mark anywhere in the game and the only near-pure colour in it: #3399ff
  *  and #ff3333, sitting on the edge itself (LINE_IN), not tucked inside the tile. A dark border is
- *  a seam between two fills; a bright one is a front. Everything else on the board is a tint by
- *  comparison, which is what lets one hairline do the work sixty bevels were doing before.
+ *  a seam between two fills; a bright one is a front.
  *
- *  The two shades are all but the same colour now: the sim's per-tile checker is still there, but
- *  it is felt and not seen. The hex grid does NOT stop at the border, though -- the first cut of
- *  this dropped it inside a territory and the owned land read as one shapeless blob you could not
- *  count tiles in. The reference draws the edge there too, at about a fiftieth of a value, which is
- *  invisible at our tile size; `grid` here is 6% down instead -- still far quieter than the 14% on
- *  open ground, loud enough to see a cell.
+ *  The hex grid does NOT stop at the border: the first cut of this dropped it inside a territory
+ *  and the owned land read as one shapeless blob you could not count tiles in. `grid` is 6% down in
+ *  value from the field it edges -- quieter than the line on open ground, loud enough to see a cell.
  *
- *  `stamp` is the mark struck on every tile of a territory, the one piece of the reference's board
- *  this had nothing at all for: it stamps a crest on each tile of its fields, #bb2421 on #ef6845 --
- *  saturation up a sixth, value down a fifth. Both of these are that ratio off their own field, so
- *  the enemy's stamp is as loud as its field is and yours stays as quiet as yours. A flat wash over
- *  twenty hexes is a shape on the map; a stamped one is twenty tiles you can count.
- *  See DECISIONS.md D85, D86, D87, D88. */
-export const TEAM_HUE: Record<number, { top: readonly [string, string]; grid: string; line: string; stamp: string }> = LOOK_B
-  ? {
-      // lookB: enemy red lifted off the sand, own blue sunk below it, both lines near-pure
-      [TEAM_BLUE]: { top: ['#7897ad', '#7695ab'], grid: '#6d8da2', line: '#3399ff', stamp: '#577387' },
-      [TEAM_RED]: { top: ['#ee6745', '#ed6745'], grid: '#e05937', line: '#ff3333', stamp: '#ba4021' },
-    }
-  : {
-      [TEAM_BLUE]: { top: ['#8eaed6', '#88a8d1'], grid: '#8098bb', line: '#2c55a0', stamp: '#6683a7' },
-      [TEAM_RED]: { top: ['#eaa292', '#e69a89'], grid: '#d18e7e', line: '#b13a2a', stamp: '#b77667' },
-    };
+ *  `stamp` is the mark struck on every tile of a territory: the field pulled a third further toward
+ *  the line colour and a fifth down in value, so the enemy's stamp is as loud as its field is and
+ *  yours stays as quiet as yours. A flat wash over twenty hexes is a shape on the map; a stamped
+ *  one is twenty tiles you can count.
+ *  See DECISIONS.md D85, D86, D87, D88, D91. */
+export const TEAM_LINE: Record<number, string> = LOOK_B
+  ? { [TEAM_BLUE]: '#3399ff', [TEAM_RED]: '#ff3333' }
+  : { [TEAM_BLUE]: '#2c55a0', [TEAM_RED]: '#b13a2a' };
+
+/** How far a team's ground is pulled toward its own line colour: the reference's own 0.55. The
+ *  legacy look (?looka) keeps its softer wash. */
+const TERRITORY_MIX = LOOK_B ? 0.55 : 0.4;
+
+export interface TeamLook {
+  top: readonly [string, string];
+  grid: string;
+  line: string;
+  stamp: string;
+}
+const teamLooks = new Map<string, TeamLook>();
+
+/** A team's look on one skin's ground. Cached: a board has two of these, and a tile that changes
+ *  hands asks for one every time. The field is mixed off the skin's *open field* zone, not the
+ *  tile's own zone, so a territory is one colour from end to end (the reference's is). */
+export function teamLook(sk: MapSkin, team: number): TeamLook {
+  const key = `${sk.key}|${team}`;
+  const had = teamLooks.get(key);
+  if (had) return had;
+  const line = TEAM_LINE[team]!;
+  const top = [mix(sk.top[1][0], line, TERRITORY_MIX), mix(sk.top[1][1], line, TERRITORY_MIX)] as const;
+  const look: TeamLook = {
+    top,
+    grid: vUp(top[0], 0.94),
+    line,
+    stamp: vUp(mix(top[0], line, 0.3), 0.8),
+  };
+  teamLooks.set(key, look);
+  return look;
+}
 
 /** How thick a tile is: what shows below it along the map's rim (view units). Only the rim shows
  *  it now -- the tiles meet edge to edge, so a lower row's top covers the side of the row above. */
@@ -88,6 +121,23 @@ export function vUp(hex: string, f: number): string {
   const n = Number.parseInt(hex.slice(1), 16);
   const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((x) => Math.min(255, Math.round(x * f)));
   return `#${c.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** A colour's value (its brightest channel, 0..1). Only #rrggbb goes in. */
+export function val(hex: string): number {
+  const n = Number.parseInt(hex.slice(1), 16);
+  return Math.max((n >> 16) & 255, (n >> 8) & 255, n & 255) / 255;
+}
+
+/** `t` of the way from one #rrggbb colour to another. Only #rrggbb goes in. */
+export function mix(a: string, b: string, t: number): string {
+  const pick = (hex: string) => {
+    const n = Number.parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const x = pick(a), y = pick(b);
+  const c = x.map((v, i) => Math.round(v + (y[i]! - v) * t));
+  return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
 /** The lit lip inside a tile's edge. Measured off the reference (D:/new/ref, IMG_3660), scanning
@@ -222,12 +272,15 @@ export class GroundLayer {
     const p = this.ringPen.clear();
     for (const tm of TEAMS) {
       const v = cam.tv[baseTile(tm)]!;
-      // One dark dash, not a dark rim under a bright one. A white dash is a line that only exists
-      // on a dark board -- at 0.42 over the snow themes' home band (#f4ead1) it lifts the luminance
-      // by 9/255, under 4% Weber contrast -- and every board is lighter now (skins.ts), so the dark
-      // pass is the one that carries. Two passes on a ring that crosses most of the map was a
-      // second honeycomb drawn over the first (D86).
-      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, 'rgba(36,24,10,0.26)', 0.085);
+      // One dash, not a dark rim under a bright one: two passes on a ring that crosses most of the
+      // map was a second honeycomb drawn over the first (D86). Which way the one dash leans is the
+      // board's to decide, not a constant. A dark dash was picked when every board was light, and
+      // it is still right on sand; on the reference's own forest green (value 0.44, D91) it is a
+      // dark line on a dark field and simply is not there. So it takes the home band's value and
+      // goes the other way -- a pale dash over a dark board, a dark one over a light board.
+      const pale = val(this.skin.top[0][0]) < 0.6;
+      const ink = pale ? 'rgba(226,236,230,0.30)' : 'rgba(36,24,10,0.26)';
+      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, ink, 0.085);
     }
     this.update(eng);
   }
@@ -248,7 +301,7 @@ export class GroundLayer {
     const sk = this.skin;
     const k = t.shade ? 1 : 0;
     const wet = this.water[t.i] ? sk.water : null;
-    const th = wet ? undefined : TEAM_HUE[t.owner];
+    const th = wet || !TEAM_LINE[t.owner] ? undefined : teamLook(sk, t.owner);
     const top = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
     return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, wet ? null : th ? th.grid : sk.grid, !!wet,
       wet || t.obst || !th ? null : th.stamp);
@@ -259,11 +312,11 @@ export class GroundLayer {
   private drawBorders(eng: Engine): void {
     const p = this.borderPen.clear();
     for (const t of eng.tiles) {
-      const th = TEAM_HUE[t.owner];
-      if (!th) continue;
+      const line = TEAM_LINE[t.owner];
+      if (!line) continue;
       for (const e of this.edges[t.i]!) {
         if (e.j >= 0 && eng.tiles[e.j]!.owner === t.owner) continue;
-        p.line([e.a.x, e.a.y, e.b.x, e.b.y], th.line, LINE_W, 'round');
+        p.line([e.a.x, e.a.y, e.b.x, e.b.y], line, LINE_W, 'round');
       }
     }
   }

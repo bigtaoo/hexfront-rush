@@ -4,8 +4,8 @@
 // Each skin paints a tile by its *zone*: the ground near a castle is the cultivated home country,
 // the middle of the map is wilder, and the contested middle row is wilder still. A single flat
 // green over the whole board was the complaint these answer, and the zone step is how they answer
-// it: about 0.095 of value and 0.032 of saturation from the home country to the contested middle,
-// in two equal steps (half that on the snow boards, which have less value to spend).
+// it: 0.076 to 0.095 of value from the home country to the contested middle, in two equal steps,
+// and about 0.056 on the snow boards, which are a near-white with less value to spend.
 //
 // That step is measured, not chosen. The reference's own bare ground (D:/new/ref, IMG_3660) is two
 // patches of sand 0.155 of value apart -- #daa75c at 0.855 against #b27d4c at 0.702 -- and it is
@@ -21,25 +21,31 @@
 // player a lie about where troops can walk. A skin with `water: null` keeps its rocks.
 //
 // Blue on the map means the blue team (art/STYLE.md), so every water is a green-teal, well off the
-// team's colour, and no snow skin drifts toward that blue -- not even the glacier, whose first cut
-// was a pale teal: a teal board under a blue team field left the whole map one cool hue, and the
-// blue team's own country had nothing to be blue against. Ice is cool only where it is actually
-// ice: the ponds and the crystals.
+// team's colour: a pond is the one cool thing on a board, and if it were blue the player's own
+// country would have nothing to be blue against. Ice is cool where it is actually ice -- the ponds
+// and the crystals -- and the snow ground itself is a near-colourless white, saturation 0.06-0.09,
+// which carries no hue to clash with.
 //
-// THE CHROMA HERE CAME OFF THE REFERENCE GAME ITSELF (D:/new/ref, measured on IMG_3660). Its bare
-// ground is #daa75c -- saturation 0.578 at value 0.855 -- which is *more* saturated than anything
-// this game has ever shipped, and its board still reads calm. Twice now these skins were tuned
-// against the wrong material: first up to 0.30-0.51 off an AI mock (D85), then back down to a
-// 0.12-0.14 "budget" off another one (D86), on the theory that colour was what made the board
-// tiring. It was not. What tires the eye is texture and value noise -- wood grain under every hex,
-// a lit bevel and a shaded groove on all six edges, two dome highlights on every top, a strong
-// corner vignette. Flatten all of that (ground.ts, light.ts) and the same board carries the
-// reference's chroma without a murmur.
+// THE WHOLE PALETTE CAME OFF THE REFERENCE GAME (D:/new/ref). Three earlier rounds measured only
+// its *sand* -- #daa75c, saturation 0.578 at value 0.855 -- and then extrapolated the other two
+// themes from it, so the meadow became a bright lawn at value 0.84 and the snow a warm cream.
+// Reading all 122 frames shows that is not what the reference does. Its four biomes are:
 //
-// So: desert is the reference's own sand, 0.50-0.62 at value 0.82-0.89; meadow is a real grass
-// green at the same strength; snow stays white-with-a-tint at 0.13-0.20, because snow is white and
-// no reference changes that. Saturation is what tells the themes apart; value is what tells the
-// zones apart, and nothing at all is spent on per-tile noise.
+//    sand    #daa75c   H36  S0.58 V0.85     snow   #d9e3e4  H185 S0.05 V0.89
+//    forest  #357167   H170 S0.53 V0.44     night  #152947  H216 S0.70 V0.28
+//
+// Three of the four are DARK, and there is no bright yellow-green anywhere in it. That is the whole
+// answer to "the board is cluttered and tiring". Our own atlas has a median value of 0.26-0.54 on
+// every sprite -- militia 0.42, guard 0.26, oak 0.53, tower 0.48 -- so on a value-0.84 ground the
+// board itself was the brightest thing on screen and every single piece could only depart from it
+// downward, all inside one hue family (ours ran H71-89). Nothing separated from anything. Put the
+// ground at the reference's own value and the pieces have somewhere to go in both directions.
+//
+// So: desert stays exactly as it was -- it is the one theme that was measured off the right
+// material. Meadow is re-pitched to the reference's deep biome green, value 0.45-0.54 at saturation
+// 0.45-0.52, which is a forest seen from above and not a lawn. Snow is cooled from cream to the
+// reference's white-with-a-breath-of-blue. Value is what tells the themes apart now; the zone step
+// is what tells the zones apart, and nothing at all is spent on per-tile noise.
 //
 // Every skin keeps a `grid`, its own colour a tenth down in value and an eighth up in saturation,
 // and it is the only line drawn on open ground. Two cuts of this missed either way: 5% was a
@@ -47,7 +53,11 @@
 // measured off a *shadowed* patch of the reference's sand -- inked an outline round every hex,
 // which is what made the board look drawn rather than made of anything. On bright sand the
 // reference's own line is a thirtieth of value, and what closes the cell there is the lit rim along
-// each tile's lower edges (ground.ts), not the line. See DECISIONS.md D85, D86, D87, D88, D89.
+// each tile's lower edges (ground.ts), not the line.
+//
+// The two territories are no longer painted here at all: they are mixed off whichever ground they
+// sit on, 0.55 of the way to the team's line colour (ground.ts teamLook), which is the rule the
+// reference's own four territory patches fit. See DECISIONS.md D85, D86, D87, D88, D89, D91.
 
 import type { ThemeKey } from '../sim/map';
 
@@ -72,23 +82,23 @@ export interface MapSkin {
 export const SKINS: readonly MapSkin[] = [
   {
     key: 'meadow-spring', theme: 'meadow',
-    top: [['#b3d77d', '#b1d57c'], ['#a8cb73', '#a6c971'], ['#9cbf69', '#9bbc68']],
-    grid: '#93b75e', side: '#6d8648', bg: '#3b4729', water: ['#5fa99e', '#397067'],
+    top: [['#418275', '#408174'], ['#3b786c', '#3a776b'], ['#356f63', '#346d62']],
+    grid: '#2e6c60', side: '#245249', bg: '#152c28', water: ['#5fa99e', '#397067'],
   },
   {
     key: 'meadow-summer', theme: 'meadow',
-    top: [['#b5d575', '#b3d374'], ['#aac96b', '#a8c76a'], ['#9ebd62', '#9cba60']],
-    grid: '#96b556', side: '#6e8443', bg: '#3c4627', water: null,
+    top: [['#3b7a5d', '#3a795c'], ['#357155', '#346f54'], ['#2f674d', '#2e654c']],
+    grid: '#296649', side: '#204d38', bg: '#132a1f', water: null,
   },
   {
     key: 'meadow-autumn', theme: 'meadow',
-    top: [['#dfd870', '#ddd66f'], ['#d3cc66', '#d1ca65'], ['#c7c05d', '#c4be5c']],
-    grid: '#beb750', side: '#8a853e', bg: '#4a4725', water: ['#6ca89a', '#436f65'],
+    top: [['#778a4c', '#76884b'], ['#6e8045', '#6d7e44'], ['#65763e', '#64753d']],
+    grid: '#617337', side: '#4a572b', bg: '#282f19', water: ['#6ca89a', '#436f65'],
   },
   {
     key: 'meadow-marsh', theme: 'meadow',
-    top: [['#9fd074', '#9dce73'], ['#94c46a', '#92c269'], ['#89b860', '#88b55f']],
-    grid: '#80b056', side: '#608142', bg: '#344526', water: ['#58a596', '#346d62'],
+    top: [['#3e736f', '#3d716e'], ['#386a67', '#376965'], ['#32615e', '#32605d']],
+    grid: '#2d5f5c', side: '#234846', bg: '#142726', water: ['#58a596', '#346d62'],
   },
   {
     key: 'desert-pale', theme: 'desert',
@@ -112,23 +122,23 @@ export const SKINS: readonly MapSkin[] = [
   },
   {
     key: 'snow-field', theme: 'snow',
-    top: [['#ebdfca', '#e9ddc8'], ['#e3d7c1', '#e1d5bf'], ['#dccfb8', '#dacdb7']],
-    grid: '#ccc0aa', side: '#91897b', bg: '#4d4943', water: null,
+    top: [['#dfeced', '#ddeaec'], ['#d6e5e6', '#d5e3e4'], ['#cddddf', '#ccdcdd']],
+    grid: '#bfcecf', side: '#8b9595', bg: '#4c5051', water: null,
   },
   {
     key: 'snow-tundra', theme: 'snow',
-    top: [['#e9e2c4', '#e7e0c2'], ['#e1dabb', '#dfd8ba'], ['#dad2b3', '#d8d0b1']],
-    grid: '#cac3a4', side: '#918c77', bg: '#4d4b41', water: null,
+    top: [['#d8e4e8', '#d6e2e7'], ['#cfdce1', '#cedbdf'], ['#c7d5da', '#c5d3d8']],
+    grid: '#b8c5ca', side: '#878f92', bg: '#494d4f', water: null,
   },
   {
     key: 'snow-glacier', theme: 'snow',
-    top: [['#ebddcc', '#e9dbca'], ['#e3d5c3', '#e1d3c1'], ['#dccdba', '#dacbb9']],
-    grid: '#ccbeac', side: '#91887d', bg: '#4d4943', water: ['#66a698', '#3e6e63'],
+    top: [['#d5e8eb', '#d4e6e9'], ['#cde0e3', '#ccdfe2'], ['#c4d9dc', '#c3d8db']],
+    grid: '#b6c9cc', side: '#859294', bg: '#484f50', water: ['#66a698', '#3e6e63'],
   },
   {
     key: 'snow-thaw', theme: 'snow',
-    top: [['#e3e7bd', '#e1e5bb'], ['#dbdfb5', '#d9ddb3'], ['#d4d8ac', '#d2d6ab']],
-    grid: '#c5c99e', side: '#8c8f73', bg: '#4b4c3e', water: ['#67a8a0', '#3f6f69'],
+    top: [['#dff2f0', '#ddf1ee'], ['#d6ebe8', '#d5eae7'], ['#cee4e1', '#cce2df']],
+    grid: '#bed3d0', side: '#8b9997', bg: '#4b5251', water: ['#67a8a0', '#3f6f69'],
   },
 ];
 
