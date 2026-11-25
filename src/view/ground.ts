@@ -333,6 +333,19 @@ function tileCtx(side: string, top: string, obst: boolean, grid: string | null, 
  *  own width (11 px against a tile radius of 117); 0.16, where this started, drew a front thicker
  *  than the reference's and started to eat the corner tiles. */
 const LINE_W = LOOK_B ? 0.1 : 0.1;
+/** How fast a guard's leash ring comes up and goes away, in alpha per second.
+ *
+ *  THE RING IS NOT ON ALL MATCH ANY MORE. Two of these, 2.8 tiles in radius, are 632 device px
+ *  across on an 840 px canvas -- the longest lines in the picture, drawn over half the board from
+ *  the first frame to the last, where the reference (D:/new/ref) has no such ring at all. D97 cut
+ *  them to a sixth of an alpha and kept them, "because it is the only drawing of where a castle
+ *  guard will walk back to", and that reason is sound but it is not a reason to draw them while
+ *  nothing is happening: the leash only tells the player anything at the moment a guard is
+ *  chasing somebody, and that is the one moment the sim already knows about (guard.ts sets
+ *  `aim` to the intruder it found inside leash + range). So each team's ring is its own Graphics
+ *  and comes up only then. In goes fast enough to be there before the chase reads as a chase, out
+ *  is slow enough not to blink when the guard loses its target for a tick. D112. */
+const RING_IN = 4, RING_OUT = 1.2;
 const LINE_IN = LOOK_B ? 0.95 : 0.91;
 
 export class GroundLayer {
@@ -340,8 +353,8 @@ export class GroundLayer {
   private tiles: Graphics[] = [];
   private borders = new Graphics();
   private borderPen = new Pen(this.borders.context);
-  private rings = new Graphics();
-  private ringPen = new Pen(this.rings.context);
+  /** The guard leashes, one Graphics per team: each shows only while its own guard is chasing. */
+  private rings: { g: Graphics; team: number; on: number }[] = [];
   private owner = new Int8Array(0);
   /** Per tile: which band of the map it is in (0 home, 1 field, 2 the contested middle), and
    *  whether this skin paints it as water. Both static for the match. */
@@ -356,6 +369,7 @@ export class GroundLayer {
   /** New match or new side: one Graphics per tile, in view-y order. */
   build(eng: Engine, cam: Camera): void {
     for (const g of this.tiles) g.destroy();
+    for (const r of this.rings) r.g.destroy();
     this.root.removeChildren();
     const order = eng.tiles.map((t) => t.i).sort((a, b) => cam.tv[a]!.y - cam.tv[b]!.y || a - b);
     this.tiles = new Array<Graphics>(eng.tiles.length);
@@ -399,29 +413,35 @@ export class GroundLayer {
       }
       return out;
     });
-    this.root.addChild(this.borders, this.rings);
-    const p = this.ringPen.clear();
-    for (const tm of TEAMS) {
+    this.root.addChild(this.borders);
+    // One dash, not a dark rim under a bright one: two passes on a ring that crosses most of the
+    // map was a second honeycomb drawn over the first (D86). Which way the one dash leans is the
+    // board's to decide, not a constant. A dark dash was picked when every board was light, and
+    // it is still right on sand; on the reference's own forest green (value 0.44, D91) it is a
+    // dark line on a dark field and simply is not there. So it takes the home band's value and
+    // goes the other way -- a pale dash over a dark board, a dark one over a light board.
+    const pale = val(this.skin.top[0][0]) < 0.6;
+    const ink = pale ? 'rgba(226,236,230,0.17)' : 'rgba(36,24,10,0.15)';
+    this.rings = TEAMS.map((tm) => {
+      const g = new Graphics();
       const v = cam.tv[baseTile(tm)]!;
-      // One dash, not a dark rim under a bright one: two passes on a ring that crosses most of the
-      // map was a second honeycomb drawn over the first (D86). Which way the one dash leans is the
-      // board's to decide, not a constant. A dark dash was picked when every board was light, and
-      // it is still right on sand; on the reference's own forest green (value 0.44, D91) it is a
-      // dark line on a dark field and simply is not there. So it takes the home band's value and
-      // goes the other way -- a pale dash over a dark board, a dark one over a light board.
-      const pale = val(this.skin.top[0][0]) < 0.6;
-      // and quietly: 0.30 drew a dashed ellipse across half the board, the single longest line in
-      // the picture, where the reference has no such ring at all and says the same thing with
-      // nothing (D97). It stays, because it is the only drawing of where a castle guard will walk
-      // back to, but at a sixth of an alpha it is something the player finds when they look for it.
-      const ink = pale ? 'rgba(226,236,230,0.17)' : 'rgba(36,24,10,0.15)';
-      p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, ink, 0.085);
-    }
+      new Pen(g.context).dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, ink, 0.085);
+      g.alpha = 0;
+      this.root.addChild(g);
+      return { g, team: tm as number, on: 0 };
+    });
     this.update(eng);
   }
 
-  /** Swaps the look of every tile that changed hands, then redraws the borders. */
-  update(eng: Engine): void {
+  /** Swaps the look of every tile that changed hands, redraws the borders, and fades each guard's
+   *  leash in or out. */
+  update(eng: Engine, dt = 0): void {
+    for (const r of this.rings) {
+      const g = eng.guards[r.team]!;
+      const want = !g.dead && g.aim !== 0 ? 1 : 0;
+      r.on = want > r.on ? Math.min(1, r.on + dt * RING_IN) : Math.max(0, r.on - dt * RING_OUT);
+      r.g.alpha = r.on;
+    }
     let dirty = false;
     for (const t of eng.tiles) {
       if (this.owner[t.i] === t.owner) continue;

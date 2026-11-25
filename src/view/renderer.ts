@@ -296,7 +296,7 @@ export class Renderer {
     setDigitDensity(this.app.renderer.resolution);
     const f: Frame = { eng, alpha, dt, time: this.time, ui, cam, vis, local: this.local };
     this.flushIncome();
-    this.ground.update(eng);
+    this.ground.update(eng, dt);
     this.decor.update(eng);
     this.offers.draw(f);
     this.sprites.draw(f);
