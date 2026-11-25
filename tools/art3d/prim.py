@@ -72,6 +72,23 @@ PAL = {
     # 0.76 of the ground and 0.79 of the crown. The buildings', the chest's and the camp's timber
     # keep 'brown': those are made things and a warm plank is what says so. D109.
     'bark': '#197d70',
+    # 'deadwood' is the FALLEN wood -- the twigs lying on open ground -- and it is here because
+    # D109's own rule was never carried through to it. That rule is "a made thing keeps its warm
+    # plank, because a warm plank is what says it was made": the buildings' timber, the chest's and
+    # the camp's. A stick that fell off a tree is not a made thing, and it was still 'brown' over
+    # 'darkwood'. Measured on the seed-2 board, hue 0-45 at saturation over 0.25 and value under
+    # 0.62 covers 3.15% of our board against the reference's 1.55% (D:/new/ref IMG_3717), and
+    # masking it shows where ours is: the buildings, the troops' leather, the red price tags -- all
+    # three of which have a reason -- and the twigs, which have none. They are the only warm thing
+    # sitting on bare green, and there are fifteen or twenty of them on a board.
+    #
+    # It is 'bark' wrung out darker, not a new colour: hue 172 and 0.80 of saturation exactly as
+    # the trunks, at 0.31 of value against the trunk's 0.49, so a stick stays the darker wood it
+    # was. Hue 172 at the ground's OWN saturation would be #327068 against the summer board's
+    # #327066 -- the same colour, an invisible stick -- which is the whole reason bark is pitched
+    # at 2.98x the ground's saturation and not at the ground's hue alone. The dark partner stays
+    # 'slate', a neutral that was never warm enough to show in the mask (saturation 0.065). D111.
+    'deadwood': '#104f47',
     # 'shade' is the little disc a prop stands on (props.py _ground). It used to be 'moss', and a
     # flat UP-FACING disc under a 4.9-energy key is the one surface in the whole set that blows out:
     # moss at value 0.600 rendered near 0.95, and the tone pass (sprite.py) brought that back only to

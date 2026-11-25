@@ -410,11 +410,15 @@ def model_drift():
 
 def model_twigs():
     """Three fallen sticks across each other. Flat on the ground, so they read as litter under the
-    troops' feet and never as a fence or a barricade."""
-    for (x, y, h, rz, mat) in ((0.0, 0.03, 0.46, 0.35, 'brown'), (-0.03, -0.06, 0.38, -0.95, 'darkwood'),
-                               (0.08, 0.10, 0.26, 1.35, 'brown')):
+    troops' feet and never as a fence or a barricade.
+
+    Cold wood, not brown: a fallen stick is not a made thing, and on the meadow and snow boards --
+    the only two this piece goes on (art.ts) -- it was the one warm mark on bare ground. See
+    'deadwood' in prim.py for the measurement. D111."""
+    for (x, y, h, rz, mat) in ((0.0, 0.03, 0.46, 0.35, 'deadwood'), (-0.03, -0.06, 0.38, -0.95, 'slate'),
+                               (0.08, 0.10, 0.26, 1.35, 'deadwood')):
         rod(0.024, h, mat, (x, y, 0.026), rot=(0, math.pi / 2, rz), seg=10, name='twig')
-    ball(0.045, 'darkwood', (-0.16, 0.08, 0.03), scale=(1.1, 1, 0.6), name='knot')
+    ball(0.045, 'slate', (-0.16, 0.08, 0.03), scale=(1.1, 1, 0.6), name='knot')
     return 0.06
 
 
