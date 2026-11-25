@@ -79,9 +79,16 @@
 // sand (IMG_3670) and 0.13 below forest green (IMG_3707, tile 0.455 against line 0.322) -- four
 // times the absolute step on the dark board, and about the same again in L*. It draws the line
 // deeper where there is less light to spend, not in proportion. So desert keeps its tenth (0.082)
-// and snow its 0.090, and the meadow boards take 0.110 of value flat, a shade under the
-// reference's 0.13. What closes the cell on the light boards is the lit rim along each tile's lower
-// edges (ground.ts) as much as the line; on the dark ones the line has to do it alone.
+// and snow its 0.090. What closes the cell on the light boards is the lit rim along each tile's
+// lower edges (ground.ts) as much as the line; on the dark ones the line has to do it alone.
+//
+// AND THE MEADOW'S NUMBER IS 0.120, MEASURED, NOT 0.110. This note said 0.110 for ten versions and
+// the four meadow skins below were all written at 0.149 -- the note and the data never agreed, and
+// nothing checks them against each other. Folding 148 of the reference's own bare forest cells
+// (ground.ts RIM_W has how) puts its line 0.120 of value under the interior it edges, so that is
+// what the four meadow greens take now. It is a distance, not a colour: ground.ts lifts the line
+// with the tile's own ground patch, because a tile +0.048 above the skin's top with a fixed line
+// under it runs 0.197 deep, and 0.197 is the outline this note's second bad cut drew. D110.
 //
 // The two territories are no longer painted here at all: they are mixed off whichever ground they
 // sit on, 0.55 of the way to the team's line colour (ground.ts teamLook), which is the rule the
@@ -99,7 +106,8 @@ export interface MapSkin {
   top: readonly [Shades, Shades, Shades];
   /** The hex grid: this skin's colour a touch up in saturation (an eighth on desert and snow, a
    *  fiftieth on meadow), and down in value by what the board needs -- 0.082 on desert, 0.090 on
-   *  snow, 0.110 on the dark meadow boards (D92). */
+   *  snow, 0.120 on the dark meadow boards (D92, D110). ground.ts adds the tile's own patch lift to
+   *  it, so what the skin sets is the DISTANCE under the tile and not a fixed colour. */
   grid: string;
   /** Below the tile, so only the map's rim shows it. */
   side: string;
@@ -113,22 +121,22 @@ export const SKINS: readonly MapSkin[] = [
   {
     key: 'meadow-spring', theme: 'meadow',
     top: [['#3b7c71', '#3b7b70'], ['#377267', '#367166'], ['#32685e', '#31675d']],
-    grid: '#28564e', side: '#214e46', bg: '#132a27', water: ['#5fa9a0', '#397068'],
+    grid: '#2b5d55', side: '#214e46', bg: '#132a27', water: ['#5fa9a0', '#397068'],
   },
   {
     key: 'meadow-summer', theme: 'meadow',
     top: [['#377a6f', '#36796e'], ['#327066', '#326f65'], ['#2e655d', '#2d645c']],
-    grid: '#25544c', side: '#1e4c45', bg: '#112825', water: null,
+    grid: '#285b53', side: '#1e4c45', bg: '#112825', water: null,
   },
   {
     key: 'meadow-autumn', theme: 'meadow',
     top: [['#418078', '#417f77'], ['#3c766e', '#3c756d'], ['#376c64', '#366b63']],
-    grid: '#2d5a54', side: '#26524d', bg: '#172e2b', water: ['#6ca898', '#436f64'],
+    grid: '#30615b', side: '#26524d', bg: '#172e2b', water: ['#6ca898', '#436f64'],
   },
   {
     key: 'meadow-marsh', theme: 'meadow',
     top: [['#387771', '#377670'], ['#336d67', '#336c66'], ['#2e625e', '#2e615d']],
-    grid: '#25514d', side: '#1e4945', bg: '#112523', water: ['#58a594', '#346d60'],
+    grid: '#285853', side: '#1e4945', bg: '#112523', water: ['#58a594', '#346d60'],
   },
   {
     key: 'desert-pale', theme: 'desert',

@@ -111,13 +111,21 @@ const TILE_R = LOOK_B ? 1.0 : 1.01;
  *  as a honeycomb of cells and not as a painted field. Two neighbours stroke their shared edge in
  *  the same place, so the grid stays one line wide.
  *
- *  GRID_W is measured, not chosen: in the reference (D:/new/ref) the line on bare sand is 5-8 px
- *  against a tile radius of 78, so a fifteenth of the radius, and it is only a thirtieth down in
- *  value from the fill it edges (0.855 -> 0.827). The first cut drew it at 0.03 and 5% down -- a
- *  quarter of the ink, and at a phone's zoom the honeycomb simply was not there; the second went to
- *  14% down off a shadowed patch, which inked an outline on every hex. What actually closes a cell
- *  in the reference is the rim below. See DECISIONS.md D88, D89. */
-const GRID_W = LOOK_B ? 0.07 : 0.035;
+ *  GRID_W IS MEASURED, AND IT IS A HAIRLINE. Counted properly this time: every column of two of the
+ *  reference's forest boards (D:/new/ref IMG_3717 rows 1700-2300, IMG_3707 rows 1500-2200) is walked
+ *  and every dark run that closes a prop-free 136 px cell is measured -- 292 and 229 cells, and both
+ *  frames put the line at a MEDIAN OF 5 PIXELS, 0.122 of value under the interior it edges. Its
+ *  board is squashed to 0.87, so 5 px across a horizontal edge is 5.75 px of real depth against a
+ *  hex radius of 90.5: 0.064 of a radius, which on ours (radius 65.4 device px at a phone's zoom) is
+ *  4.2 px. This number went to 0.11 once, off a single scan that read "11 px of line" -- that scan
+ *  crossed a corner where three hexes meet and their strokes join, which is the widest the line ever
+ *  is and not the line. One scan is not a measurement; 521 cells are.
+ *
+ *  So the honeycomb is a hairline a tenth down, and what closes a cell is the lit rim below as much
+ *  as the line. The first cut drew it at 0.03 and 5% down -- a quarter of the ink, and at a phone's
+ *  zoom the honeycomb simply was not there; the second went to 14% down off a shadowed patch of the
+ *  reference's sand, which inked an outline on every hex. See DECISIONS.md D88, D89, D110. */
+const GRID_W = LOOK_B ? 0.064 : 0.035;
 
 /** The same colour, value scaled by f (1.04 is 4% lighter), clamped. Only #rrggbb goes in. */
 export function vUp(hex: string, f: number): string {
@@ -143,35 +151,34 @@ export function mix(a: string, b: string, t: number): string {
   return `#${c.map((v) => v.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/** The lit lip inside a tile's edge, and THE ONLY SHADING A TILE HAS. Measured off the reference
- *  twice, on two different biomes, and the second reading is what the numbers now say.
+/** The lit lip along a tile's two LOWER edges, and THE ONLY SHADING A TILE HAS. Measured three
+ *  times now, and this is the first reading taken off enough of the reference to trust.
  *
- *  On its sand (IMG_3660), scanning straight down the middle of a clean column at x=860 and again
- *  at x=900: 0.855 flat for two thirds of the tile, then a slow climb to 0.882 at the bottom edge,
- *  then five pixels of 0.827 line, then 0.855 flat again -- no climb on the far side of the line.
- *  On its forest (IMG_3717), folding ten bare hexes together, a hex 136 px tall: 0.4392 flat from
- *  the top edge down to 0.75 of the height (every sample of it, to within JPEG noise), then 0.451
- *  at 0.84, 0.467 at 0.93, then the 0.322 line.
+ *  HOW IT WAS MEASURED THIS TIME. One scan down one column is worth nothing: the first reading
+ *  (D92) found a vertical gradient that is not there, the second (D94) read +0.027 off two columns,
+ *  and the third read +0.010 off a column of ours that happened to cross the guard leash's dashed
+ *  ring -- a pale line at 0.13 of white that put a +0.07 band across the scan and was taken for the
+ *  lip. So: in the reference's open forest field (D:/new/ref IMG_3717, rows 1700-2300) every column
+ *  is walked, its dark grid runs found, and every pair of runs 132-140 px apart whose interior has
+ *  no prop in it is resampled to 69 samples and folded -- 148 cells, median, each cell normalised by
+ *  its own interior so the ground's patches (PATCH_D below) cannot tilt the result.
  *
- *  Two things come out of that. The tile's inside is one constant colour -- D92 recorded a vertical
- *  gradient here, top lit and bottom shaded, and there is none; the reading was off a board-wide
- *  vignette and the gradient is in the opposite direction anyway. And the lift at the bottom edge
- *  is +0.027 of value on sand and +0.028 on forest: THE SAME ABSOLUTE STEP on a board 0.42 of value
- *  brighter, which is the grid line's rule (skins.ts) a second time. A 3.5% multiplier, which is
- *  what this was, is +0.030 on sand and +0.015 on the meadow -- half the lift on the boards that
- *  have the least light to spend and need the plate read most.
- *
- *  So it is an absolute lift now, 0.027 of value along the two lower edges in the bottom 0.3 of a
- *  radius, with the dark line above it. It is directional, which is why a symmetric ring -- the
- *  first cut of this -- still looked painted: a ring is an outline, a lit bottom rim is a
- *  thickness. The side edges get 0.012, the weak lift a scan across the tile shows, so the cell
- *  still closes on all six sides.
+ *  WHAT 148 CELLS SAY. The interior is FLAT to within 0.002 for the first 0.78 of the cell -- no
+ *  gradient, and no lift at all on the upper edges, which is why the ring this used to stroke around
+ *  the whole hex at +0.012 is gone. Then a RAMP over the last 0.23: +0.006, +0.012, +0.018, +0.024,
+ *  peaking at +0.025 four pixels before the line and easing back to +0.017 at it. So the lift is
+ *  +0.025 of value, absolute (the same step the grid line's rule takes, skins.ts), it is directional
+ *  -- a lit bottom rim is a thickness where a ring is an outline -- and it is a RAMP and not a step.
+ *  A step is what one band draws, and at this depth the eye reads a single band as a drawn plate.
+ *  Hence RIM_N: four bands, each one deeper and a quarter dimmer, which is 0.42 of a radius of ramp
+ *  (the measured 0.23 of a cell's height, turned back into a depth perpendicular to a 30-degree
+ *  edge) for four polygon fills in a context that is cached per colour.
  *
  *  D87 was right to delete the bevel it found -- a hard lit edge on three sides and a shaded groove
  *  on the other three, plus wood grain and two dome highlights -- and wrong to leave nothing in its
- *  place. This is a tenth of that ink: three value steps, no texture, no second hue.
- *  See DECISIONS.md D87, D89, D94. */
-const RIM_W = 0.3, RIM_D = 0.027, SIDE_LIP_D = 0.012;
+ *  place. This is a tenth of that ink: a ramp in one colour, no texture, no second hue.
+ *  See DECISIONS.md D87, D89, D94, D110. */
+const RIM_W = 0.42, RIM_D = 0.025, RIM_N = 4;
 
 /** The ground's patches, and the one thing a flat fill cannot fake.
  *
@@ -244,6 +251,50 @@ function vAdd(hex: string, d: number): string {
   return vUp(hex, 1 + d / Math.max(val(hex), 1e-6));
 }
 
+/** Saturation up by a factor: the max channel stays where it is and the others are pushed away
+ *  from it, which is the one move that changes a colour's saturation and nothing else about it. */
+export function vSat(hex: string, f: number): string {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const m = Math.max(...c);
+  const out = c.map((x) => Math.max(0, Math.min(255, Math.round(m - (m - x) * f))));
+  return `#${out.map((x) => x.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** What a skin's grid line says, read off the one zone it was written against. A skin writes the
+ *  line as a COLOUR beside its home zone's top (skins.ts), and a colour beside one zone is two
+ *  numbers about every zone: how far under its tile the line sits, and how much more saturated it
+ *  is than the ground it cuts. Both are re-applied per tile in lookOf, so the line keeps saying
+ *  the same thing over ground the skin never wrote a colour for.
+ *
+ *  The saturation half is not decoration, and deriving the line by value alone drops it: scaling
+ *  a colour's channels together moves its value and leaves its saturation exactly where it was.
+ *  The reference's own line is a touch more saturated than its ground -- #2e82b7 against #348cbf
+ *  in the territory it edges (D:/new/ref IMG_3717), 0.749 of saturation against 0.728, a
+ *  thirty-fifth up -- and that is the difference between a line that reads as the ground's own
+ *  seam and one that reads as a shadow lying on it. The meadow boards take a fiftieth, desert and
+ *  snow an eighth (skins.ts).
+ *
+ *  Cached per skin: a board asks for this once per tile per repaint and the answer never moves. */
+const gridSay = new Map<string, { drop: number; sat: number }>();
+function dropOf(sk: MapSkin): { drop: number; sat: number } {
+  let d = gridSay.get(sk.key);
+  if (!d) {
+    const t = sk.top[0][0]!;
+    d = { drop: val(t) - val(sk.grid), sat: satOf(sk.grid) / Math.max(satOf(t), 1e-6) };
+    gridSay.set(sk.key, d);
+  }
+  return d;
+}
+
+/** A colour's saturation (HSV's), 0..1. Only #rrggbb goes in. */
+function satOf(hex: string): number {
+  const n = Number.parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const m = Math.max(...c);
+  return m === 0 ? 0 : (m - Math.min(...c)) / m;
+}
+
 /** The band along a hex's two lower edges, `w` radii deep: the outer three vertices, then the same
  *  three pulled in toward the centre. Scaling a regular polygon moves every edge in by the same
  *  distance, so the band keeps an even depth. */
@@ -265,11 +316,10 @@ function tileCtx(side: string, top: string, obst: boolean, grid: string | null, 
       return;
     }
     if (grid) {
-      // two steps, not a ramp: the far half of the lip at a third of the lift, the near half at all
-      // of it. Three steps were not worth the stroke; one read as a drawn ring.
-      p.hex(0, 0, TILE_R * 0.89, null, vAdd(top, SIDE_LIP_D), TILE_R * 0.22);
-      lowerRim(p, TILE_R, TILE_R * RIM_W, vAdd(top, RIM_D * 0.55));
-      lowerRim(p, TILE_R, TILE_R * RIM_W * 0.5, vAdd(top, RIM_D));
+      // outermost band last, so each one is drawn over the shallower one under it
+      for (let k = RIM_N; k >= 1; k--) {
+        lowerRim(p, TILE_R, (TILE_R * RIM_W * k) / RIM_N, vAdd(top, (RIM_D * (RIM_N + 1 - k)) / RIM_N));
+      }
       p.hex(0, 0, TILE_R, null, grid, GRID_W);
     }
     if (obst) p.hex(0, 0, TILE_R * 0.94, 'rgba(60,40,20,0.05)');
@@ -388,8 +438,19 @@ export class GroundLayer {
     const wet = this.water[t.i] ? sk.water : null;
     const th = wet || !TEAM_LINE[t.owner] ? undefined : teamLook(sk, t.owner);
     const base = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
-    const top = wet || th ? base : vAdd(base, PATCH_D[this.patch[t.i]!]!);
-    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, wet ? null : th ? th.grid : sk.grid, !!wet);
+    const lift = wet || th ? 0 : PATCH_D[this.patch[t.i]!]!;
+    const top = vAdd(base, lift);
+    // The grid line is a DISTANCE under the tile it edges, not a colour: it is mixed off this
+    // tile's own top, zone and ground patch and all. A skin writes the number as a colour
+    // against its home zone (skins.ts), which is only that zone's answer -- read back as a drop
+    // and re-applied here it holds over the whole board. Measured on the rendered seed-2 frame,
+    // a fixed `sk.grid` put the line 0.113 of value under the home country and 0.078 under the
+    // middle of the map, against the 0.120 the reference holds everywhere; by the skins' own
+    // arithmetic the contested middle, whose top is 0.082 lower than home's, got 0.039 -- a line
+    // the eye cannot find, which is the board with no honeycomb in the middle of it. D110.
+    const say = dropOf(sk);
+    const grid = wet ? null : th ? th.grid : vSat(vAdd(base, lift - say.drop), say.sat);
+    return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, grid, !!wet);
   }
 
   /** Along every edge where an owned tile meets a tile its team does not own, a line in the
