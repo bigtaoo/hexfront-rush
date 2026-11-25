@@ -123,13 +123,9 @@ export class WallLayer {
   /** Per tile, each side's neighbour (-1 on the map's rim) and the side's two corners. */
   private sides: { j: number; ax: number; ay: number; bx: number; by: number }[][] = [];
 
-  /** Tile centres (view units). */
-  private cv: { x: number; y: number }[] = [];
-
   build(eng: Engine, cam: Camera): void {
     this.builtN = -1;
     this.p.clear();
-    this.cv = cam.tv;
     const R = 0.97;
     this.sides = eng.tiles.map((t) => {
       const v = cam.tv[t.i]!;
@@ -162,29 +158,30 @@ export class WallLayer {
     for (const t of eng.tiles) {
       if (!t.bld) continue;
       for (const s of this.sides[t.i] ?? []) {
-        if (s.j >= 0 && eng.tiles[s.j]!.bld && s.j < t.i) continue;
+        // Nothing at all on an edge two built tiles share. This used to draw it once (from the
+        // higher index of the pair), which walls each tile off inside its own box; the reference
+        // (D:/new/ref IMG_3660) walls the PERIMETER of the whole built block and leaves its
+        // interior edges bare, so a group of buildings reads as one walled compound. D113.
+        if (s.j >= 0 && eng.tiles[s.j]!.bld) continue;
         segs.push([s.ax, s.ay, s.bx, s.by]);
       }
     }
     const p = this.p.clear();
     if (LOOK_B) {
-      // lookB: a paved yard under the built tiles, and a stone kerb standing on its rim.
-      // The first cut of lookB threw the kerb away and left the paving alone, on the theory that a
-      // block of built tiles should read as one place rather than a grid of boxes. Measured against
-      // the reference game (D:/new/ref, IMG_3660) that was simply wrong: the reference's build plot
-      // is edged with exactly this -- a near-black outline (34,34,34), a grey face (133,131,128) and
-      // a lit top (181..197) -- and it is the strongest piece of structure anywhere on its board.
-      // Flat paving alone is a stain on the ground; the kerb is what makes the plot a *place*.
-      // The paving stays translucent so the ground reads through it (D87, D88).
+      // lookB: a stone kerb around the built block, standing on the ground it encloses.
+      // The kerb is right and it is measured: the reference's build plot (D:/new/ref, IMG_3660) is
+      // edged with exactly this -- a near-black outline (34,34,34), a grey face (133,131,128) and a
+      // lit top (181..197) -- and it is the strongest piece of structure anywhere on its board.
       //
-      // Its colour is the kerb's own grey, not a near-white. The first cut was (236,227,207) at
-      // half alpha, which was quiet only because every board was then a light one; over the
-      // reference's forest green (value 0.44, D91) the same wash is a pale stone plaque sitting on
-      // a dark field, brighter than anything else on the board and louder than the buildings it is
-      // supposed to be under. Mid grey instead reads the same way on both: a paved yard is darker
-      // than sand and lighter than forest, which is what paving is.
-      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y + 0.05, 1.03, 'rgba(40,32,24,0.20)');
-      for (const t of eng.tiles) if (t.bld) p.hex(this.cv[t.i]!.x, this.cv[t.i]!.y, 1.02, 'rgba(150,147,141,0.46)');
+      // AND THERE IS NO PAVING UNDER IT. Two earlier cuts argued about what colour the paved yard
+      // should be -- (236,227,207) at half alpha, then mid grey at 0.46 -- and neither asked
+      // whether the reference has one. Zoomed in on IMG_3660 it does not: the ground inside the
+      // walls is the plain territory colour, the same red as outside, with the hex grid still
+      // running through it. The wash cost two things. It is where our board's near-grey pixels came
+      // from -- 4.6% of the board under saturation 0.25 against the reference's 2.5%, and the
+      // reference's own forest board has essentially nothing desaturated on it (its 5th percentile
+      // of saturation is 0.46) -- and it is a second lid over the one area of ground the player
+      // cares most about. What makes the plot a place is the wall, not a stain under it. D113.
       const HB = 0.07;
       for (const s of segs) p.line([s[0]!, s[1]! + HB * 0.5, s[2]!, s[3]! + HB * 0.5], 'rgba(34,34,34,0.9)', 0.22, 'round');
       for (const s of segs) p.line([s[0]!, s[1]! + HB, s[2]!, s[3]! + HB], '#858380', 0.15, 'round');
