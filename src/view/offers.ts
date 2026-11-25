@@ -7,9 +7,11 @@
 // context per offer; the price is a picture number (digits.ts).
 
 import { Container, Graphics } from 'pixi.js';
+import type { Engine } from '../sim/engine';
 import { cardCost } from '../sim/economy';
 import { OFFER_LIST } from '../sim/rules';
 import { coin } from './bodies';
+import type { Camera } from './camera';
 import { Num } from './digits';
 import { inView, type Frame } from './frame';
 import { LOOK_B } from './lookB';
@@ -146,13 +148,36 @@ const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
  *  so a wall never grows into the card on the tile one row up. */
 export const CARD_BOX = { bottom: PRICE_Y + PRICE_H / 2, glyphY: GLYPH_Y, priceY: PRICE_Y } as const;
 
+/** Whether something that stands tall sits on a tile BELOW this one, where it would cover the price
+ *  row. Only the two neighbours one row down can reach it: a left or right neighbour's centre is
+ *  1.73 away and no building is drawn wider than 1.73 minus the lane between two of them
+ *  (buildingView.ts), so its silhouette never arrives at the digits in the middle of this tile.
+ *
+ *  This is read off `cam.tv`, the drawn board, not off the tile's own row: the red player's view is
+ *  a coordinate remap of the same map (camera.ts), so "below" means below on screen for both. */
+export function coveredBelow(eng: Engine, cam: Camera, i: number): boolean {
+  const y = cam.tv[i]!.y;
+  for (const j of eng.tiles[i]!.nb) {
+    if (cam.tv[j]!.y <= y) continue;
+    const n = eng.tiles[j]!;
+    if (n.bld || n.obst) return true;
+  }
+  return false;
+}
+
 interface CardView {
   root: Container;
   /** The layer over the troops (renderer.ts) a price row rides in while it can be paid: a soldier
    *  walking across a card hid what it cost just when the player was deciding. A price out of
    *  reach moves down into `root` instead and lets the troops cover it -- nobody is deciding about
    *  a card they cannot pay for, and in a melee four or five of them were being stamped in dark red
-   *  across the soldiers, which is most of what made a fight read as noise. */
+   *  across the soldiers, which is most of what made a fight read as noise.
+   *
+   *  What that traded away, and `coveredBelow` buys back: `root` is under the buildings as well as
+   *  under the troops, and a building does not walk on. A castle on the tile one row down covers
+   *  the whole price row of the card above it, for the entire match -- and the price a player
+   *  cannot pay yet is exactly the one they are saving towards. So the row only drops when nothing
+   *  stands below it. */
   tag: Container;
   glyph: Graphics;
   coin: Graphics;
@@ -250,10 +275,13 @@ export class OfferLayer {
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
       const look = priceLook(Tm.gold, cost);
       c.cost.set(String(cost), { h: ph, tint: look.tint, align: 'left', screen: zoom });
-      // the price row rides over the troops only while it can be paid (CardView.tag)
-      if (c.up !== look.afford) {
-        c.up = look.afford;
-        (look.afford ? c.tag : c.root).addChild(c.coin, c.cost);
+      // the price row rides over the troops only while it can be paid (CardView.tag) -- unless
+      // something stands on the tile below it, which would hide it for good instead of for the
+      // second a soldier takes to walk past (coveredBelow)
+      const up = look.afford || coveredBelow(eng, cam, i);
+      if (c.up !== up) {
+        c.up = up;
+        (up ? c.tag : c.root).addChild(c.coin, c.cost);
       }
       c.tag.alpha = alpha;
     }

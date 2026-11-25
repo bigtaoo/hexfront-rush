@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { priceLook } from './offers';
+import { Engine } from '../sim/engine';
+import { TEAM_BLUE, TEAM_RED } from '../sim/rules';
+import { installCanvas } from '../test/canvasFakes';
+import { Camera } from './camera';
+import { coveredBelow, priceLook } from './offers';
 import { SKINS } from './skins';
 import { COL } from './viewConst';
+
+installCanvas();
 
 // The price under an offer's symbol is the one number a player reads while deciding, and it has
 // been wrong in four directions. First a dull clay (#b9a487) on the plaque's own cream, unreadable
@@ -77,5 +83,65 @@ describe('an offer price', () => {
     expect(poor).not.toBe(COL.red);
     expect(poor).not.toBe(COL.redDark);
     expect(lum(poor)).toBeGreaterThan(lum(COL.redDark));
+  });
+});
+
+// A price the player cannot pay yet rides in the layer UNDER the troops, so a soldier walking over
+// a card hides a number nobody is deciding on (offers.ts CardView). That layer is under the
+// buildings too, and a building never walks on: a castle on the tile one row down would cover the
+// price of the card above it for the whole match -- and an unpayable price is exactly the one the
+// player is saving towards. `coveredBelow` is what keeps the row up in that case.
+describe('what can cover a price row', () => {
+  const board = (local: number): { eng: Engine; cam: Camera } => {
+    const eng = new Engine({ seed: 7, aiBlue: false, aiRed: false });
+    const cam = new Camera();
+    cam.resize(390, 844);
+    cam.setView(eng, local);
+    return { eng, cam };
+  };
+  /** A tile whose six neighbours are all bare, so the test sets the only thing standing near it. */
+  const clearTile = (eng: Engine): number =>
+    eng.tiles.find((t) => t.nb.length === 6 && !t.obst && !t.bld
+      && t.nb.every((j) => !eng.tiles[j]!.obst && !eng.tiles[j]!.bld))!.i;
+
+  it('is only what stands on the row below, never a neighbour beside it', () => {
+    const { eng, cam } = board(TEAM_BLUE);
+    const i = clearTile(eng);
+    expect(coveredBelow(eng, cam, i)).toBe(false);
+    const y = cam.tv[i]!.y;
+    const below = eng.tiles[i]!.nb.filter((j) => cam.tv[j]!.y > y);
+    const beside = eng.tiles[i]!.nb.filter((j) => cam.tv[j]!.y === y);
+    // a pointy-top hex has two neighbours a row down and two straight across
+    expect(below).toHaveLength(2);
+    expect(beside).toHaveLength(2);
+    // a building 1.73 to the side cannot reach digits in the middle of this tile, so it does not
+    // count; one a row down tops out inside the price row, so it does
+    for (const j of beside) {
+      eng.tiles[j]!.bld = 1;
+      expect(coveredBelow(eng, cam, i), `beside ${j}`).toBe(false);
+      eng.tiles[j]!.bld = 0;
+    }
+    for (const j of below) {
+      eng.tiles[j]!.bld = 1;
+      expect(coveredBelow(eng, cam, i), `below ${j}`).toBe(true);
+      eng.tiles[j]!.bld = 0;
+      // a tree is as tall as a barracks and hides a price just as well
+      eng.tiles[j]!.obst = 'tree';
+      expect(coveredBelow(eng, cam, i), `tree ${j}`).toBe(true);
+      eng.tiles[j]!.obst = '';
+    }
+    expect(coveredBelow(eng, cam, i)).toBe(false);
+  });
+
+  it('reads "below" off the drawn board, so it holds for the red player too', () => {
+    // the red side's view is a coordinate remap of the same map (camera.ts), so the tile that is a
+    // row down for blue is a row UP for red -- and nothing there can cover anything
+    const blue = board(TEAM_BLUE), red = board(TEAM_RED);
+    const i = clearTile(blue.eng);
+    const j = blue.eng.tiles[i]!.nb.find((k) => blue.cam.tv[k]!.y > blue.cam.tv[i]!.y)!;
+    blue.eng.tiles[j]!.bld = 1;
+    red.eng.tiles[j]!.bld = 1;
+    expect(coveredBelow(blue.eng, blue.cam, i)).toBe(true);
+    expect(coveredBelow(red.eng, red.cam, i)).toBe(false);
   });
 });

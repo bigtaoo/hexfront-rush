@@ -76,7 +76,9 @@ describe('how big a building is drawn', () => {
     // proportions nothing shorter than 1.87 still comes out the widest building on its side. It
     // goes 0.50 behind the card's bottom edge, on 0.31 of its width (the two up-diagonal
     // neighbours sit at +/-0.866). What it may not reach is the face: the symbol row, and the
-    // price, which is drawn in offers.tags over the buildings (renderer.ts) and so is never hidden.
+    // price -- which is only safe because offers.ts lifts a price row into offers.tags, over the
+    // buildings (renderer.ts), whenever anything stands on the tile below it (coveredBelow). That
+    // is the one thing this test depends on and cannot see: offers.test.ts pins it.
     for (const b of CAST) {
       if (!b.base) continue;
       expect(TILE_FOOT - b.h, b.name).toBeGreaterThanOrEqual(-ROW + CARD_BOX.glyphY);
