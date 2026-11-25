@@ -87,7 +87,7 @@ DECOR = {'tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'twigs', 'drift'}
 # leaves CROWN_K (obstacleView.ts, the thing that actually sets a crown's size) untouched. D106.
 GROVE = {'oak', 'pine', 'rocks'}
 GROVE_PX = 1
-GROVE_INK = (20, 43, 40)
+GROVE_INK = (31, 66, 62)
 # AND A CEILING, ON THE SAME THREE PIECES. What a crown's value does above its 88th percentile,
 # measured on three windows lying wholly inside reference crowns (D:/new/ref IMG_3717) against our
 # own sprites' opaque pixels:
@@ -116,7 +116,26 @@ from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's
 
 TARGET = {n: h for g in _GROUPS.values() for n, h in g.items()}
 KIND = {n: g for g, names in _GROUPS.items() for n in names}
-INK = (43, 29, 20)
+# AND IT IS NOT AS DARK AS THE PIECE IT RINGS (D116). Walking INWARD from every ground pixel whose
+# neighbour is not ground -- 3.7k boundaries on our own seed 2 frame against 5k to 16k on each of
+# the reference's forest frames, device pixels, no rescaling (our hex is 131 px tall and theirs
+# 136, so a vertical profile compares 1:1) -- the reference's board does this at a piece's foot:
+#   0.294  0.282  0.286  0.290  0.294  0.290  0.286   -- it steps down 0.012 and stays flat
+# and ours did this:
+#   0.290  0.239  0.231  0.259  0.298  0.318  0.329   -- a three pixel trough 0.106 under the body
+# The reference does not ring its pieces at all: where one meets the ground the value steps to the
+# piece's own shaded side, about 0.29, and holds. Ours cut a line DARKER THAN BOTH, and that line
+# is this ink at 0.169 of value laid four texture px wide (the atlas shows it plainly: a unit or a
+# building reads 0.173 0.173 0.173 0.173 for four rings before its body starts, where oak, pine and
+# rocks -- GROVE_PX, one px -- read 0.176 then climb straight into theirs).
+#
+# So the ink is lifted to 0.259, which is where our own pieces' shaded sides already sit, hue and
+# saturation untouched (23.5 deg, 0.53). The ring is still a 0.23 step under a 0.49 board, which is
+# MORE separation than the reference gets from its own 0.29 against 0.44 -- the edge stays hard,
+# it just stops being a drawn outline. Nothing here touches OUTLINE_PX: thinning the ink would move
+# the area match (above) and grow every figure, and the board has been called crowded for size
+# before. GROVE_INK goes up with it, same value, same board-cold hue.
+INK = (66, 45, 31)
 MAX_GROW = 1.3
 # The scenery's tone (D93). A tree of ours read as a bright green blob sitting on the field: an
 # oak's body was at 0.608 of value against a 0.451 ground, i.e. ABOVE the board, and every other
