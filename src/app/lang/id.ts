@@ -75,7 +75,7 @@ export default {
   ltip2: 'Tips: menara pengawas di dekat kastelmu menghentikan serbuan awal.',
   ltip3: 'Tips: kartu misteri cuma seharga 25 dan juga membuka petak di sekitarnya, cara murah menuju peti.',
   ltip4: 'Tips: lebih banyak barak, gelombang lebih besar. Pihak dengan pasukan terbanyak akan menembus.',
-  ltip5: 'Tips: perhatikan penanda di tepi layar. Barak epik milik rival layak dibalas dengan menara.',
+  ltip5: 'Tips: sesekali perkecil tampilan untuk melihat seluruh peta. Barak epik milik rival layak dibalas dengan menara.',
   campaignDone: 'Kampanye tamat! ★ {n}/{t}',
   campaign: 'Kampanye', quick: 'Main cepat', daily: 'Harian', go: 'Serbu!', back: 'Kembali', nextStage: 'Tahap berikutnya', retry: 'Ulangi',
   diff0: 'Mudah', diff1: 'Normal', diff2: 'Sulit', diff3: 'Brutal',

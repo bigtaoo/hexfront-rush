@@ -75,7 +75,7 @@ export default {
   ltip2: 'Tip: a watchtower by your castle stops an early rush.',
   ltip3: 'Tip: a mystery card costs only 25 and opens the tiles around it too, a cheap way toward a chest.',
   ltip4: 'Tip: more barracks make bigger waves. The side with more troops breaks through.',
-  ltip5: 'Tip: watch the edge markers. A rival’s epic barracks is worth answering with towers.',
+  ltip5: 'Tip: zoom out now and then to see the whole map. A rival’s epic barracks is worth answering with towers.',
   campaignDone: 'Campaign complete! ★ {n}/{t}',
   campaign: 'Campaign', quick: 'Quick match', daily: 'Daily', go: 'Fight!', back: 'Back', nextStage: 'Next stage', retry: 'Retry',
   diff0: 'Easy', diff1: 'Normal', diff2: 'Hard', diff3: 'Brutal',

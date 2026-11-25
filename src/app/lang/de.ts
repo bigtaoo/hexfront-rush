@@ -75,7 +75,7 @@ export default {
   ltip2: 'Tipp: Ein Wachturm an deiner Burg stoppt einen frühen Ansturm.',
   ltip3: 'Tipp: Eine Mysterium-Karte kostet nur 25 und öffnet auch die Felder um sich herum, ein billiger Weg zu einer Truhe.',
   ltip4: 'Tipp: Mehr Kasernen bringen größere Wellen. Die Seite mit mehr Truppen bricht durch.',
-  ltip5: 'Tipp: Achte auf die Randmarkierungen. Auf eine epische Kaserne des Gegners antwortest du am besten mit Wachtürmen.',
+  ltip5: 'Tipp: Zoome ab und zu heraus, um die ganze Karte zu sehen. Auf eine epische Kaserne des Gegners antwortest du am besten mit Wachtürmen.',
   campaignDone: 'Kampagne geschafft! ★ {n}/{t}',
   campaign: 'Kampagne', quick: 'Schnellspiel', daily: 'Täglich', go: 'Kämpfen!', back: 'Zurück', nextStage: 'Weiter', retry: 'Erneut',
   diff0: 'Leicht', diff1: 'Normal', diff2: 'Schwer', diff3: 'Brutal',

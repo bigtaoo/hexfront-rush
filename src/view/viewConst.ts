@@ -29,7 +29,7 @@ export const RARITY_COLOR = ['#9aa5b1', '#38bdf8', '#c084fc', '#fbbf24'] as cons
  *  sit in frames of it, so the canvas HUD and the HTML buttons beside it read as one carved set
  *  (the slots were dark grooves alone, a second style next to the raised wooden buttons). */
 export const WOOD = { hi: 'rgba(243,214,164,0.8)', face: '#d9a865', rim: '#6e4320', ink: '#4a2c12' } as const;
-/** The chrome drawn in Pixi (the match HUD, the edge markers, the card pop) in the same carved-wood
+/** The chrome drawn in Pixi (the match HUD, the overview button, the card pop) in the same carved-wood
  *  palette as the DOM panels (index.html :root, art/STYLE.md UI). It used to be slate blue, which is
  *  the cold chrome of a different game: the board is a wooden toy on a table (view/table.ts), so the
  *  bars around it are wooden rails and the discs are wooden tokens. */

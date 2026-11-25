@@ -75,7 +75,7 @@ export default {
   ltip2: 'Astuce : une tour de guet près de ton château stoppe une attaque précoce.',
   ltip3: 'Astuce : une carte mystère ne coûte que 25 et ouvre aussi les cases autour, un moyen bon marché d\'atteindre un coffre.',
   ltip4: 'Astuce : plus de casernes font de plus grosses vagues. Le côté qui a le plus de troupes perce.',
-  ltip5: 'Astuce : surveille les repères au bord de l\'écran. Une caserne épique du rival mérite une réponse en tours de guet.',
+  ltip5: 'Astuce : dézoome de temps en temps pour voir toute la carte. Une caserne épique du rival mérite une réponse en tours de guet.',
   campaignDone: 'Campagne terminée ! ★ {n}/{t}',
   campaign: 'Campagne', quick: 'Partie rapide', daily: 'Quotidien', go: 'Au combat !', back: 'Retour', nextStage: 'Suivant', retry: 'Réessayer',
   diff0: 'Facile', diff1: 'Normal', diff2: 'Difficile', diff3: 'Brutal',

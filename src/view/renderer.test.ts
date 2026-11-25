@@ -29,7 +29,7 @@ describe('renderer', () => {
     // online, a lag spike: the sim is fast-forwarded through the backlog and the juice of those
     // ticks is thrown away (game.ts). The camera is not juice -- clearing `overview` and `zoomK`
     // but not the scale left the match drawn at the overview's zoom for good, with `fitAll` true,
-    // so nothing panned and the edge markers stayed away.
+    // so nothing panned at all.
     const r = new Renderer(fakeApp());
     const eng = engine();
     r.setView(eng, TEAM_BLUE);
@@ -77,17 +77,17 @@ describe('renderer', () => {
 
   it('takes the match furniture off the screen while a panel covers it', () => {
     // The result card used to come up with the clock still reading 1:30, "wave in 15s" counting
-    // down, the gold pill, the quest box and the edge markers all lit around it -- the board under
+    // down, the gold pill, the quest box and the overview button all lit around it -- the board under
     // a panel is a backdrop, like the menu's demo match, and none of that belongs over the card.
     const r = new Renderer(fakeApp());
     const eng = engine();
     r.setView(eng, TEAM_BLUE);
     const view = r as unknown as {
       hud: { root: Container };
-      edges: { root: Container };
+      ovBtn: { root: Container };
       overlays: { dmgBox: Container };
     };
-    const shown = (): boolean[] => [view.hud.root.visible, view.edges.root.visible, view.overlays.dmgBox.visible];
+    const shown = (): boolean[] => [view.hud.root.visible, view.ovBtn.root.visible, view.overlays.dmgBox.visible];
 
     r.draw(eng, 0, 0.016);
     expect(shown()).toEqual([true, true, true]);

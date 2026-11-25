@@ -69,7 +69,7 @@ npm run check:filelength # no file under src/, scripts/ or server/ over 500 line
 |---|---|
 | `src/sim/` | Deterministic simulation. Integers only, with no DOM, clock or `Math.random` (enforced by `determinismLint.test.ts`). |
 | `src/net/` | Relay frame clock (shared with the relay), net input, WebSocket client. |
-| `src/view/` | The Pixi renderer (read-only over the sim), camera (play zoom and the overview), HUD, edge markers, effects, quality levels and the frame loop (`qualityRuntime.ts`). |
+| `src/view/` | The Pixi renderer (read-only over the sim), camera (play zoom and the overview), HUD, effects, quality levels and the frame loop (`qualityRuntime.ts`). |
 | `src/app/` | Boot, the `Game` flow (menu, match, results), controls, tutorial, online rooms, save, audio, i18n, fault recovery. |
 | `src/platform/` | The host: plain web, or Playgama Bridge (saves, ads, pause and sound switches). |
 | `src/main.ts`, `src/main.playgama.ts` | Entries of the two builds. |

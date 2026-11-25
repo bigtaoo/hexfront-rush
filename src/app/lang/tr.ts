@@ -75,7 +75,7 @@ export default {
   ltip2: 'İpucu: kalenin yanındaki bir gözcü kulesi erken bir baskını durdurur.',
   ltip3: 'İpucu: gizem kartı sadece 25 tutar ve o da çevresindeki kareleri açar; sandığa ulaşmanın ucuz bir yolu.',
   ltip4: 'İpucu: daha çok kışla, daha büyük dalgalar demek. Birliği çok olan taraf yarıp geçer.',
-  ltip5: 'İpucu: kenar işaretlerini izle. Rakibin destansı kışlasına gözcü kuleleriyle karşılık vermeye değer.',
+  ltip5: 'İpucu: arada bir uzaklaştırıp tüm haritayı gör. Rakibin destansı kışlasına gözcü kuleleriyle karşılık vermeye değer.',
   campaignDone: 'Sefer tamamlandı! ★ {n}/{t}',
   campaign: 'Sefer', quick: 'Hızlı maç', daily: 'Günlük', go: 'Savaş!', back: 'Geri', nextStage: 'Sonraki', retry: 'Yeniden',
   diff0: 'Kolay', diff1: 'Normal', diff2: 'Zor', diff3: 'Acımasız',

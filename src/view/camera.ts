@@ -48,7 +48,7 @@ export class Camera {
   /** Screen position of the view origin (before shake). */
   ox = 0;
   oy = 0;
-  /** The whole map is on screen: no camera motion, no edge markers. */
+  /** The whole map is on screen: no camera motion, and nothing to zoom out to. */
   fitAll = true;
   /** The player asked for the whole map (the overview button, Space, a pinch). */
   overview = false;
@@ -77,7 +77,7 @@ export class Camera {
     // The zoom is reset, so the scale drawn from it has to be too. The glide in `update` only runs
     // while zoomK is away from its goal, and both are 0 here: a match begun straight from the
     // result screen with the overview still open would otherwise be played out at the overview's
-    // scale, with no panning and no edge markers, until the next resize.
+    // scale, with no panning, until the next resize.
     this.setScale(this.zoomScale());
   }
 
@@ -168,8 +168,8 @@ export class Camera {
     this.oy = this.bandCY - y * this.scale;
   }
   /** The enemy castle for the first beat of the intro, then a little ahead of the own castle
-   *  (forward is always up), then wherever the player dragged it or jumped to (an edge marker, a
-   *  tap in the overview). */
+   *  (forward is always up), then wherever the player dragged it or zoomed back in on (a tap in
+   *  the overview). */
   private goal(eng: Engine): Pt {
     const me = this.local;
     if (eng.phase === PHASE_INTRO && eng.introT > INTRO_TICKS - ticks(1.3)) return this.tv[baseTile(enemyOf(me))]!;
@@ -209,12 +209,6 @@ export class Camera {
     if (!this.cam || this.fitAll) return;
     this.placeCamera(this.cam.x - dx / this.scale, this.cam.y - dy / this.scale);
     this.camGoal = { x: this.cam.x, y: this.cam.y };
-  }
-  /** Glide to a view point at play zoom (an edge marker tap). */
-  lookAt(vx: number, vy: number): void {
-    if (!this.cam) return;
-    this.overview = false;
-    this.camGoal = this.clamp(this.playScale, vx, vy);
   }
   update(eng: Engine, dt: number, demo: boolean): void {
     if (demo !== this.demo) {

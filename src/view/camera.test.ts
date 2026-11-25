@@ -73,7 +73,7 @@ describe('the screen layout', () => {
 
   it('always has an overview worth opening: the map is taller than any screen shows', () => {
     // the map is 25 rows and a play view is about 8; no screen shape fits the whole of it at play
-    // zoom, so the zoom button and the edge markers are always live during a match
+    // zoom, so the zoom button is always live during a match
     for (const [W, H] of SCREENS) {
       const c = fresh(W, H);
       expect([W, H, c.canZoom, c.fitAll]).toEqual([W, H, true, false]);
@@ -146,7 +146,7 @@ describe('screen and world', () => {
     expect(c.scale).toBeCloseTo(play, 9);
     c.update(engine(), 0.016, false);
     expect(c.scale).toBeCloseTo(play, 9);
-    expect(c.fitAll).toBe(false); // so the camera pans and the edge markers come back
+    expect(c.fitAll).toBe(false); // so the camera pans again
   });
 });
 
@@ -200,17 +200,6 @@ describe('keeping the board on screen', () => {
     expect(c.camGoal!.x).toBeCloseTo(MAP_X1 / 2, 9);
     // the goal is already clamped, so the glide cannot aim off the map
     expect(c.camGoal!.y).toBeLessThanOrEqual(MAP_Y1 - c.availH / 2 / c.playScale + 1e-9);
-  });
-
-  it('aims a jump at play zoom even while the overview is open', () => {
-    // tapping an edge marker while zoomed out means "take me there", not "show me the map there"
-    const c = fresh(390, 844);
-    c.placeCamera(0, 0);
-    c.setOverview(true);
-    c.lookAt(3, MAP_Y1 - 1);
-    expect(c.overview).toBe(false);
-    const halfY = c.availH / 2 / c.playScale; // clamped at the play zoom, not at the one on screen
-    expect(c.camGoal!.y).toBeCloseTo(MAP_Y1 - halfY, 9);
   });
 });
 

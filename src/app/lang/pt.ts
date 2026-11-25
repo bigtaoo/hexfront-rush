@@ -75,7 +75,7 @@ export default {
   ltip2: 'Dica: uma torre de vigia junto ao seu castelo segura uma investida inicial.',
   ltip3: 'Dica: uma carta de mistério custa só 25 e também abre as casas ao redor, um jeito barato de chegar a um baú.',
   ltip4: 'Dica: mais quartéis fazem ondas maiores. O lado com mais tropas rompe a defesa.',
-  ltip5: 'Dica: fique de olho nos marcadores da borda. Vale responder ao quartel épico do rival com torres de vigia.',
+  ltip5: 'Dica: afaste a visão de vez em quando para ver o mapa inteiro. Vale responder ao quartel épico do rival com torres de vigia.',
   campaignDone: 'Campanha concluída! ★ {n}/{t}',
   campaign: 'Campanha', quick: 'Partida rápida', daily: 'Diário', go: 'À luta!', back: 'Voltar', nextStage: 'Próxima', retry: 'De novo',
   diff0: 'Fácil', diff1: 'Normal', diff2: 'Difícil', diff3: 'Brutal',

@@ -7,7 +7,7 @@ import type { Pt } from './viewConst';
 export interface DrawUi {
   /** Seconds left of the red flash on the gold pill (a refused buy). */
   goldFlash?: number;
-  /** The title screen's attract mode: fit the whole map, no overview button or edge markers. */
+  /** The title screen's attract mode: fit the whole map, no overview button. */
   demo?: boolean;
   /** The player may move the camera (a match past its intro): the overview button shows. */
   look?: boolean;

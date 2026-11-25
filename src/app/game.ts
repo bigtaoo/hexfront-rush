@@ -7,7 +7,7 @@
 // never touches the sim directly: it goes through an InputCollector into commands.
 //
 // The player has no avatar. Their one move is tapping a card (an offer next to their ground) to
-// flip it; dragging, the mouse wheel, the arrow keys, the edge markers and the overview only move the camera.
+// flip it; dragging, the mouse wheel, the arrow keys and the overview only move the camera.
 //
 // Replays: every match records checkpoint hashes as it goes (recordChecks); its end leaves
 // lastReplay, a solo match goes to the relay's collector too (replayUpload.ts), and watch() shows

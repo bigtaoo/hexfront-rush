@@ -75,7 +75,7 @@ export default {
   ltip2: 'Consejo: una atalaya junto a tu castillo frena un ataque temprano.',
   ltip3: 'Consejo: una carta de misterio cuesta solo 25 y también abre las casillas de alrededor, una forma barata de llegar a un cofre.',
   ltip4: 'Consejo: más cuarteles forman oleadas más grandes. El bando con más tropas se abre paso.',
-  ltip5: 'Consejo: vigila los marcadores del borde. Al cuartel épico del rival conviene responderle con atalayas.',
+  ltip5: 'Consejo: aleja la vista de vez en cuando para ver todo el mapa. Al cuartel épico del rival conviene responderle con atalayas.',
   campaignDone: '¡Campaña completada! ★ {n}/{t}',
   campaign: 'Campaña', quick: 'Partida rápida', daily: 'Diario', go: '¡A luchar!', back: 'Atrás', nextStage: 'Siguiente', retry: 'Reintentar',
   diff0: 'Fácil', diff1: 'Normal', diff2: 'Difícil', diff3: 'Brutal',

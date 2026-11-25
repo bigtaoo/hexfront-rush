@@ -75,7 +75,7 @@ export default {
   ltip2: 'Wskazówka: wieża strażnicza przy zamku powstrzyma wczesny atak.',
   ltip3: 'Wskazówka: karta niespodzianki kosztuje tylko 25 i też otwiera pola wokół siebie, to tani sposób, by dotrzeć do skrzyni.',
   ltip4: 'Wskazówka: więcej koszar to większe fale. Przebija się strona z większą liczbą wojsk.',
-  ltip5: 'Wskazówka: obserwuj znaczniki na krawędzi. Na epickie koszary rywala warto odpowiedzieć wieżami.',
+  ltip5: 'Wskazówka: od czasu do czasu oddal widok, by zobaczyć całą mapę. Na epickie koszary rywala warto odpowiedzieć wieżami.',
   campaignDone: 'Kampania ukończona! ★ {n}/{t}',
   campaign: 'Kampania', quick: 'Szybki mecz', daily: 'Dzienne', go: 'Do boju!', back: 'Wstecz', nextStage: 'Następny etap', retry: 'Jeszcze raz',
   diff0: 'Łatwy', diff1: 'Normalny', diff2: 'Trudny', diff3: 'Brutalny',

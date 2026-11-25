@@ -1,6 +1,6 @@
 // Pointer, wheel and keyboard on the canvas. A tap flips one of the player's cards; on the overview
-// button it zooms out to the whole map (or back), on an edge marker it glides the camera there, and
-// in the overview it zooms back in where it landed. A drag, the wheel and WASD / the arrows pan; a
+// button it zooms out to the whole map (or back), and in the overview it zooms back in where it
+// landed. A drag, the wheel and WASD / the arrows pan; a
 // pinch, Ctrl + the wheel (a trackpad pinch) and Space zoom out and in.
 // How far each of those moves the camera is gesture.ts, which is the part that can be tested.
 
@@ -129,12 +129,12 @@ export class Controls {
     this.tapAt(this.sx, this.sy);
   }
 
-  /** A tap: the overview button or an edge marker moves the camera; in the overview the camera
-   *  zooms back in there; otherwise one of my cards gets flipped. */
+  /** A tap: the overview button zooms out to the whole map; in the overview the camera zooms
+   *  back in where it landed; otherwise one of my cards gets flipped. */
   private tapAt(sx: number, sy: number): void {
     const g = this.g;
     const R = g.renderer;
-    if (R.edgeTap(sx, sy)) {
+    if (R.overviewTap(sx, sy)) {
       g.sound.play('tap', 0.4);
       return;
     }

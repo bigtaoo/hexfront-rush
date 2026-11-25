@@ -75,7 +75,7 @@ export default {
   ltip2: "Consiglio: una torre di guardia vicino al tuo castello ferma un attacco precoce.",
   ltip3: "Consiglio: una carta mistero costa solo 25 e apre anche le caselle attorno, un modo economico per arrivare a un forziere.",
   ltip4: "Consiglio: più caserme creano ondate più grandi. Sfonda chi ha più truppe.",
-  ltip5: "Consiglio: tieni d'occhio i segnali sul bordo. A una caserma epica del rivale conviene rispondere con torri di guardia.",
+  ltip5: "Consiglio: ogni tanto rimpicciolisci la vista per vedere tutta la mappa. A una caserma epica del rivale conviene rispondere con torri di guardia.",
   campaignDone: "Campagna completata! ★ {n}/{t}",
   campaign: "Campagna", quick: "Partita rapida", daily: "Giornaliera", go: "All'attacco!", back: "Indietro", nextStage: "Prossimo livello", retry: "Riprova",
   diff0: "Facile", diff1: "Normale", diff2: "Difficile", diff3: "Brutale",

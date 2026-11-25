@@ -7,7 +7,7 @@
 // The world container carries the camera (zoom and offset, plus the screen shake); under it the
 // layers go ground, its litter (decor.ts), offer cards, tap marker, y-sorted sprites, projectiles
 // and effects. Over it,
-// in screen pixels: the edge markers and the overview button, the HUD and the overlays.
+// in screen pixels: the overview button, the HUD and the overlays.
 
 import { Container, type Application } from 'pixi.js';
 import { T } from '../app/i18n';
@@ -21,7 +21,7 @@ import { EffectLayer } from './effects';
 import { Juice, type DrawUi, type Frame, type Vis } from './frame';
 import { DecorLayer } from './decor';
 import { groundBg, GroundLayer } from './ground';
-import { EdgeLayer } from './edges';
+import { OverviewBtn } from './overview';
 import { Hud, type Status } from './hud';
 import { LightLayer } from './light';
 import { LOOK_B } from './lookB';
@@ -57,7 +57,7 @@ export class Renderer {
   private offers = new OfferLayer();
   private effects = new EffectLayer();
   private sprites = new SpriteLayer();
-  private edges = new EdgeLayer();
+  private ovBtn = new OverviewBtn();
   private hud = new Hud(this.juice);
   private light = LOOK_B ? new LightLayer() : null;
   private overlays = new Overlays(this.juice);
@@ -78,7 +78,7 @@ export class Renderer {
       this.effects.burst(x, y, COL.coin, 6);
       this.onLand?.(team);
     };
-    app.stage.addChild(this.world, this.edges.root, this.hud.root, this.overlays.root);
+    app.stage.addChild(this.world, this.ovBtn.root, this.hud.root, this.overlays.root);
     if (this.light) {
       // the sand's grain lies on the ground, over it and under everything that stands on it
       this.world.addChildAt(this.light.grain, this.world.getChildIndex(this.ground.root) + 1);
@@ -128,14 +128,13 @@ export class Renderer {
     this.sprites.build(eng, this.cam);
     this.offers.reset();
     this.effects.reset();
-    this.edges.reset();
   }
   /** Clears per-match juice. The camera is not juice, so it is left alone: a new match goes
    *  through `setView`, which resets the zoom and the scale together, and the online catch-up jump
    *  (game.ts) keeps the player looking where they were. Clearing `overview` and `zoomK` here left
    *  the drawn scale at the overview's - the glide in `Camera.update` only runs while `zoomK` is
    *  away from its goal, and this put both at 0 - so one lag spike stranded an online match zoomed
-   *  out for good, with no panning and no edge markers. */
+   *  out for good, with no panning. */
   reset(): void {
     this.income = null;
     this.overlays.reset();
@@ -143,7 +142,6 @@ export class Renderer {
     this.offers.reset();
     this.juice.reset();
     this.hud.status = null;
-    this.edges.reset();
   }
   resize(): void {
     this.cam.resize(this.app.screen.width, this.app.screen.height);
@@ -157,9 +155,6 @@ export class Renderer {
   panBy(dx: number, dy: number): void {
     this.cam.panBy(dx, dy);
   }
-  lookAt(vx: number, vy: number): void {
-    this.cam.lookAt(vx, vy);
-  }
   screenToWorld(sx: number, sy: number): Pt {
     return this.cam.screenToWorld(sx, sy);
   }
@@ -171,12 +166,10 @@ export class Renderer {
     const v = at ? { x: (at.x - this.cam.ox) / this.cam.scale, y: (at.y - this.cam.oy) / this.cam.scale } : undefined;
     this.cam.setOverview(on, v);
   }
-  /** A tap on the overview button or an edge marker: handled (true) or not on one (false). */
-  edgeTap(sx: number, sy: number): boolean {
-    const h = this.edges.hit(sx, sy);
-    if (!h) return false;
-    if (h === 'overview') this.cam.setOverview(!this.cam.overview);
-    else this.cam.lookAt(h.x, h.y);
+  /** A tap on the overview button: handled (true) or not on it (false). */
+  overviewTap(sx: number, sy: number): boolean {
+    if (!this.ovBtn.hit(sx, sy)) return false;
+    this.cam.setOverview(!this.cam.overview);
     return true;
   }
 
@@ -218,7 +211,6 @@ export class Renderer {
 
   /** Visual reaction to one sim event (sound and UI flow stay in the app). */
   onEvent(e: SimEvent): void {
-    if (this.eng) this.edges.onEvent(e, this.eng, this.cam, this.local);
     const mine = e.team === this.local;
     const p = e.x !== undefined && e.y !== undefined ? this.cam.view(e.x, e.y) : null;
     const fx = this.effects;
@@ -309,14 +301,13 @@ export class Renderer {
     this.offers.draw(f);
     this.sprites.draw(f);
     this.effects.draw(f);
-    this.edges.draw(f, ui.look ?? false);
+    this.ovBtn.draw(f, ui.look ?? false);
     // Behind the menu the match is a backdrop: no bars, no hand (the menu has its own buttons).
     // A panel over a match is the same backdrop: the result card used to come up with the clock,
-    // "wave in 15s", the gold pill and the quest box still lit around it, and the edge markers
-    // still pointing at armies nobody can send any more.
+    // "wave in 15s", the gold pill and the quest box still lit around it.
     const covered = !!ui.covered;
     this.hud.root.visible = !ui.demo && !covered;
-    this.edges.root.visible = !covered;
+    this.ovBtn.root.visible = !covered;
     if (this.hud.root.visible) this.hud.draw(f);
     this.overlays.draw(f);
   }
@@ -324,7 +315,7 @@ export class Renderer {
   destroy(): void {
     this.overlays.destroy();
     this.hud.destroy();
-    this.edges.destroy();
+    this.ovBtn.destroy();
     this.effects.destroy();
     this.sprites.destroy();
     this.ground.destroy();
