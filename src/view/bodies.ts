@@ -21,7 +21,27 @@ import { Pen, sharedCtx } from './pen';
  *  it a tenth). So this is black with just enough blue to pick up the reference's couple of degrees:
  *  on #347c72 it lands hue 172.4 S0.572 V0.376 against the ground's 170.8 S0.581 V0.486. The alphas
  *  are up three to four hundredths with it, because our board's dark end sits 0.05 short of the
- *  reference's (p5 0.318 against 0.271) and the contact shadow is where a board gets its black. */
+ *  reference's (p5 0.318 against 0.271) and the contact shadow is where a board gets its black.
+ *
+ *  AND IT GOES UNDER A THING THAT MOVES, NOT UNDER A THING THAT STANDS (D114). The reference
+ *  (D:/new/ref) draws NO ground shadow under its scenery at all. Zoomed in on IMG_3660 its house,
+ *  its two shrines, its gold pile, its pyramid, its rocks and its cacti all sit straight on the
+ *  flat territory colour, and on IMG_3717 its stump sits in the middle of its hex with the grid
+ *  lines running right under it. It is measurable as well as visible: 40 to 80 device px below
+ *  that house -- a third to two thirds of a hex height -- the ground reads a 5th percentile of
+ *  0.906 against its own modal 0.933, a 0.027 dip, which is anti-aliasing and not a shadow. What
+ *  stands a piece off the board there is the hard dark OUTLINE on the sprite, and our own art has
+ *  exactly that (sprite.py OUTLINE_PX, a 4 px dilation in dark ink under every frame) plus, under
+ *  lookB, a cast shadow of the picture itself leaning away from the light. So the contact ellipse
+ *  under a building (rx 0.7: a 92 device px body and a 110 px halo across a 113 px hex -- it
+ *  covered the tile) and under an obstacle (rx 0.5) was a third grounding device doing a job two
+ *  others already do, and it paid for it in the one place the reference keeps clean: the open
+ *  ground between the pieces.
+ *
+ *  What still gets one is what the outline cannot explain: a map event, which BOBS a few
+ *  hundredths above its tile and has to be seen hovering, and a troop or a guard, which moves
+ *  across the board and would skate over it otherwise (and under lookB a troop takes a
+ *  team-coloured base instead, unitView.ts). Scenery stands still and keeps its outline. */
 export function shadow(p: Pen, x: number, y: number, rx: number): void {
   p.ellipse(x, y + rx * 0.05, rx * 1.2, rx * 0.44, 'rgba(10,16,18,0.12)');
   p.ellipse(x, y, rx, rx * 0.36, 'rgba(10,16,18,0.30)');

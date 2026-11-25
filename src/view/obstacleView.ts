@@ -114,17 +114,22 @@ function piece(g: Container, kind: string, deco: number, theme: ThemeKey,
                dx: number, dy: number, k: number, alpha: number): void {
   const { t: tx, flip } = obstacleTex(kind as Parameters<typeof obstacleTex>[0], deco, theme);
   const part = new Container();
-  // 0.5, not 0.5 * k: the container this hangs in is scaled by k below, so a k in here is applied
-  // twice. At the old jitter (0.93-1.07) that was a 7% error nobody could see; at CROWN_K it would
-  // put a 1.05-radius patch of shade under a tree whose own hex is 0.87 across.
-  const sh = new Graphics(shadowCtx(0.5));
-  sh.position.set(0, TILE_FOOT - 0.08);
+  // The contact ellipse, in the old look only. lookB grounds a piece the way the reference does --
+  // with the sprite's own baked outline and its cast shadow -- and the reference draws no ground
+  // shadow under its scenery at all (bodies.ts D114). 0.5, not 0.5 * k, for the old look: the
+  // container this hangs in is scaled by k below, so a k in here is applied twice, and at CROWN_K
+  // that would put a 1.05-radius patch of shade under a tree whose own hex is 0.87 across.
+  if (!LOOK_B) {
+    const sh = new Graphics(shadowCtx(0.5));
+    sh.position.set(0, TILE_FOOT - 0.08);
+    part.addChild(sh);
+  }
   // No warm tint. 0xf2e6cc was here to sit a *toy* on the board, and decor.ts already found what
   // it costs: a piece's own hue. With the foliage moved onto the board's teal family on purpose
   // (prim.py D96) that cost is the whole point of the change -- the tint was pulling the crown
   // 15 degrees back toward yellow on screen and taking a tenth of its saturation with it.
   const sp = artSprite(tx, TILE_FOOT, flip ? -1 : 1);
-  part.addChild(sh, sp);
+  part.addChild(sp);
   if (LOOK_B) part.addChildAt(castSprite(tx, TILE_FOOT), 0);
   part.position.set(dx, dy);
   part.scale.set(k);

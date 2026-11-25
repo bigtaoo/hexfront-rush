@@ -199,7 +199,9 @@ export class WallLayer {
 export class BuildingView {
   readonly root = new Container();
   private pop = new Container();
-  private shadow = new Graphics(shadowCtx(0.7));
+  /** The contact ellipse, in the old look only: lookB grounds a building with the sprite's own
+   *  baked outline and its cast shadow, which is what the reference does (bodies.ts D114). */
+  private shadow = LOOK_B ? null : new Graphics(shadowCtx(0.7));
   private body: Sprite;
   private flash: Sprite;
   private dyn: Live = liveGraphics();
@@ -221,10 +223,11 @@ export class BuildingView {
     this.flash.blendMode = 'add';
     this.flash.alpha = 0.6;
     this.top = TILE_FOOT - artH(t) * k;
-    this.shadow.position.set(0, TILE_FOOT - 0.1);
+    this.shadow?.position.set(0, TILE_FOOT - 0.1);
     this.pop.pivot.set(0, TILE_FOOT);
     this.pop.position.set(0, TILE_FOOT);
-    this.pop.addChild(this.shadow, this.body, this.flash);
+    if (this.shadow) this.pop.addChild(this.shadow);
+    this.pop.addChild(this.body, this.flash);
     if (LOOK_B) {
       const c = castSprite(t, TILE_FOOT);
       setCast(c, k / PPU, k / PPU);
