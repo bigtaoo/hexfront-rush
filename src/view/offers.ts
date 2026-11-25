@@ -19,14 +19,25 @@ import { sharedCtx, type Pen } from './pen';
 
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
-/** The symbol's scale on its tile, and where its centre and the price row sit (view units). */
-const GLYPH_K = LOOK_B ? 1.05 : 1.3, GLYPH_Y = LOOK_B ? -0.14 : -0.22, PRICE_Y = LOOK_B ? 0.32 : 0.46;
-/** The price's height (view units), a picture number (digits.ts). */
-const PRICE_H = LOOK_B ? 0.3 : 0.46;
+/** The symbol's scale on its tile, and where its centre and the price row sit (view units).
+ *
+ *  MEASURED OFF THE REFERENCE, not chosen (D97). On its build plot (D:/new/ref, IMG_3660) a hex is
+ *  180 px across and the cream symbol on an offer hex is 41 px wide: 0.23 of a hex width. Ours was
+ *  0.30 wide and 0.45 TALL -- a third again as wide and nearly twice as tall -- and fourteen of
+ *  them around a castle is what the player sees as a wall of stickers. The reference's own board
+ *  carries the same number of offers and reads quietly because each one is a small mark on a tile
+ *  that still shows as a tile. 0.82 puts our symbol at 0.235 of a hex. */
+const GLYPH_K = LOOK_B ? 0.82 : 1.3, GLYPH_Y = LOOK_B ? -0.11 : -0.22, PRICE_Y = LOOK_B ? 0.26 : 0.46;
+/** The price's height (view units), a picture number (digits.ts). Also measured: the reference's
+ *  price digits are 23-24 px tall on its 180 px hex, 0.131 of a hex width, where ours were 0.173.
+ *  0.23 view units is 0.133 of a hex. */
+const PRICE_H = LOOK_B ? 0.23 : 0.46;
 /** The price is never drawn shorter than this on screen (px): at a phone's zoom PRICE_H alone came
  *  to about 9 px, too small to read at a glance. It grows only so far, or it would run into the
- *  symbol above it. */
-const PRICE_MIN_PX = 13, PRICE_MAX_H = PRICE_H * 1.45;
+ *  symbol above it. 11, down from 13, for the same reason the heights came down: at the zoom a
+ *  phone actually plays at, 13 was the floor that was binding and it drew the digits half again
+ *  taller than the reference's. */
+const PRICE_MIN_PX = 11, PRICE_MAX_H = PRICE_H * 1.45;
 /** An offer the player cannot pay for: the price turns red, and that is the whole signal. The hue
  *  has been in and out three times. A dull clay (#b9a487) was unreadable (D70); a strong rust
  *  (#a81f12) was readable but shouted over a plaque (D83); a dark red cut into the plaque read
@@ -305,10 +316,10 @@ export class OfferLayer {
     glyph.position.set(0, GLYPH_Y);
     glyph.scale.set(GLYPH_K);
     const cg = new Graphics(coinCtx());
-    cg.position.set(LOOK_B ? -0.17 : -0.24, PRICE_Y);
-    if (LOOK_B) cg.scale.set(0.7);
+    cg.position.set(LOOK_B ? -0.14 : -0.24, PRICE_Y);
+    if (LOOK_B) cg.scale.set(0.58);
     const cost = new Num();
-    cost.position.set(LOOK_B ? -0.06 : -0.08, PRICE_Y);
+    cost.position.set(LOOK_B ? -0.05 : -0.08, PRICE_Y);
     root.addChild(glyph);
     const tag = new Container();
     tag.addChild(cg, cost);

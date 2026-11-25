@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { installCanvas } from '../test/canvasFakes';
 import { TEAM_BLUE, TEAM_RED } from '../sim/rules';
-import { TEAM_LINE, mix, teamLook } from './ground';
+import { PATCH_D, PATCH_N, TEAM_LINE, groundPatches, mix, teamLook } from './ground';
+import { generateMap } from '../sim/map';
 import { SKINS } from './skins';
 
 // The battle screen's palette, pinned where it has already gone wrong four times -- and all four
@@ -244,5 +245,54 @@ describe("the map's palette", () => {
       expect(l.v).toBeGreaterThanOrEqual(0.95);
       expect(l.s).toBeGreaterThan(Math.max(...tops.map((t) => hsv(t.c).s)) + 0.1);
     }
+  });
+});
+
+describe('the ground patches', () => {
+  // D98: the reference's bare field is not one colour, it is runs of three to five tiles at four
+  // value levels 0.064 apart. These pin that ours is the same kind of thing: three levels, all of
+  // them used, in patches and not per tile, and the same on both clients of a match.
+  const seeds = [0, 1, 2, 7, 31, 404, 12345];
+
+  it('deals every level out, on every board', () => {
+    for (const seed of seeds) {
+      const { tiles } = generateMap(seed);
+      const p = groundPatches(tiles, seed);
+      const hist = PATCH_D.map((_, lv) => [...p].filter((x) => x === lv).length);
+      for (const n of hist) expect(n).toBeGreaterThan(tiles.length * 0.08);
+      // and no level may swallow the board: 237 of 325 on one level is not patchiness, it is a
+      // board repitched by 0.048 with a few dark corners, which is what rolling the levels did.
+      for (const n of hist) expect(n).toBeLessThan(tiles.length * 0.62);
+    }
+  });
+
+  it('lays patches, not a per-tile scatter', () => {
+    for (const seed of seeds) {
+      const { tiles } = generateMap(seed);
+      const p = groundPatches(tiles, seed);
+      let same = 0, pairs = 0;
+      for (const t of tiles) {
+        for (const n of t.nb) {
+          pairs++;
+          if (p[n] === p[t.i]) same++;
+        }
+      }
+      // a per-tile roll over three levels would agree with a third of its neighbours; PATCH_N
+      // spots over 325 tiles is about twenty tiles a patch, so most neighbours agree
+      expect(same / pairs).toBeGreaterThan(0.8);
+    }
+  });
+
+  it('is the same board for both clients, and a different one per seed', () => {
+    expect([...groundPatches(generateMap(7).tiles, 7)]).toEqual([...groundPatches(generateMap(7).tiles, 7)]);
+    expect([...groundPatches(generateMap(8).tiles, 8)]).not.toEqual([...groundPatches(generateMap(7).tiles, 7)]);
+  });
+
+  it("steps up from the skin colour, which is the reference's floor", () => {
+    // the reference's own levels sit 0, 0.015, 0.046 and 0.064 ABOVE its darkest bare tile, so the
+    // skin colour is the floor and nothing may go under it
+    expect(Math.min(...PATCH_D)).toBe(0);
+    expect(Math.max(...PATCH_D)).toBeLessThanOrEqual(0.064);
+    expect(PATCH_N).toBeGreaterThan(8);
   });
 });

@@ -45,6 +45,15 @@ import { LOOK_B } from './lookB';
  *  which a cut of this treated as the fault to fix and the reference treats as the board. See the
  *  note at the top for why half was the wrong number. */
 const DENSITY = 0.22;
+/** ...except on the meadow boards, where it is none at all (D97). The note above already read the
+ *  reference's forest frames correctly -- "the open ground carries nothing at all: no litter, no
+ *  sprigs, one flat hex after another" -- and then kept a fifth of the tiles decorated on every
+ *  theme anyway. Looking at our own board next to IMG_3717 the sprigs are the most pattern-like
+ *  thing on it: sixty copies of the same little chevron, all in the ground's own hue now that the
+ *  foliage turned teal (D96), spaced about every fifth hex. On sand it works and the reference does
+ *  it too (IMG_3660 scatters small cacti over its bare sand); on a dark green field the same pieces
+ *  are scribbles on a surface that is supposed to be quiet. */
+const THEME_DENSITY: Record<string, number> = { meadow: 0 };
 /** Where in the tile a piece lands, as a fraction of the hex radius: never the centre (a unit
  *  stands there and a building goes there), and the far end is then pulled in by the piece's own
  *  width, below -- a dry bush is three times as wide as a pebble and cannot be pushed as far. */
@@ -70,6 +79,11 @@ const SPAN = 0.78;
  *  outline, and it pulled the blue out of the ice. Alpha alone sinks these in far enough. */
 const ALPHA = 0.62;
 
+/** How many of a theme's tiles get a piece. */
+export function density(theme: string): number {
+  return THEME_DENSITY[theme] ?? DENSITY;
+}
+
 /** A fraction in [0, 1) from a tile's deco roll and a question number. Hashing the pair is what
  *  stops two tiles with the same roll from looking alike. */
 function roll(deco: number, i: number, k: number): number {
@@ -94,7 +108,7 @@ export class DecorLayer {
   build(eng: Engine, cam: Camera): void {
     this.root.removeChildren();
     this.piece = eng.tiles.map((t) => {
-      if (!bare(t) || roll(t.deco, t.i, 0) >= DENSITY) return [];
+      if (!bare(t) || roll(t.deco, t.i, 0) >= density(eng.themeKey)) return [];
       const on = [this.put(t, cam, eng.themeKey, 1, 0)];
       // the second piece goes on the far side of the tile's centre (+pi, turned a little), so a
       // pair reads as two things standing together and not as one thing drawn twice

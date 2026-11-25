@@ -9,7 +9,7 @@ import { NTILES } from '../sim/hex';
 import { TEAM_BLUE } from '../sim/rules';
 import { installCanvas } from '../test/canvasFakes';
 import { Camera } from './camera';
-import { DecorLayer } from './decor';
+import { DecorLayer, density } from './decor';
 
 installCanvas();
 
@@ -19,6 +19,15 @@ const cam = (eng: Engine): Camera => {
   c.resize(390, 844);
   c.setView(eng, TEAM_BLUE);
   return c;
+};
+/** A seed whose theme actually carries litter: since D97 the meadow boards carry none, so the
+ *  density tests below have to be told which boards to measure or they measure nothing. */
+const littered = (want: number): number[] => {
+  const out: number[] = [];
+  for (let seed = 1; out.length < want && seed < 400; seed++) {
+    if (density(engine(seed).themeKey) > 0) out.push(seed);
+  }
+  return out;
 };
 /** The tiles a piece was placed on, by index. */
 const placed = (l: DecorLayer, eng: Engine): number[] =>
@@ -37,19 +46,33 @@ describe('ground decoration', () => {
   });
 
   it('is the same board for both clients: it comes out of the map seed alone', () => {
+    const [s1, s2] = littered(2) as [number, number];
     const a = new DecorLayer(), b = new DecorLayer();
-    const ea = engine(31), eb = engine(31);
+    const ea = engine(s1), eb = engine(s1);
     a.build(ea, cam(ea));
     b.build(eb, cam(eb));
     expect(placed(a, ea)).toEqual(placed(b, eb));
+    expect(placed(a, ea).length).toBeGreaterThan(0);
     // and a different seed is a different scatter, or the "scatter" is a fixed pattern
-    const c = new DecorLayer(), ec = engine(32);
+    const c = new DecorLayer(), ec = engine(s2);
     c.build(ec, cam(ec));
     expect(placed(c, ec)).not.toEqual(placed(a, ea));
   });
 
+  it("leaves the meadow boards bare: the reference's forest ground carries nothing", () => {
+    expect(density('meadow')).toBe(0);
+    for (let seed = 1, seen = 0; seen < 3 && seed < 400; seed++) {
+      const eng = engine(seed);
+      if (eng.themeKey !== 'meadow') continue;
+      seen++;
+      const l = new DecorLayer();
+      l.build(eng, cam(eng));
+      expect(placed(l, eng)).toEqual([]);
+    }
+  });
+
   it('covers about a fifth of the open ground, and never reads as terrain', () => {
-    for (const seed of [1, 7, 23, 404]) {
+    for (const seed of littered(4)) {
       const eng = engine(seed);
       const l = new DecorLayer();
       l.build(eng, cam(eng));

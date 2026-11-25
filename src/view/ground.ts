@@ -173,6 +173,71 @@ export function mix(a: string, b: string, t: number): string {
  *  See DECISIONS.md D87, D89, D94. */
 const RIM_W = 0.3, RIM_D = 0.027, SIDE_LIP_D = 0.012;
 
+/** The ground's patches, and the one thing a flat fill cannot fake.
+ *
+ *  MEASURED, not chosen (D98). Scanning the reference's open forest field (D:/new/ref, IMG_3717)
+ *  along four horizontal lines and reading the plateaus between its grid lines, its bare tiles do
+ *  not take two alternating shades: they sit at four levels -- 0.441, 0.456, 0.487 and 0.505 of
+ *  value -- in RUNS OF THREE TO FIVE TILES. y=2030 reads 488 488 488 488, then 454 454 454, then
+ *  441 441 441. That is ground with patches in it. Ours had a per-tile checker whose two shades are
+ *  one 255th of value apart (skins.ts, and one 255th is no checker at all) over a smooth
+ *  three-band zone gradient, so twenty tiles at a stretch of the open field came out one flat
+ *  colour -- which is the whole of "our tiles look like pure colour painted on".
+ *
+ *  So sixteen seeded spots are scattered over the board and every tile takes its nearest spot's
+ *  level as an absolute step of value. A Voronoi and not a block grid, because the reference's
+ *  patches have ragged hex outlines where a block grid draws rectangles; sixteen spots over 325
+ *  tiles is about twenty tiles a patch, four or five across, which is the run length measured.
+ *
+ *  THE STEPS GO UP, NOT BOTH WAYS. The skins' own meadow green is value 0.439 (#32705e), which is
+ *  the reference's FLOOR, not its middle: its four levels sit 0, 0.015, 0.046 and 0.064 above
+ *  0.441, and its mean ground is about 0.458. Ours was 0.443 flat, so the board was pitched at the
+ *  reference's darkest patch everywhere. Three steps of 0, 0.018 and 0.048 put our floor where it
+ *  already was and our mean where the reference's is.
+ *
+ *  And the levels are dealt out k % 3, not rolled: rolling them put eleven of sixteen spots on the
+ *  brightest level on seed 2, which is 237 of 325 tiles, and that is not patchiness -- it is the
+ *  whole board 0.048 brighter than skins.ts pitched it, with a few dark corners. Dealing fixes the
+ *  mean at +0.022 while the spots' positions, which are rolled, still make every board different.
+ *
+ *  Territory tiles are left flat: the reference's own territory patches are one colour from end to
+ *  end (teamLook below), and so is its water. */
+export const PATCH_N = 15, PATCH_D = [0, 0.018, 0.048] as const;
+
+/** Which patch each tile fell in: nearest of PATCH_N spots scattered over the board from the map
+ *  seed, so both clients of one match lay the same patches (nothing here is networked). */
+export function groundPatches(tiles: readonly Tile[], seed: number): Int8Array<ArrayBuffer> {
+  const out = new Int8Array(tiles.length);
+  // murmur3's finalizer, not one multiply: one multiply left the top bits unmixed and on seed 2
+  // all sixteen spots drew a level from the outer thirds, so the board came out with two levels
+  // and not three (163 tiles / 0 / 162).
+  const rnd = (n: number) => {
+    let h = seed ^ Math.imul(n, 0x9e3779b1);
+    h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+    h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+    return ((h ^ (h >>> 16)) >>> 0) / 2 ** 32;
+  };
+  const xs = tiles.map((t) => t.x), ys = tiles.map((t) => t.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const spots = Array.from({ length: PATCH_N }, (_, k) => ({
+    x: x0 + rnd(k * 3 + 1) * (x1 - x0),
+    y: y0 + rnd(k * 3 + 2) * (y1 - y0),
+    lv: k % PATCH_D.length,
+  }));
+  for (const t of tiles) {
+    let lv = 1, best = Infinity;
+    for (const s of spots) {
+      const d = (t.x - s.x) ** 2 + (t.y - s.y) ** 2;
+      if (d < best) {
+        best = d;
+        lv = s.lv;
+      }
+    }
+    out[t.i] = lv;
+  }
+  return out;
+}
+
 /** The same colour, `d` of value brighter, hue and saturation untouched: scaling every channel by
  *  (v + d) / v is what adds value without adding grey. */
 function vAdd(hex: string, d: number): string {
@@ -232,6 +297,8 @@ export class GroundLayer {
    *  whether this skin paints it as water. Both static for the match. */
   private zone = new Int8Array(0);
   private water = new Uint8Array(0);
+  /** Per tile, which of the three ground patches it fell in (PATCH_D). Static for the match. */
+  private patch = new Int8Array(0);
   private skin: MapSkin = SKINS[0]!;
   /** Per tile, its neighbours' tile indexes and the shared edge's two corners (view units). */
   private edges: { j: number; a: Pt; b: Pt }[][] = [];
@@ -247,6 +314,7 @@ export class GroundLayer {
     const homes = TEAMS.map((tm) => eng.tiles[baseTile(tm)]!);
     this.zone = new Int8Array(eng.tiles.length);
     this.water = new Uint8Array(eng.tiles.length);
+    this.patch = groundPatches(eng.tiles, eng.config.seed);
     for (const t of eng.tiles) {
       const d = Math.min(...homes.map((h) => hexDist(t.c, t.r, h.c, h.r)));
       this.zone[t.i] = d <= HOME_BAND ? 0 : d <= FIELD_BAND ? 1 : 2;
@@ -292,7 +360,11 @@ export class GroundLayer {
       // dark line on a dark field and simply is not there. So it takes the home band's value and
       // goes the other way -- a pale dash over a dark board, a dark one over a light board.
       const pale = val(this.skin.top[0][0]) < 0.6;
-      const ink = pale ? 'rgba(226,236,230,0.30)' : 'rgba(36,24,10,0.26)';
+      // and quietly: 0.30 drew a dashed ellipse across half the board, the single longest line in
+      // the picture, where the reference has no such ring at all and says the same thing with
+      // nothing (D97). It stays, because it is the only drawing of where a castle guard will walk
+      // back to, but at a sixth of an alpha it is something the player finds when they look for it.
+      const ink = pale ? 'rgba(226,236,230,0.17)' : 'rgba(36,24,10,0.15)';
       p.dashedCircle(v.x, v.y, GUARD.leash / FP, 0.3, 0.25, ink, 0.085);
     }
     this.update(eng);
@@ -315,7 +387,8 @@ export class GroundLayer {
     const k = t.shade ? 1 : 0;
     const wet = this.water[t.i] ? sk.water : null;
     const th = wet || !TEAM_LINE[t.owner] ? undefined : teamLook(sk, t.owner);
-    const top = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
+    const base = wet ? wet[0] : th ? th.top[k]! : sk.top[this.zone[t.i]!]![k]!;
+    const top = wet || th ? base : vAdd(base, PATCH_D[this.patch[t.i]!]!);
     return tileCtx(wet ? wet[1] : sk.side, top, !!t.obst, wet ? null : th ? th.grid : sk.grid, !!wet);
   }
 
