@@ -1,7 +1,7 @@
 // The ground litter is the one layer that touches every tile on the board, so what it must never
 // do matters more than what it looks like: it may not land where something stands, it may not
 // differ between two clients of one online match, and it may not creep up to a density where the
-// player starts reading it as terrain. Those three are what these pin. See DECISIONS.md D90.
+// player starts reading it as terrain. Those three are what these pin. See DECISIONS.md D90, D92.
 
 import { describe, expect, it } from 'vitest';
 import { Engine } from '../sim/engine';
@@ -48,7 +48,7 @@ describe('ground decoration', () => {
     expect(placed(c, ec)).not.toEqual(placed(a, ea));
   });
 
-  it('covers about half the open ground, and never reads as terrain', () => {
+  it('covers about a fifth of the open ground, and never reads as terrain', () => {
     for (const seed of [1, 7, 23, 404]) {
       const eng = engine(seed);
       const l = new DecorLayer();
@@ -56,10 +56,11 @@ describe('ground decoration', () => {
       const open = eng.tiles.filter((t) => !t.obst && !t.bld && !t.rubble && !t.event).length;
       const n = placed(l, eng).length;
       expect(open).toBeGreaterThan(NTILES * 0.5);
-      // DENSITY is 0.55 and the roll is a hash, so a board lands a little either side of it.
-      // The ceiling is the one that matters: past about two thirds the litter stops being litter.
-      expect(n / open).toBeGreaterThan(0.4);
-      expect(n / open).toBeLessThan(0.65);
+      // DENSITY is 0.22 and the roll is a hash, so a board lands a little either side of it.
+      // The ceiling is the one that matters: past about a third the litter stops being litter and
+      // starts being a texture over the whole field, which is what D92 cut it back from.
+      expect(n / open).toBeGreaterThan(0.12);
+      expect(n / open).toBeLessThan(0.33);
     }
   });
 

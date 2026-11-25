@@ -47,17 +47,26 @@
 // reference's white-with-a-breath-of-blue. Value is what tells the themes apart now; the zone step
 // is what tells the zones apart, and nothing at all is spent on per-tile noise.
 //
-// Every skin keeps a `grid`, its own colour a tenth down in value and an eighth up in saturation,
-// and it is the only line drawn on open ground. Two cuts of this missed either way: 5% was a
-// quarter of the ink and at a phone's zoom there was no honeycomb on the board at all, and 14% --
-// measured off a *shadowed* patch of the reference's sand -- inked an outline round every hex,
-// which is what made the board look drawn rather than made of anything. On bright sand the
-// reference's own line is a thirtieth of value, and what closes the cell there is the lit rim along
-// each tile's lower edges (ground.ts), not the line.
+// Every skin keeps a `grid`, an eighth up in saturation from its own colour and *as far down in
+// value as its board needs*, and it is the only line drawn on open ground. Two cuts of this missed
+// either way: 5% was a quarter of the ink and at a phone's zoom there was no honeycomb on the board
+// at all, and 14% -- measured off a *shadowed* patch of the reference's sand -- inked an outline
+// round every hex, which is what made the board look drawn rather than made of anything.
+//
+// How far down is the board's to decide, like the guard leash's dash (ground.ts). A tenth of value
+// is 0.082 on sand and 0.043 on the meadow's deep green, and 0.043 is a line you cannot see: by the
+// time a hex is 58 CSS px across, a thin stroke four hundredths off its tile is gone. Measured on
+// the reference's own two bare biomes (D:/new/ref), its line is about 0.05 of value below bright
+// sand (IMG_3670) and 0.13 below forest green (IMG_3707, tile 0.455 against line 0.322) -- four
+// times the absolute step on the dark board, and about the same again in L*. It draws the line
+// deeper where there is less light to spend, not in proportion. So desert keeps its tenth (0.082)
+// and snow its 0.090, and the meadow boards take 0.110 of value flat, a shade under the
+// reference's 0.13. What closes the cell on the light boards is the lit rim along each tile's lower
+// edges (ground.ts) as much as the line; on the dark ones the line has to do it alone.
 //
 // The two territories are no longer painted here at all: they are mixed off whichever ground they
 // sit on, 0.55 of the way to the team's line colour (ground.ts teamLook), which is the rule the
-// reference's own four territory patches fit. See DECISIONS.md D85, D86, D87, D88, D89, D91.
+// reference's own four territory patches fit. See DECISIONS.md D85, D86, D87, D88, D89, D91, D92.
 
 import type { ThemeKey } from '../sim/map';
 
@@ -69,7 +78,8 @@ export interface MapSkin {
   theme: ThemeKey;
   /** Tile tops by zone: 0 home country, 1 the open field, 2 the contested middle. */
   top: readonly [Shades, Shades, Shades];
-  /** The hex grid: this skin's colour, a tenth down in value and an eighth up in saturation. */
+  /** The hex grid: this skin's colour an eighth up in saturation, and down in value by what the
+   *  board needs -- 0.082 on desert, 0.090 on snow, 0.110 on the dark meadow boards (D92). */
   grid: string;
   /** Below the tile, so only the map's rim shows it. */
   side: string;
@@ -83,22 +93,22 @@ export const SKINS: readonly MapSkin[] = [
   {
     key: 'meadow-spring', theme: 'meadow',
     top: [['#418275', '#408174'], ['#3b786c', '#3a776b'], ['#356f63', '#346d62']],
-    grid: '#2e6c60', side: '#245249', bg: '#152c28', water: ['#5fa99e', '#397067'],
+    grid: '#275c52', side: '#245249', bg: '#152c28', water: ['#5fa99e', '#397067'],
   },
   {
     key: 'meadow-summer', theme: 'meadow',
     top: [['#3b7a5d', '#3a795c'], ['#357155', '#346f54'], ['#2f674d', '#2e654c']],
-    grid: '#296649', side: '#204d38', bg: '#132a1f', water: null,
+    grid: '#22553d', side: '#204d38', bg: '#132a1f', water: null,
   },
   {
     key: 'meadow-autumn', theme: 'meadow',
     top: [['#778a4c', '#76884b'], ['#6e8045', '#6d7e44'], ['#65763e', '#64753d']],
-    grid: '#617337', side: '#4a572b', bg: '#282f19', water: ['#6ca89a', '#436f65'],
+    grid: '#546430', side: '#4a572b', bg: '#282f19', water: ['#6ca89a', '#436f65'],
   },
   {
     key: 'meadow-marsh', theme: 'meadow',
     top: [['#3e736f', '#3d716e'], ['#386a67', '#376965'], ['#32615e', '#32605d']],
-    grid: '#2d5f5c', side: '#234846', bg: '#142726', water: ['#58a596', '#346d62'],
+    grid: '#254e4b', side: '#234846', bg: '#142726', water: ['#58a596', '#346d62'],
   },
   {
     key: 'desert-pale', theme: 'desert',

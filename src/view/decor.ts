@@ -1,10 +1,21 @@
 // The litter on open ground: tufts of grass, pebbles, dry brush, drifts of snow.
 //
-// WHY THIS EXISTS. Measured against the reference game (D:/new/ref), the one gap left on the board
-// after D89 was not colour, texture or line weight -- it was that the reference's bare ground is
-// densely covered in small things and ours was empty. Our obstacle props cover 7-20% of the tiles
-// (map.ts caps them there: fewer and the map has no terrain, more and the pathing closes up), so
-// about 270 of the 325 tiles carried nothing at all.
+// WHY THIS EXISTS. Our obstacle props cover 7-20% of the tiles (map.ts caps them there: fewer and
+// the map has no terrain, more and the pathing closes up), so about 270 of the 325 tiles carried
+// nothing at all, and a tile with nothing on it has only its own flat colour to show.
+//
+// HOW MANY, AND WHY THAT IS NOW A FIFTH AND NOT A HALF. The first cut of this read the reference
+// (D:/new/ref) as "bare ground densely covered in small things" and put a piece on 0.55 of the open
+// tiles. That reading came off its *sand* frames, and it was wrong twice over. Its sand carries
+// tile-sized cacti, obelisks and chests -- obstacle props, the tier above this one, which the note
+// below says this tier deliberately is not -- and its bare sand hexes are bare (IMG_3670). On its
+// forest boards (IMG_3707, IMG_3717) the open ground carries nothing at all: no litter, no sprigs,
+// one flat hex after another, and the tree that is there is a dark mass you cannot miss. Over the
+// deep greens the meadow boards now wear (skins.ts D91) a piece on every other tile is 200 small
+// scribbles in the ground's own hue, which at a phone's zoom is a fuzz over the whole field -- the
+// "cluttered and tiring" complaint by a third route. A fifth of the tiles keeps what the tier was
+// for (a bare hex has something to find in it now and then) at a density the eye reads as ground
+// rather than as a texture.
 //
 // WHY IT IS A SECOND TIER AND NOT MORE OBSTACLE PROPS. A decoration sits on a tile the troops walk
 // straight through, so the one thing it must never do is read as terrain. Our obstacle props are
@@ -21,7 +32,7 @@
 // directly put the same piece in the same corner of every tile that shared a roll, which at a
 // glance is a repeating pattern, and a pattern is exactly what a scatter must not be.
 //
-// See DECISIONS.md D90.
+// See DECISIONS.md D90, D92.
 import { Container, type Sprite } from 'pixi.js';
 import type { Engine } from '../sim/engine';
 import type { Tile } from '../sim/map';
@@ -29,22 +40,22 @@ import { artSprite, artW, decorTex } from './art';
 import type { Camera } from './camera';
 import { LOOK_B } from './lookB';
 
-/** How many of the tiles that can take a decoration get one. Looked at on the board rather than
- *  reasoned about: at 0.42 the open middle of the map still had bare patches four and five tiles
- *  across, because a roll per tile clumps. 0.55 of 281 open tiles is about 200 pieces and the board
- *  reads as ground with things lying on it, with nothing yet near loud enough to compete with a
- *  troop or an offer card. The reference (D:/new/ref) is denser still, but its density is made of
- *  tile-sized cacti, which this tier deliberately is not -- see the note at the top. */
-const DENSITY = 0.55;
+/** How many of the tiles that can take a decoration get one. 0.22 of 281 open tiles is about 60
+ *  pieces: roughly one in five hexes, and bare patches four and five tiles across in between --
+ *  which a cut of this treated as the fault to fix and the reference treats as the board. See the
+ *  note at the top for why half was the wrong number. */
+const DENSITY = 0.22;
 /** Where in the tile a piece lands, as a fraction of the hex radius: never the centre (a unit
  *  stands there and a building goes there), and the far end is then pulled in by the piece's own
  *  width, below -- a dry bush is three times as wide as a pebble and cannot be pushed as far. */
 const OFF_MIN = 0.20, OFF_MAX = 0.52;
 /** How many of the decorated tiles get a second piece, across the tile from the first. The reference
- *  (D:/new/ref) does not scatter one thing per cell: its bare ground carries little *clusters*, two
- *  or three cacti and a sprig leaning on each other. One piece per tile at any density still reads
- *  as a grid with a dot in each cell, which is the pattern a scatter must not be; a quarter of the
- *  tiles carrying a pair is what breaks the one-per-cell rhythm without touching the sizes. */
+ *  (D:/new/ref) does not scatter one thing per cell: what it puts on the ground comes in little
+ *  *clusters*, two or three cacti and a sprig leaning on each other. One piece per tile at any
+ *  density still reads as a grid with a dot in each cell, which is the pattern a scatter must not
+ *  be; a pair on some of the tiles is what breaks the one-per-cell rhythm without touching the
+ *  sizes. It matters more now that there are a third as many pieces: a fifth of a fifth is a
+ *  cluster you come across twice a board, which is the right number of times. */
 const PAIR = 0.26;
 /** How far from the centre the far edge of a piece may reach, in hex radii. 0.78, not the apothem's
  *  0.866: a piece whose edge touches the grid line reads as part of the line. */
