@@ -39,6 +39,22 @@ TEX_K = 3
 # into the tunic. The area match (old_area) holds the sprite's visual mass fixed, so a thinner
 # edge is spent on the figure instead of on ink: same weight on the board, more of it readable.
 OUTLINE_PX = 4
+# AND HALF THAT ON THE LITTER TIER, which sizes by TARGET instead of by the area match. Measured
+# on the atlas, over opaque pixels, as the fraction below V 0.30 (the ink floor sits at 0.15-0.17):
+# oak 0.36, pine 0.44, rocks 0.34 -- against tuft 0.71, pebbles 0.71, stones 0.67, flowers 0.74,
+# twigs 0.80, drybush 0.86. A decor piece is not a small picture, it is a dark scribble: the ink is
+# the same 4 texture px on a piece a third of an oak's size whose body is BLADES AND STICKS, so the
+# dilation runs along both sides of every blade and swallows the piece. On the board that is sixty
+# identical dark chevrons on open ground, which is what the board was called cluttered for twice
+# over (decor.ts, D97 and D101) -- and neither of those cuts was looking at the ink.
+#
+# The area match has to go with it, and for the same reason. Its premise is that the eye weighs a
+# sprite by its painted area (above), which holds for a figure whose paint is its body; on a piece
+# that is three quarters ink, halving the ink and holding the area just grows the piece a quarter
+# -- measured: 1/sqrt(0.29 + 0.71/2) = 1.25. So the litter keeps TARGET's height, which is where the
+# area match lands it now anyway (tuft 51 px against TARGET 17 x 3 = 51, pebbles 37 against 36,
+# drybush 47 against 48), and spends the ink it saves on its own colour. D103.
+DECOR = {'tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'twigs', 'drift'}
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
 from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's sizes and groups
 
@@ -346,7 +362,9 @@ def main():
             geos.append(read_pass(gp) if lines and gp.exists() else None)
         if not any(g is not None for g in geos):
             geos = None
-        ims = make(paths, TARGET[name] * TEX_K, px, want, geos, deepen and name in SCENERY)
+        lit = name in DECOR
+        ims = make(paths, TARGET[name] * TEX_K, max(1, round(px / 2)) if lit else px,
+                   None if lit else want, geos, deepen and name in SCENERY)
         for f, im in zip(paths, ims):
             im.save(out / f.name)
         print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)

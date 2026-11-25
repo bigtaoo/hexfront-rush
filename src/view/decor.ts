@@ -21,8 +21,17 @@
 // straight through, so the one thing it must never do is read as terrain. Our obstacle props are
 // tall, silhouetted, ground-patched and shadowed, and on this board that IS the word for "you
 // cannot go here"; scattering them on open ground would make the player path around nothing. So
-// the decor pieces are modelled flat, patchless and shadowless, carry a thinner outline, and are
-// drawn at a sixth to a quarter of a tile across (tools/art3d/props.py, tools/art/sprites.py).
+// the decor pieces are modelled flat, patchless and shadowless and are drawn at a quarter to a
+// half of a tile across (tools/art3d/props.py, tools/art/sprites.py) -- a pebble cluster is 0.26 of
+// a hex, a tuft 0.42.
+//
+// AND THEY CARRY HALF THE INK. That line read "carry a thinner outline" for ten versions and it was
+// not true of the pipeline: one OUTLINE_PX dilated every sprite in the game, and on a piece a third
+// of an oak's size whose body is blades and sticks the ink ran along both sides of every blade and
+// took it over -- 71% of a tuft's pixels and 80% of a twig's sat at the ink floor, against 36% of an
+// oak's. That is what "sixty copies of the same little chevron" (below) actually was, and the two
+// cuts that answered it by taking pieces away were both treating the symptom. sprite.py DECOR now
+// gives this tier half the ink and sizes it by TARGET instead of by the area match. D103.
 // They also live in the lowest layer in the scene, under the offers and under every unit: nothing
 // here can ever cover something the player has to read or click.
 //

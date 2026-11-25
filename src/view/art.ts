@@ -114,7 +114,14 @@ export function obstacleTex(kind: Obstacle, deco: number, theme: string): { t: T
  *  the troops walk straight through, so nothing in it has a standing silhouette, a ground patch or
  *  a contact shadow (tools/art3d/props.py). See DECISIONS.md D90. */
 const DECOR: Record<string, readonly string[]> = {
-  meadow: ['tuft', 'tuft', 'tuft', 'flowers', 'pebbles', 'twigs', 'twigs'],
+  // Five shapes, not four: `stones` was in the atlas all along for the sand boards and a meadow
+  // takes a few small stones without comment. Four shapes over the sixty-odd pieces a board
+  // carries put the same tuft on a quarter of them, and the repeat is the first thing the eye
+  // finds -- the same complaint the size jitter answers from the other side (decor.ts D101).
+  // `drybush` stays out of it although it is the one piece with a silhouette of its own: it is
+  // 107 texture px across, half a hex, and this tier's one rule is that it must never read as
+  // terrain. D103.
+  meadow: ['tuft', 'tuft', 'tuft', 'flowers', 'pebbles', 'stones', 'twigs', 'twigs'],
   desert: ['stones', 'stones', 'stones', 'drybush', 'drybush', 'pebbles'],
   snow: ['drift', 'drift', 'drift', 'twigs', 'pebbles'],
 };
