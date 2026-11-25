@@ -19,6 +19,12 @@ the faces the key light hits lifted back up, so a tree reads as a dark mass and 
 
 usage: python tools/art3d/sprite.py <render dir> <out root> [outline px] [--line k=v,...]
        [--no-lines] [--no-tone] [--from-k K] [--group units|buildings|props]
+
+MIND WHICH RENDER DIR. The seven litter pieces (DECOR) exist under BOTH art/pilot3d/render and
+art/decor3d/render, and the committed ones come from decor3d: running the props group over
+pilot3d/render overwrites all seven from the older renders without saying so (measured: tuft moves
+by 97 of 255 on 1615 pixels at the same size and the same area). Rebuilding one obstacle prop means
+`--group props` over pilot3d/render and then `git checkout --` the seven, or decor3d for the litter.
 """
 import io
 import re
@@ -55,6 +61,33 @@ OUTLINE_PX = 4
 # area match lands it now anyway (tuft 51 px against TARGET 17 x 3 = 51, pebbles 37 against 36,
 # drybush 47 against 48), and spends the ink it saves on its own colour. D103.
 DECOR = {'tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'twigs', 'drift'}
+# AND A HAIRLINE, IN THE BOARD'S OWN COLD, ON THE PIECES THAT STAND ON THE GREEN BOARDS. The ink
+# above is a warm brown (hue 23 deg) and 4 texture px of it rings every piece; on the meadow that
+# is the loudest thing our scenery does that the reference's does not do at all. Measured on
+# matched wood crops -- a 240 px window of our board against the reference's own at the same hex
+# scale (D:/new/ref IMG_3717), the share of pixels that are dark AND warm (V < 0.30, hue <= 50 or
+# >= 330, S >= 0.25):
+#   reference  0.00% of the crop        our board  8.16%
+# and the value span inside the wood 0.133 against our 0.278. The tone itself is right (median
+# 0.337 against 0.349, D93 got that), so what is left over is the rim and the lines under it. The
+# reference's crowns have no rim: they are separated from the ground and from each other by their
+# own darker green, and they still read hard-edged because the edge is where the green stops.
+#
+# So oak, pine and rocks -- the three pieces a green board can show -- get 1 texture px instead of
+# 4, in an ink moved to the board's own family (hue 172 deg at the same value and saturation).
+# One px is not an outline, it is the seam that keeps the silhouette crisp at the downscale, which
+# is all the reference's crowns have. The other obstacle props keep the full warm edge on purpose:
+# cactus and arch stand on sand at 0.84 of value and snowpine and ice on snow at 0.90-0.95, where
+# the dark edge is the only thing that separates the piece from the ground, and nothing has been
+# measured on those boards.
+#
+# The area match goes with it, exactly as it did for the litter: hold the area and cutting the ink
+# just grows the piece. These keep TARGET's height -- oak 174 texture px against the 186 it is now,
+# rocks 120 against 134, pine 180 against 169 -- which moves them a few percent either way and
+# leaves CROWN_K (obstacleView.ts, the thing that actually sets a crown's size) untouched. D106.
+GROVE = {'oak', 'pine', 'rocks'}
+GROVE_PX = 1
+GROVE_INK = (20, 43, 40)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
 from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's sizes and groups
 
@@ -133,7 +166,7 @@ def disk(r: int):
     return x * x + y * y <= r * r + r
 
 
-def inner_lines(im: Image.Image, geo, per_px: float) -> Image.Image:
+def inner_lines(im: Image.Image, geo, per_px: float, ink_rgb=None) -> Image.Image:
     """Ink the occlusion edges and creases of a full-size render; per_px = render px per sprite px."""
     nrm, dep, cov = geo
     valid = cov > 0.99
@@ -149,7 +182,7 @@ def inner_lines(im: Image.Image, geo, per_px: float) -> Image.Image:
         qv = np.roll(valid, (dy, dx), (0, 1))
         crease |= valid & qv & ((nrm * q).sum(-1) < cos_t)
     a = np.asarray(im).astype(np.float64)
-    ink = np.array(INK, np.float64)
+    ink = np.array(ink_rgb or INK, np.float64)
     k = np.where(occl, LINE['ink'], np.where(crease, LINE['crease'], 0.0))
     k = ndimage.gaussian_filter(k, 0.6)[..., None]
     a[..., :3] = a[..., :3] * (1 - k) + ink * k
@@ -201,7 +234,7 @@ def tone(im: Image.Image, geo) -> Image.Image:
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
-def outline(im: Image.Image, px: int, trim=True) -> Image.Image:
+def outline(im: Image.Image, px: int, trim=True, ink_rgb=None) -> Image.Image:
     if px <= 0:
         return im
     pad = px + 2
@@ -209,7 +242,7 @@ def outline(im: Image.Image, px: int, trim=True) -> Image.Image:
     big.alpha_composite(im, (pad, pad))
     a = big.getchannel('A').point(lambda v: 255 if v > 40 else 0)
     grown = a.filter(ImageFilter.MaxFilter(2 * px + 1)).filter(ImageFilter.GaussianBlur(0.6))
-    ink = Image.new('RGBA', big.size, (*INK, 255))
+    ink = Image.new('RGBA', big.size, (*(ink_rgb or INK), 255))
     ink.putalpha(grown)
     ink.alpha_composite(big)
     return ink.crop(ink.getbbox()) if trim else ink
@@ -225,9 +258,9 @@ def old_area(rel: str):
     return area(Image.open(io.BytesIO(r.stdout)).convert('RGBA')) if r.returncode == 0 else None
 
 
-def sized(im: Image.Image, inner: int, px: int, trim=True) -> Image.Image:
+def sized(im: Image.Image, inner: int, px: int, trim=True, ink_rgb=None) -> Image.Image:
     w = max(1, round(im.width * inner / im.height))
-    return outline(im.resize((w, inner), Image.LANCZOS), px, trim)
+    return outline(im.resize((w, inner), Image.LANCZOS), px, trim, ink_rgb)
 
 
 def union_box(ims):
@@ -271,7 +304,7 @@ def sym(im, b):
     return (int(c - half), b[1], int(round(c + half)), b[3])
 
 
-def make(paths, height: int, px: int, want=None, geos=None, deep=False):
+def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=None):
     """Size one group of frames together: shared crop box, one scale solved on the first frame."""
     ims = [Image.open(f).convert('RGBA') for f in paths]
     ims, geos = centred(ims, geos)
@@ -301,8 +334,8 @@ def make(paths, height: int, px: int, want=None, geos=None, deep=False):
         if deep:                       # the body down, the lit faces back up: scenery only
             im = tone(im, g)
         if g is not None:
-            im = inner_lines(im, g, im.height / lo)
-        out.append(sized(im, lo, px, one))
+            im = inner_lines(im, g, im.height / lo, ink_rgb)
+        out.append(sized(im, lo, px, one, ink_rgb))
     if not one:          # one canvas for the whole cycle: trimmed per frame, the piece would slide
         out = [im.crop(sym(out[0], union_box(out))) for im in out]
     return out
@@ -363,8 +396,11 @@ def main():
         if not any(g is not None for g in geos):
             geos = None
         lit = name in DECOR
-        ims = make(paths, TARGET[name] * TEX_K, max(1, round(px / 2)) if lit else px,
-                   None if lit else want, geos, deepen and name in SCENERY)
+        grove = name in GROVE
+        ims = make(paths, TARGET[name] * TEX_K,
+                   GROVE_PX if grove else max(1, round(px / 2)) if lit else px,
+                   None if lit or grove else want, geos, deepen and name in SCENERY,
+                   GROVE_INK if grove else None)
         for f, im in zip(paths, ims):
             im.save(out / f.name)
         print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)
