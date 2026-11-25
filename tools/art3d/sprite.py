@@ -14,7 +14,11 @@ and depth): ink where a part stands in front of another (an arm across the chest
 the face) and a lighter ink on sharp creases. They are drawn on the full-size render, LINE[w] sprite
 pixels wide, before the downscale, so they come out anti-aliased and as thick on every model.
 
-usage: python tools/art3d/sprite.py <render dir> <out root> [outline px] [--line k=v,...] [--no-lines] [--from-k K]
+A scenery piece (SCENERY) also gets a tone pass: its body moved below the board's own value and
+the faces the key light hits lifted back up, so a tree reads as a dark mass and not a bright blob.
+
+usage: python tools/art3d/sprite.py <render dir> <out root> [outline px] [--line k=v,...]
+       [--no-lines] [--no-tone] [--from-k K] [--group units|buildings|props]
 """
 import io
 import re
@@ -42,6 +46,54 @@ TARGET = {n: h for g in _GROUPS.values() for n, h in g.items()}
 KIND = {n: g for g, names in _GROUPS.items() for n in names}
 INK = (43, 29, 20)
 MAX_GROW = 1.3
+# The scenery's tone (D93). A tree of ours read as a bright green blob sitting on the field: an
+# oak's body was at 0.608 of value against a 0.451 ground, i.e. ABOVE the board, and every other
+# prop with it (pine 0.557, rocks 0.600, arch 0.718).
+#
+# What the reference game (D:/new/ref) actually does, measured twice because the first reading was
+# wrong. Its tree is a nearly FLAT DARK MASS: body p05 0.267, median 0.341, p90 0.392, p99 0.396 on
+# a 0.447 ground (IMG_3707), so the whole piece -- its lit side included -- sits at or under the
+# board, and the spread from its darkest to its brightest pixel is 0.13. A grove of them on another
+# frame (IMG_3717) gives the same answer from the other side: the dark half of the grove is at 0.353
+# and its brightest pixel anywhere is 0.510, a twentieth above the ground. The first reading of this
+# put its crown at 0.749 and called the spread 0.48, which sent an earlier cut of this pass chasing
+# a bright crown; 0.749 was the BLUE TERRITORY TILE behind the tree, not the tree. There is no
+# bright crown in the reference at all. What carries its lobe light is hue and saturation -- H171,
+# S0.57-0.82, a deep blue-green far more saturated than ours -- and not value.
+#
+# So this pass moves the mass down and gives back only as much light as keeps the model readable as
+# a solid, which is a fifth of the way to white on the up-faces and no more. Flattening ours all the
+# way to the reference's 0.13 is not open to us for the reason the ref does not need it: its tree is
+# a painted sticker with the lobes drawn in, ours is a render whose form IS its value range, and at
+# 0.13 it would go to a silhouette.
+#   mul   how far the body falls toward `floor`: 0.36 puts an oak's median at 0.36 on the board,
+#         0.09 under the ground, against the reference's 0.10 under.
+#   floor what the darks are pulled toward, never past. Straight multiplication crushed the shadow
+#         side to 0.14 and the piece lost its own modelling; the reference's own dark side is 0.267.
+#   lit   how far a face the key light hits is lifted back toward white; n0..n1 which faces those
+#         are. This is the half that needs the geometry pass: the renders are lit almost flat (an
+#         oak's top 30% averages 0.621 against its bottom's 0.605), so there is no highlight in the
+#         pixels to keep. The lift is a blend toward white, not a scale, so a lit face desaturates
+#         as it brightens -- which is why it has to stay small: the reference's light is a hue
+#         shift, and much of this is a wash. 0.80 was tried and is far too much: it put an oak's top
+#         at 0.64 on the board, 0.19 ABOVE the ground where the reference is 0.05 above at most, and
+#         it blew the base patch (normals straight up, so the band hits it at full strength) from
+#         0.52 to 0.87 -- a white plate under every tree, which is the whole reason the piece still
+#         did not read as a dark mass. At 0.22 the patch lands near the ground's own value, which is
+#         as close to the reference's no-patch-at-all as this pass can get without touching props.py.
+#   n0,n1 A power of n.y was the first shape tried and it is the wrong one: it lifts in proportion,
+#         so whatever reached the crown also reached the body and the whole piece came back up
+#         together. A piece's normals are not spread evenly: an oak's n.y sits at 0.252 at the
+#         median and 0.847 by the third quartile, so a third of it faces the key almost squarely and
+#         the rest hardly at all. A band across that gap lifts the third and leaves the rest where
+#         the darkening put it. On a faceted model it gives flat lit planes rather than a gradient,
+#         which is the painted look this art is after anyway.
+TONE = {'floor': 0.22, 'mul': 0.36, 'lit': 0.22, 'n0': 0.45, 'n1': 0.82}
+# Which props get it: the ones that read as a mass of vegetation or rock. Not the five pieces the
+# player has to notice (camp, chest, hoard, mystery, warband) -- the reference's own chests are the
+# brightest thing on its board -- and not ice or drift, whose material IS white.
+SCENERY = {'arch', 'cactus', 'drybush', 'flowers', 'oak', 'pebbles', 'pine', 'rocks', 'snowpine',
+           'stones', 'tuft', 'twigs'}
 LINE = {
     'w': 1.3,      # line width in sprite px
     'd': 0.012,    # depth step that makes an occlusion line, in pass units (half a model unit)
@@ -84,6 +136,28 @@ def inner_lines(im: Image.Image, geo, per_px: float) -> Image.Image:
     k = np.where(occl, LINE['ink'], np.where(crease, LINE['crease'], 0.0))
     k = ndimage.gaussian_filter(k, 0.6)[..., None]
     a[..., :3] = a[..., :3] * (1 - k) + ink * k
+    return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
+
+
+def tone(im: Image.Image, geo) -> Image.Image:
+    """Move a scenery piece's body below the board and lift the faces the key light hits (D93).
+
+    Runs on the full-size render, before the downscale, so the lift is anti-aliased with the rest.
+    """
+    a = np.asarray(im).astype(np.float64)
+    rgb = a[..., :3] / 255
+    v = rgb.max(-1)
+    down = np.where(v > TONE['floor'], TONE['floor'] + (v - TONE['floor']) * TONE['mul'], v)
+    out = rgb * (down / np.maximum(v, 1e-6))[..., None]
+    if geo is not None:
+        nrm, _dep, cov = geo
+        # +ny is where the render's own key comes from: over an oak's body ny correlates +0.51 with
+        # brightness, more than nx (-0.43) or nz (+0.19). So this strengthens the light that is
+        # already there rather than inventing a second one from a guessed world-up.
+        u = np.clip((nrm[..., 1] - TONE['n0']) / (TONE['n1'] - TONE['n0']), 0, 1)
+        lit = np.where(cov > 0.99, u * u * (3 - 2 * u), 0.0)
+        out = out + (TONE['lit'] * lit)[..., None] * (1 - out)
+    a[..., :3] = np.clip(out, 0, 1) * 255
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
@@ -157,7 +231,7 @@ def sym(im, b):
     return (int(c - half), b[1], int(round(c + half)), b[3])
 
 
-def make(paths, height: int, px: int, want=None, geos=None):
+def make(paths, height: int, px: int, want=None, geos=None, deep=False):
     """Size one group of frames together: shared crop box, one scale solved on the first frame."""
     ims = [Image.open(f).convert('RGBA') for f in paths]
     ims, geos = centred(ims, geos)
@@ -181,9 +255,13 @@ def make(paths, height: int, px: int, want=None, geos=None):
     out = []
     one = len(crop) == 1
     for im, geo in zip(crop, geos or [None] * len(crop)):
-        if geo is not None:  # lines change colour only, so the size found above still holds
-            x0, y0, x1, y1 = box
-            im = inner_lines(im, tuple(g[y0:y1, x0:x1] for g in geo), im.height / lo)
+        # tone and lines change colour only, so the size found above still holds
+        x0, y0, x1, y1 = box
+        g = None if geo is None else tuple(q[y0:y1, x0:x1] for q in geo)
+        if deep:                       # the body down, the lit faces back up: scenery only
+            im = tone(im, g)
+        if g is not None:
+            im = inner_lines(im, g, im.height / lo)
         out.append(sized(im, lo, px, one))
     if not one:          # one canvas for the whole cycle: trimmed per frame, the piece would slide
         out = [im.crop(sym(out[0], union_box(out))) for im in out]
@@ -215,6 +293,13 @@ def main():
         i = args.index('--from-k')
         from_k = float(args[i + 1])
         del args[i:i + 2]
+    only = None
+    if '--group' in args:              # one group out of a render dir that holds several
+        i = args.index('--group')
+        only = args[i + 1]
+        del args[i:i + 2]
+    deepen = '--no-tone' not in args
+    args = [a for a in args if a != '--no-tone']
     src, root = Path(args[0]), Path(args[1])
     px = int(args[2]) if len(args) > 2 else OUTLINE_PX
     groups: dict = {}
@@ -224,6 +309,8 @@ def main():
         if name not in TARGET:
             continue
         kind = KIND[name]
+        if only is not None and kind != only:
+            continue
         out = root / kind / 'out'
         out.mkdir(parents=True, exist_ok=True)
         want = old_area(f'art/{kind}/out/{base}.png')
@@ -235,7 +322,7 @@ def main():
             geos.append(read_pass(gp) if lines and gp.exists() else None)
         if not any(g is not None for g in geos):
             geos = None
-        ims = make(paths, TARGET[name] * TEX_K, px, want, geos)
+        ims = make(paths, TARGET[name] * TEX_K, px, want, geos, deepen and name in SCENERY)
         for f, im in zip(paths, ims):
             im.save(out / f.name)
         print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)
