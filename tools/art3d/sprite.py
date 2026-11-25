@@ -88,6 +88,29 @@ DECOR = {'tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'twigs', 'drift'}
 GROVE = {'oak', 'pine', 'rocks'}
 GROVE_PX = 1
 GROVE_INK = (20, 43, 40)
+# AND A CEILING, ON THE SAME THREE PIECES. What a crown's value does above its 88th percentile,
+# measured on three windows lying wholly inside reference crowns (D:/new/ref IMG_3717) against our
+# own sprites' opaque pixels:
+#                    p50            p88            p99            brightest px
+#   reference   0.275-0.325    0.333-0.396    0.396-0.416    0.400-0.424
+#   oak            0.341          0.400          0.494          0.514
+#   rocks          0.341          0.396          0.463          0.502
+#   pine           0.329          0.396          0.435          0.463
+# The body is already there -- D93's tone pass put the median and the p88 inside the reference's own
+# range -- and what is left is a TAIL the reference does not have: from p88 to p99 it climbs 0.020
+# to 0.063 and then stops dead, where ours climbs 0.094 and keeps going. Those are the render's
+# speculars, a few hundred pixels per piece, and they are what reads as plastic on a thing that is
+# supposed to be a painted mass. So nothing on these three goes above the brightest pixel the
+# reference's own crowns have: past `t` the remaining range is compressed by `c`, which leaves the
+# median and the p88 where they are (11.7% of an oak's pixels are above 0.40 at all) and lands the
+# brightest at about 0.43.
+#
+# It is NOT applied to the rest of the toned props, and the reason is last round's: cactus sits at
+# 0.580 of p88 on sand at 0.84 and snowpine at 0.502 on snow at 0.90-0.95, so this knee would cut
+# their bodies by a tenth and a seventh, not just their tails -- a real change to two boards nobody
+# has measured. The litter is left out for the same reason twice over: the reference's forest frames
+# carry no litter at all, so there is nothing there to measure a ceiling against.
+GROVE_CAP = {'t': 0.40, 'c': 0.25}
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
 from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's sizes and groups
 
@@ -189,7 +212,7 @@ def inner_lines(im: Image.Image, geo, per_px: float, ink_rgb=None) -> Image.Imag
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
-def tone(im: Image.Image, geo) -> Image.Image:
+def tone(im: Image.Image, geo, cap=None) -> Image.Image:
     """Move a scenery piece's body below the board and lift the faces the key light hits (D93).
 
     Runs on the full-size render, before the downscale, so the lift is anti-aliased with the rest.
@@ -225,6 +248,10 @@ def tone(im: Image.Image, geo) -> Image.Image:
     # pixels of all (S 0.76 at value 0.35, against 0.53 on its lit faces and 0.54 on its ground),
     # where a render's own ambient leaves shadows GREY -- ours sat at 0.63. The factor is what buys
     # the shadow back its colour, and the cap below is why a flat factor is safe at this size.
+    if cap is not None:        # the ceiling: no pixel over the reference's own brightest crown
+        v2 = out.max(-1)
+        up = np.where(v2 > cap['t'], cap['t'] + (v2 - cap['t']) * cap['c'], v2)
+        out = out * (up / np.maximum(v2, 1e-6))[..., None]
     mx = out.max(-1, keepdims=True)
     sat0 = np.where(mx[..., 0] > 1e-6, (mx[..., 0] - out.min(-1)) / np.maximum(mx[..., 0], 1e-6), 0)
     w = np.clip((sat0 - TONE['s0']) / (TONE['s1'] - TONE['s0']), 0, 1)
@@ -304,7 +331,7 @@ def sym(im, b):
     return (int(c - half), b[1], int(round(c + half)), b[3])
 
 
-def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=None):
+def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=None, cap=None):
     """Size one group of frames together: shared crop box, one scale solved on the first frame."""
     ims = [Image.open(f).convert('RGBA') for f in paths]
     ims, geos = centred(ims, geos)
@@ -332,7 +359,7 @@ def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=
         x0, y0, x1, y1 = box
         g = None if geo is None else tuple(q[y0:y1, x0:x1] for q in geo)
         if deep:                       # the body down, the lit faces back up: scenery only
-            im = tone(im, g)
+            im = tone(im, g, cap)
         if g is not None:
             im = inner_lines(im, g, im.height / lo, ink_rgb)
         out.append(sized(im, lo, px, one, ink_rgb))
@@ -400,7 +427,7 @@ def main():
         ims = make(paths, TARGET[name] * TEX_K,
                    GROVE_PX if grove else max(1, round(px / 2)) if lit else px,
                    None if lit or grove else want, geos, deepen and name in SCENERY,
-                   GROVE_INK if grove else None)
+                   GROVE_INK if grove else None, GROVE_CAP if grove else None)
         for f, im in zip(paths, ims):
             im.save(out / f.name)
         print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)
