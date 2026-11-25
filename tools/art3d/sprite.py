@@ -105,11 +105,9 @@ GROVE_INK = (31, 66, 62)
 # median and the p88 where they are (11.7% of an oak's pixels are above 0.40 at all) and lands the
 # brightest at about 0.43.
 #
-# It is NOT applied to the rest of the toned props, and the reason is last round's: cactus sits at
-# 0.580 of p88 on sand at 0.84 and snowpine at 0.502 on snow at 0.90-0.95, so this knee would cut
-# their bodies by a tenth and a seventh, not just their tails -- a real change to two boards nobody
-# has measured. The litter is left out for the same reason twice over: the reference's forest frames
-# carry no litter at all, so there is nothing there to measure a ceiling against.
+# NOT applied to the rest of the toned props: cactus sits at 0.580 of p88 on sand at 0.84 and
+# snowpine at 0.502 on snow at 0.90-0.95, so this knee would cut their bodies by a tenth and a
+# seventh, not just their tails. The litter is out too -- the reference's forest carries none.
 GROVE_CAP = {'t': 0.40, 'c': 0.25}
 # AND THEN IT IS PAINTED IN STEPS, NOT IN A GRADIENT (D117). A render shades a sphere smoothly and
 # the reference paints a canopy in flat tiers, and that -- more than hue, value or outline -- is why
@@ -123,11 +121,18 @@ GROVE_CAP = {'t': 0.40, 'c': 0.25}
 # downscale as a one-px anti-aliased edge and not a staircase. Below 0.14 nothing is touched: that
 # is the ink's and the deep undersides' range, and the band would only flatten them together.
 GROVE_BAND = (0.263, 0.345, 0.392, 0.424)
-# And it is a PULL toward the tiers, not a snap onto them. Snapped outright (k = 1) the same six
-# levels covered 88.9% of an oak and 89.6% of a pine against the reference's 60.0% -- past it, and
-# a canopy of hard plates is as wrong as one of balloons. The reference is painted in tiers AND
-# shaded within them; 0.55 lands oak at 55.0% and pine at 63.6%, averaging its 60.0%.
+# A PULL toward the tiers, not a snap: snapped outright (k = 1) those six levels covered 88.9% of
+# an oak against the reference's 60.0%, and plates are as wrong as balloons -- it is painted in
+# tiers AND shaded within them. 0.55 lands oak at 55.0% and pine at 63.6%, averaging its 60.0%.
 GROVE_BAND_K = 0.55
+# D118: AND THE GLOSS OFF ITS LOBES. GROVE_CAP capped the speculars' VALUE; their whiteness stayed.
+# The reference's canopy holds saturation in a narrow band -- p10/median/p90 0.760/0.822/0.884,
+# 0.38% of it under 0.7 of the median -- where ours ran 0.648/0.861/0.990 (oak) and 0.567/0.826/
+# 0.977 (pine), 7.2% and 10.8% washed out: a white dot on every lobe. Chroma is pulled toward the
+# body's own median by this much, hue and value untouched. Oak and pine only: snowpine's snow is
+# deliberately desaturated and rock is grey at 0.04, so a pull to a median would paint them in.
+GROVE_SAT_K = 0.30
+GROVE_SAT = {'oak', 'pine'}
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
 from sprites import TARGET as _GROUPS, TEAMLESS  # noqa: E402  the sticker art's sizes and groups
 
@@ -297,8 +302,8 @@ def tone(im: Image.Image, geo, cap=None) -> Image.Image:
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
-def band(im: Image.Image, levels, k: float = 1.0) -> Image.Image:
-    """Pull a body's value toward flat tiers (D117); hue and saturation untouched."""
+def band(im: Image.Image, levels, k: float = 1.0, sat: bool = False) -> Image.Image:
+    """Pull a body's value toward flat tiers (D117), and its chroma together (D118)."""
     a = np.asarray(im).astype(np.float64)
     rgb = a[..., :3] / 255
     v = rgb.max(-1)
@@ -306,6 +311,12 @@ def band(im: Image.Image, levels, k: float = 1.0) -> Image.Image:
     snap = v + k * (lv[np.abs(v[..., None] - lv).argmin(-1)] - v)
     m = (v > 0.14) & (a[..., 3] > 128)
     out = np.where(m[..., None], rgb * (snap / np.maximum(v, 1e-6))[..., None], rgb)
+    if sat:                            # the gloss off the lobes: chroma toward the body's own
+        vv = out.max(-1)               # median, hue and value untouched (D118)
+        sv = 1 - out.min(-1) / np.maximum(vv, 1e-6)
+        med = float(np.median(sv[m]))
+        f = np.where(m & (sv > 1e-6), (med + (sv - med) * GROVE_SAT_K) / np.maximum(sv, 1e-6), 1.0)
+        out = vv[..., None] - (vv[..., None] - out) * f[..., None]
     a[..., :3] = np.clip(out, 0, 1) * 255
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
@@ -381,7 +392,7 @@ def sym(im, b):
 
 
 def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=None, cap=None,
-         bands=None):
+         bands=None, sat=False):
     """Size one group of frames together: shared crop box, one scale solved on the first frame."""
     ims = [Image.open(f).convert('RGBA') for f in paths]
     ims, geos = centred(ims, geos)
@@ -411,7 +422,7 @@ def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=
         if deep:                       # the body down, the lit faces back up: scenery only
             im = tone(im, g, cap)
         if bands is not None:          # and then into flat tiers: grove only
-            im = band(im, bands, GROVE_BAND_K)
+            im = band(im, bands, GROVE_BAND_K, sat)
         if g is not None:
             im = inner_lines(im, g, im.height / lo, ink_rgb)
         out.append(sized(im, lo, px, one, ink_rgb))
@@ -480,7 +491,7 @@ def main():
                    GROVE_PX if grove else max(1, round(px / 2)) if lit else px,
                    None if lit or grove else want, geos, deepen and name in SCENERY,
                    GROVE_INK if grove else None, GROVE_CAP if grove else None,
-                   GROVE_BAND if grove else None)
+                   GROVE_BAND if grove else None, name in GROVE_SAT)
         for f, im in zip(paths, ims):
             im.save(out / f.name)
         print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)
