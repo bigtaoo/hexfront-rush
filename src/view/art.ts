@@ -106,6 +106,23 @@ export function obstacleTex(kind: Obstacle, deco: number, theme: string): { t: T
   return { t: tex(name), flip: deco % 2 === 1 };
 }
 
+/** The litter on an open tile: grass, pebbles, dry brush, a drift of snow. The theme picks the
+ *  set and the deco roll picks one piece out of it, weighted by repeating the common ones -- a
+ *  meadow is mostly grass with a few flowers in it, not a fair draw between the four.
+ *
+ *  This is a second tier of prop and it is deliberately NOT the obstacle set: these sit on tiles
+ *  the troops walk straight through, so nothing in it has a standing silhouette, a ground patch or
+ *  a contact shadow (tools/art3d/props.py). See DECISIONS.md D90. */
+const DECOR: Record<string, readonly string[]> = {
+  meadow: ['tuft', 'tuft', 'tuft', 'tuft', 'flowers', 'pebbles', 'twigs'],
+  desert: ['stones', 'stones', 'stones', 'drybush', 'drybush', 'pebbles'],
+  snow: ['drift', 'drift', 'drift', 'twigs', 'pebbles'],
+};
+export function decorTex(theme: string, pick: number): { t: Texture; flip: boolean } {
+  const set = DECOR[theme] ?? DECOR['meadow']!;
+  return { t: tex(set[pick % set.length]!), flip: (pick >> 3) % 2 === 1 };
+}
+
 /** Height and width of a texture in view units. */
 export const artH = (t: Texture): number => t.height / PPU;
 export const artW = (t: Texture): number => t.width / PPU;

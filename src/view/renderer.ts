@@ -5,7 +5,8 @@
 // (the red side sees it flipped top to bottom, sprites upright).
 //
 // The world container carries the camera (zoom and offset, plus the screen shake); under it the
-// layers go ground, offer cards, tap marker, y-sorted sprites, projectiles and effects. Over it,
+// layers go ground, its litter (decor.ts), offer cards, tap marker, y-sorted sprites, projectiles
+// and effects. Over it,
 // in screen pixels: the edge markers and the overview button, the HUD and the overlays.
 
 import { Container, type Application } from 'pixi.js';
@@ -18,6 +19,7 @@ import type { BurstKind, SimEvent } from '../sim/types';
 import { Camera } from './camera';
 import { EffectLayer } from './effects';
 import { Juice, type DrawUi, type Frame, type Vis } from './frame';
+import { DecorLayer } from './decor';
 import { groundBg, GroundLayer } from './ground';
 import { EdgeLayer } from './edges';
 import { Hud, type Status } from './hud';
@@ -51,6 +53,7 @@ export class Renderer {
   private world = new Container();
   private table = LOOK_B ? new TableLayer() : null;
   private ground = new GroundLayer();
+  private decor = new DecorLayer();
   private offers = new OfferLayer();
   private effects = new EffectLayer();
   private sprites = new SpriteLayer();
@@ -68,7 +71,7 @@ export class Renderer {
 
   constructor(private readonly app: Application) {
     if (this.table) this.world.addChild(this.table.root);
-    this.world.addChild(this.ground.root, this.offers.root, this.effects.under, this.sprites.birth.under, this.sprites.root, this.offers.tags, this.sprites.birth.root, this.effects.root);
+    this.world.addChild(this.ground.root, this.decor.root, this.offers.root, this.effects.under, this.sprites.birth.under, this.sprites.root, this.offers.tags, this.sprites.birth.root, this.effects.root);
     // a troop landing out of its birth light spends the same ring and sparks as any other impact
     this.sprites.birth.land = (x, y, team) => {
       this.effects.ring(x, y, 0.35, teamLight(team));
@@ -120,6 +123,7 @@ export class Renderer {
     this.cam.setView(eng, this.local);
     this.app.renderer.background.color = groundBg(eng.themeKey, eng.config.seed);
     this.ground.build(eng, this.cam);
+    this.decor.build(eng, this.cam);
     this.table?.build(this.cam.tv);
     this.sprites.build(eng, this.cam);
     this.offers.reset();
@@ -301,6 +305,7 @@ export class Renderer {
     const f: Frame = { eng, alpha, dt, time: this.time, ui, cam, vis, local: this.local };
     this.flushIncome();
     this.ground.update(eng);
+    this.decor.update(eng);
     this.offers.draw(f);
     this.sprites.draw(f);
     this.effects.draw(f);
@@ -323,6 +328,7 @@ export class Renderer {
     this.effects.destroy();
     this.sprites.destroy();
     this.ground.destroy();
+    this.decor.destroy();
     this.table?.destroy();
     this.world.destroy({ children: true });
   }

@@ -22,6 +22,9 @@ from prim import ball, block, lathe, prism, rod  # noqa: E402
 # some trunk; the flat pieces (chest, hoard, camp) keep the high view that shows their contents.
 ELEVS = {'oak': 32, 'pine': 30, 'snowpine': 30, 'cactus': 34, 'arch': 30, 'rocks': 38,
          'ice': 34, 'chest': 40, 'hoard': 44, 'camp': 38, 'warband': 34, 'mystery': 34}
+# The ground decoration is looked at from higher up than anything else in the set: these are things
+# lying ON the ground, and at 30-44 degrees a pebble three pixels tall is seen edge-on and vanishes.
+ELEVS.update({n: 52 for n in ('tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'drift', 'twigs')})
 
 
 def _ground(r, mat='moss', z=0.022, scale=(1.0, 1.0, 1), loc=(0, 0, 0), seg=28):
@@ -279,13 +282,136 @@ def model_mystery():
     return 1.0
 
 
+# ---------------------------------------------------------------- the ground decoration
+#
+# These are NOT the obstacle props. They sit on tiles the troops walk straight through, so the one
+# thing none of them may do is read as something you cannot walk over. Three rules follow, and each
+# is the opposite of a rule the props above obey (see DECISIONS.md D90):
+#   * no _ground patch. A baked disc of moss or tan is the wrong colour on eleven of the twelve
+#     skins, and a ring of wrong colour round a tuft is a hole in the board, not a plant on it.
+#   * nothing stands up. Every piece is wider than it is tall, so it never breaks the tile's own
+#     silhouette the way a tree or a rock does -- that silhouette IS the game's word for "blocked".
+#   * no dark contact shadow, and a thinner outline than the props get (sprite.py's outline arg: 2
+#     against the cast's 4). What stands a tree off the board is exactly what would make a pebble
+#     look like a boulder.
+# They are drawn at 11-18 CSS px against a 38 px hex radius (tools/art/sprites.py TARGET), that is
+# a sixth to a quarter of a tile across, and from higher up than anything else in the set
+# (ELEV 52): these are things seen lying on the ground, not standing on it.
+
+
+def _blade(a, ln, tilt, mat, base=(0.0, 0.0), w=0.035):
+    """One grass blade: a thin tapered box leaning `tilt` radians out in direction `a`. Blender's
+    XYZ euler turns it about Z last, so (tilt, 0, a) is "lean, then point it that way"."""
+    d = (math.sin(a) * math.sin(tilt), -math.cos(a) * math.sin(tilt), math.cos(tilt))
+    loc = (base[0] + d[0] * ln / 2, base[1] + d[1] * ln / 2, d[2] * ln / 2)
+    block((w, w * 0.8, ln), mat, loc, rot=(tilt, 0, a), bevel=0.008, name='blade')
+
+
+def model_tuft():
+    """A clump of grass: blades fanning out of one point, the back ones darker. Six blades, not
+    twelve -- at 16 px a dense clump is a green blob with no blades in it at all. Moss over green,
+    one step lighter than the meadow skins' own grass (#b3d77d down to #88b55f): a clump in the
+    grass's own green is a dark speck on the board, which is what a pebble is for."""
+    for (a, ln, tilt, bx, by) in ((-1.15, 0.26, 0.62, -0.03, 0.02), (-0.55, 0.34, 0.38, 0.0, 0.0),
+                                  (-0.10, 0.30, 0.16, 0.02, -0.02), (0.45, 0.36, 0.34, -0.01, 0.01),
+                                  (1.00, 0.28, 0.55, 0.03, 0.0), (1.70, 0.22, 0.70, -0.02, -0.01)):
+        _blade(a, ln, tilt, 'moss' if abs(a) < 1.0 else 'green', (bx, by))
+    return 0.34
+
+
+def model_flowers():
+    """Three stems with a head each over two short leaves. The heads are the piece -- the stems are
+    there only to lift them off the ground, so they are the thinnest thing here."""
+    for (a, ln, tilt, bx, hx, mat) in ((-0.7, 0.24, 0.26, -0.08, -0.14, 'pink'),
+                                       (0.2, 0.30, 0.10, 0.02, 0.05, 'yellow'),
+                                       (1.1, 0.20, 0.34, 0.09, 0.16, 'pink')):
+        _blade(a, ln, tilt, 'moss', (bx, 0.0), w=0.026)
+        ball(0.042, mat, (hx, -ln * math.sin(tilt) * math.cos(a), ln * math.cos(tilt)),
+             scale=(1, 1, 0.75), name='head')
+    for (a, bx) in ((-1.5, -0.04), (1.5, 0.06)):
+        _blade(a, 0.16, 1.05, 'green', (bx, -0.03))
+    return 0.30
+
+
+def model_pebbles():
+    """Four small stones lying flat, grey over slate. Flat is the point: a stone with any height to
+    it is the boulder prop a tenth of the size, which is a rock the player will try to walk round."""
+    for (x, y, w, d, h, rz, mat) in ((-0.12, 0.06, 0.21, 0.17, 0.070, 0.4, 'grey'),
+                                     (0.15, 0.11, 0.16, 0.14, 0.055, -0.6, 'slate'),
+                                     (0.07, -0.15, 0.18, 0.15, 0.062, 0.9, 'grey'),
+                                     (-0.19, -0.11, 0.12, 0.11, 0.045, -0.2, 'slate')):
+        block((w, d, h), mat, (x, y, h / 2), rot=(0.07, -0.05, rz), bevel=0.016, name='pebble')
+    return 0.12
+
+
+def model_stones():
+    """The desert's version: flatter, more angular shards in sand colours, laid in a scatter rather
+    than a pile. Tan over stone so the group keeps two values on pale sand."""
+    for (x, y, w, d, h, rz, mat) in ((-0.14, 0.04, 0.26, 0.15, 0.055, 0.25, 'stone'),
+                                     (0.13, 0.13, 0.20, 0.12, 0.045, -0.75, 'tan'),
+                                     (0.16, -0.12, 0.17, 0.13, 0.050, 1.15, 'stone'),
+                                     (-0.10, -0.17, 0.13, 0.10, 0.038, -0.35, 'tan')):
+        block((w, d, h), mat, (x, y, h / 2), rot=(0.05, -0.04, rz), bevel=0.012, name='shard')
+    return 0.10
+
+
+def model_drybush():
+    """A dead bush: bare twigs splayed wide out of one root. Flat is what keeps it a bush and not a
+    sapling -- a desert tile has to stay walkable at a glance -- but the first cut lay so flat that
+    at its 19 px height the sprite came out 38 px wide, a whole hex radius across, and a decoration
+    that wide cannot be offset off a tile's centre without hanging over the line. Hence 0.6-0.95 rad
+    rather than 0.8-1.25: still a bush, two thirds the span."""
+    for (a, ln, tilt, mat) in ((-1.3, 0.26, 0.86, 'brown'), (-0.6, 0.32, 0.70, 'darkwood'),
+                               (0.0, 0.28, 0.58, 'brown'), (0.7, 0.30, 0.74, 'brown'),
+                               (1.4, 0.24, 0.90, 'darkwood'), (2.3, 0.20, 0.95, 'brown')):
+        _blade(a, ln, tilt, mat, w=0.030)
+    return 0.28
+
+
+def model_drift():
+    """A wind-blown heap of snow: a low oval mound with two lumps at its tail and a shadow of ice
+    along its front.
+
+    White over *ice*, not over frost. The first cut was white over frost, on the reasoning that a
+    snow board offers only warm white against cool white -- and on the board it came out as an empty
+    outlined ellipse, a hole in the ice rather than a heap on it. The snow skins' ground is #ebdfca,
+    a warm cream at value 0.92, and #f4f1ea over it at this tier's alpha is the same colour: only
+    the outline was left to see. What makes a white thing on white ground read is its shadow side,
+    and in snow that shadow is blue (#9fd8e8), so the lumps and the front sliver carry it."""
+    lathe([(0.33, 0), (0.29, 0.045), (0.17, 0.095), (0.0, 0.125)], 'white',
+          loc=(-0.02, 0.01, 0), seg=9, name='mound', scale=(1.25, 0.82, 1))
+    for (x, y, r) in ((0.22, -0.11, 0.13), (-0.26, -0.13, 0.10)):
+        ball(r, 'ice', (x, y, 0.030), scale=(1.2, 0.9, 0.40), name='lump')
+    ball(0.21, 'ice', (0.0, -0.20, 0.018), scale=(1.5, 0.55, 0.22), name='shade')
+    return 0.13
+
+
+def model_twigs():
+    """Three fallen sticks across each other. Flat on the ground, so they read as litter under the
+    troops' feet and never as a fence or a barricade."""
+    for (x, y, h, rz, mat) in ((0.0, 0.03, 0.46, 0.35, 'brown'), (-0.03, -0.06, 0.38, -0.95, 'darkwood'),
+                               (0.08, 0.10, 0.26, 1.35, 'brown')):
+        rod(0.024, h, mat, (x, y, 0.026), rot=(0, math.pi / 2, rz), seg=10, name='twig')
+    ball(0.045, 'darkwood', (-0.16, 0.08, 0.03), scale=(1.1, 1, 0.6), name='knot')
+    return 0.06
+
+
+# The ground decoration (DECOR) is listed apart so the view and the pack can tell the two tiers
+# apart: an obstacle prop says "blocked", a decoration says nothing at all.
+DECOR = ('tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'drift', 'twigs')
+
 TEAMLESS = {'oak', 'pine', 'snowpine', 'rocks', 'ice', 'arch', 'cactus', 'chest', 'hoard', 'camp',
-            'warband', 'mystery'}
+            'warband', 'mystery', *DECOR}
 
 MODELS = {'oak': model_oak, 'pine': model_pine, 'snowpine': model_snowpine, 'rocks': model_rocks,
           'ice': model_ice, 'arch': model_arch, 'cactus': model_cactus, 'chest': model_chest,
           'hoard': model_hoard, 'camp': model_camp, 'warband': model_warband,
-          'mystery': model_mystery}
+          'mystery': model_mystery, 'tuft': model_tuft, 'flowers': model_flowers,
+          'pebbles': model_pebbles, 'stones': model_stones, 'drybush': model_drybush,
+          'drift': model_drift, 'twigs': model_twigs}
 
 YAW = {'oak': -16, 'pine': -12, 'snowpine': -12, 'rocks': -24, 'ice': -22, 'arch': -14,
-       'cactus': -18, 'chest': -20, 'hoard': -24, 'camp': -22, 'warband': -18, 'mystery': -16}
+       'cactus': -18, 'chest': -20, 'hoard': -24, 'camp': -22, 'warband': -18, 'mystery': -16,
+       # a scatter has no front, so the yaw only has to keep it off the board's own axes
+       'tuft': -20, 'flowers': -24, 'pebbles': -18, 'stones': -26, 'drybush': -14, 'drift': -22,
+       'twigs': -16}

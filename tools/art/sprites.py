@@ -21,11 +21,16 @@ TARGET = {
     "buildings": {"base": 84, "mine": 72, "tower": 86, "barracks1": 64, "barracks2": 68,
                   "barracks3": 70, "barracks4": 78, "rubble": 42},
     "props": {"oak": 58, "pine": 60, "rocks": 40, "cactus": 52, "ice": 50, "snowpine": 58,
-              "arch": 50, "chest": 34, "hoard": 40, "camp": 46, "warband": 52, "mystery": 46},
+              "arch": 50, "chest": 34, "hoard": 40, "camp": 46, "warband": 52, "mystery": 46,
+              # the ground decoration: a sixth to a quarter of a tile across, against the obstacle
+              # props' two thirds. Anything bigger stops being litter and starts being terrain.
+              "tuft": 17, "flowers": 16, "pebbles": 12, "stones": 13, "drybush": 16, "drift": 14,
+              "twigs": 15},
 }
 # no team colour: one picture, <name>.png
 TEAMLESS = {"rubble", "oak", "pine", "rocks", "cactus", "ice", "snowpine", "arch", "chest", "hoard",
-            "camp", "warband", "mystery"}
+            "camp", "warband", "mystery", "tuft", "flowers", "pebbles", "stones", "drybush",
+            "drift", "twigs"}
 
 # White background shut inside an outline (a bow's string, the arch's opening) survives the
 # sheet cut, which only clears white joined to the border. Seeds, as fractions of the cut
