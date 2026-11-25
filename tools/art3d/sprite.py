@@ -37,7 +37,7 @@ from PIL import Image, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shade import (GROVE_BAND, GROVE_CAP, GROVE_SAT, INK, LINE,  # noqa: E402  the colour passes
-                   band, cool, inner_lines, read_pass, tone)
+                   band, cool, flat, inner_lines, read_pass, tone)
 
 # texture px per CSS px: 3 since 2026-11-15 (a 3x phone draws a sprite 1:1; at 2 it was stretched
 # 1.2-1.6x on phones and desktops and looked soft). The outline grows with it (OUTLINE_PX).
@@ -203,6 +203,8 @@ def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=
         g = None if geo is None else tuple(q[y0:y1, x0:x1] for q in geo)
         if deep:                       # the body down, the lit faces back up: scenery only
             im = tone(im, g, cap)
+        if sat:                        # the shade out of the inside of the mass (D120)
+            im = flat(im)
         if bands is not None:          # and then into flat tiers: grove only
             im = band(im, bands, sat=sat)
             if sat:                        # and the shade toward the sky: oak and pine (D119)

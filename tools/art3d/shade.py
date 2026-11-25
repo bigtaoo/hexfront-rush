@@ -147,6 +147,45 @@ GROVE_SAT = {'oak', 'pine'}
 #   k       how far. Oak and pine only, same two pieces as GROVE_SAT: rock is grey at S 0.04, where
 #           a pull to a blue would not deepen a shadow, it would paint the rock blue.
 GROVE_COOL = {'rgb': (8, 51, 66), 'v0': 0.330, 'v1': 0.255, 'k': 0.90}
+# D120: AND THE SHADE SITS AT THE EDGE, NOT ALL THROUGH THE CROWN. Measured on the INTERIOR of a
+# crown alone -- the alpha eroded by 11 px so neither the outline nor the rim is in it, at the scale
+# the board actually draws (0.716 of texture px, measured off getGlobalTransform, not the 0.38 this
+# file used to assume) -- the reference's crown (IMG_3717, 250..420 x 790..960) is two flat tiers and
+# almost nothing else: 56.5% of it at 0.345-0.355, 28.3% at 0.380-0.395, p10..p90 a span of 0.059,
+# and only 2.1% below 0.32. Ours spans 0.122 (oak) and 0.082 (pine) over the same statistic, with
+# p10 at 0.275: a tenth of our crown's INSIDE is as dark as the reference's deepest rim. GROVE_BAND
+# puts the tiers in the right places, but a pull cannot fix this, because what makes the inside dark
+# is the render -- every lobe of a seven-ball crown has its own terminator, so the shadow between two
+# lobes is as deep in the middle of the crown as it is under its lowest branch.
+#
+# TRIED FIRST, AND MEASURED WORSE: rebuilding the crown out of twenty small lobes instead of seven
+# big ones, which is what the reference's florets look like. It read as a bunch of grapes -- the
+# share of the interior within 0.02 of its own local median fell from 88.6% to 66.3% and the span
+# grew to 0.137, because the renderer gives every lobe, however small, its own full gradient. Smaller
+# lobes buried half-inside a core ball (so only a bump shows) landed at 0.137 as well. The reference
+# does not shade its florets at all: they are drawn as thin arcs on a flat mass, and OUR arcs are
+# already drawn, by inner_lines on the geometry creases. So the geometry stays at seven lobes.
+#
+# What is left is a painter's rule: the shade belongs at the bottom and the outside of a mass, and
+# the inside of it stays flat. So a dark pixel is lifted toward the middle tier by how deep inside
+# the silhouette it sits -- nothing within d0 of the edge is touched (that is the reference's own
+# dark rim, and the band cool() acts on), everything past d1 is lifted in full.
+GROVE_FLAT = {'v': 0.345, 'd0': 0.055, 'd1': 0.150, 'k': 0.80}
+
+
+def flat(im: Image.Image, cfg=GROVE_FLAT) -> Image.Image:
+    """Lift the shade out of the INSIDE of a mass, leaving it at the rim (D120)."""
+    a = np.asarray(im).astype(np.float64)
+    rgb = a[..., :3] / 255
+    v = rgb.max(-1)
+    body = a[..., 3] > 128
+    d = ndimage.distance_transform_edt(body) / im.height
+    t = np.clip((d - cfg['d0']) / (cfg['d1'] - cfg['d0']), 0, 1)
+    w = cfg['k'] * t * t * (3 - 2 * t)
+    lift = np.where(body & (v > 0.14), w * np.maximum(cfg['v'] - v, 0.0), 0.0)
+    out = rgb * ((v + lift) / np.maximum(v, 1e-6))[..., None]
+    a[..., :3] = np.clip(out, 0, 1) * 255
+    return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
 def read_pass(path: Path):
