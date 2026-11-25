@@ -33,6 +33,22 @@ def _ground(r, mat='shade', z=0.022, scale=(1.0, 1.0, 1), loc=(0, 0, 0), seg=28)
     Dark, not moss (prim.py 'shade', D100): the disc faces straight up into the key and is the one
     surface in the set that blows out, so a mid green here came back off the board as a bright ring
     around a dark crown. A base line is a shadow, and a shadow is darker than what it falls on.
+
+    AND THE MEADOW PROPS NO LONGER HAVE ONE. oak, pine and rocks were the three pieces drawn at
+    CROWN_K 1.45 (obstacleView.ts), which scaled their discs up with them until one disc spanned most
+    of a hex, and sprite.py lays the full 4 px ink round everything it trims -- so what came off the
+    board was not a base line but an outlined plate the tree stands on, and two neighbouring trees
+    stacked two hard-edged ellipses over each other. It was also the third base mark on one piece:
+    the view already draws a soft three-ring shadow under every prop (bodies.ts `shadow`) and lookB
+    adds the cast. The reference (D:/new/ref IMG_3717) has no plate under anything -- its crowns and
+    its cut stump sit straight on the ground with a soft dark blob beneath. So the baked disc is
+    gone from those three and the view's shadow is the base line.
+
+    The rest keep theirs, for the reason D107 scoped the highlight cap the same way: snowpine and ice
+    stand on snow at V 0.90-0.95 and cactus and arch on sand at 0.84, where the disc is a snow drift
+    or a patch of hot sand and no reference frame on those boards has been measured; the map events
+    (chest, hoard, camp, warband, mystery) are flat objects seen from 38-44 degrees, drawn at tile
+    size with no CROWN_K, whose disc is the only thing standing them on the hex at all.
     """
     return lathe([(r, 0), (r, z), (0.0, z)], mat, loc=loc, seg=seg, name='ground', scale=scale)
 
@@ -57,8 +73,7 @@ def _rockpile(slabs, mossy=()):
 def model_oak():
     """A broadleaf: a bare trunk under a crown built from three flattened balls, the back ones
     darker. One ball is a lollipop; three at different heights make a crown with a top to it."""
-    _ground(0.40, scale=(1.1, 1.0, 1))
-    _trunk(0.11, 0.075, 0.52, loc=(0, 0, 0.02))
+    _trunk(0.11, 0.075, 0.52)
     for (bx, by, bz, r, mat) in ((-0.17, 0.14, 0.60, 0.29, 'deepgreen'),
                                  (0.19, 0.12, 0.66, 0.27, 'deepgreen'),
                                  (-0.09, -0.24, 0.57, 0.25, 'deepgreen'),
@@ -76,9 +91,8 @@ def model_oak():
 def model_pine():
     """A conifer: three skirts stacked on a short trunk, each one clear of the one above it. The
     steps between skirts are the only thing that tells a pine from a green triangle at 60 px."""
-    _ground(0.36, scale=(1.05, 1.0, 1))
-    _trunk(0.095, 0.07, 0.26, loc=(0, 0, 0.02))
-    for (z, r, h, mat) in ((0.20, 0.40, 0.40, 'deepgreen'), (0.50, 0.32, 0.38, 'green'),
+    _trunk(0.095, 0.07, 0.26)
+    for (z, r, h, mat) in ((0.18, 0.40, 0.40, 'deepgreen'), (0.50, 0.32, 0.38, 'green'),
                            (0.78, 0.23, 0.38, 'green')):
         lathe([(r, 0), (r * 0.98, h * 0.08), (r * 0.55, h * 0.52), (0.0, h)], mat, loc=(0, 0, z),
               seg=24, name='skirt')
@@ -105,13 +119,12 @@ def model_snowpine():
 
 def model_rocks():
     """A boulder with splinters round its foot."""
-    _ground(0.46, scale=(1.15, 1.0, 1))
     # a box with a flat top is a crate however it is tilted, so the main mass is turned on the
     # lathe with five sides: an uneven faceted lump whose top comes to no flat face at all
     lathe([(0.30, 0), (0.38, 0.09), (0.34, 0.25), (0.20, 0.40), (0.0, 0.48)], 'grey',
-          loc=(-0.06, 0.04, 0.02), seg=5, name='boulder', scale=(1.22, 0.96, 1))
+          loc=(-0.06, 0.04, 0.0), seg=5, name='boulder', scale=(1.22, 0.96, 1))
     lathe([(0.20, 0), (0.25, 0.06), (0.20, 0.17), (0.0, 0.27)], 'slate',
-          loc=(0.26, -0.12, 0.02), seg=5, name='boulder2', scale=(1.0, 1.15, 1))
+          loc=(0.26, -0.12, 0.0), seg=5, name='boulder2', scale=(1.0, 1.15, 1))
     for (x, y, z, w, d, h, rx, ry, rz) in (
             (0.34, -0.30, 0.06, 0.21, 0.18, 0.11, 0.18, -0.22, 0.70, ),
             (-0.36, -0.14, 0.06, 0.24, 0.20, 0.12, -0.16, 0.26, -0.85),

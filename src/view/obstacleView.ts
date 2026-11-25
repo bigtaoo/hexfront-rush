@@ -43,13 +43,20 @@ import { LOOK_B } from './lookB';
 /** Obstacle kinds that grow in company. Stone does not. */
 const GROVE = new Set(['tree', 'pine']);
 /** How much over its frame a tree is drawn. The frames are sized for a piece standing in a hex
- *  (oak 147 x 186 texture px = 0.74 x 0.82 of a hex), and the note at the top is the measurement
- *  that says a wood is not that: a crown has to reach its diagonal neighbours' crowns, which on
- *  this board means spanning the 0.75 of a hex height between their centres. 1.45 takes our 68 px
- *  crown to 99 px over a 98 px gap -- just closing -- and the whole oak to 1.18 hex heights, which
- *  is a tree and not a bush. It is NOT a licence to grow the rest of the art: a building at this
- *  size is the "buildings look too big" complaint, and stone stays at its frame size, where the
- *  reference's own stone is.
+ *  (oak 154 x 176 texture px), and the note at the top is the measurement that says a wood is not
+ *  that: a crown has to reach its diagonal neighbours' crowns, which on this board means spanning
+ *  the 98 device px between their centres. It is NOT a licence to grow the rest of the art: a
+ *  building at this size is the "buildings look too big" complaint, and stone stays at its frame
+ *  size, where the reference's own stone is.
+ *
+ *  AND WITH THE BAKED GROUND DISC GONE IT NOW CLOSES. This note read "1.45 takes our 68 px crown to
+ *  99 px over a 98 px gap -- just closing", and that was measured while every prop carried a baked
+ *  disc of ground under it (props.py _ground). The frame is sized to TARGET's height, so the disc
+ *  -- whose front edge projected below the trunk at a 32 degree camera -- was eating a tenth of
+ *  every frame. Taking it off the three meadow pieces (D108) let the tree itself fill the frame:
+ *  the oak's crown went from 112 to 128 device px, 0.86 to 0.98 of a hex height, against the
+ *  reference's own 0.99 (D:/new/ref IMG_3717), and 128 over 98 is an overlap and not a graze. The
+ *  pine's widest skirt went 104 to 116 px the same way.
  *
  *  It costs nothing in sharpness. A 114-texture-px hex is drawn at 65 CSS px on a phone, so every
  *  sprite on the board is already downsampled about 3.5x; 1.45 of that is still a downsample, and
@@ -65,17 +72,16 @@ const CROWN_K = 1.45;
  *  inside it.
  *
  *  AND IT DOES NOT MAKE THE WOOD ONE MASS. That is what the extra tenth was tried for and the
- *  screenshots say it is not what happened: with CROWN_K the main crown is 108 device px across
- *  where a tile is 113, so a companion 0.6 of a radius out (39 px) still stands behind it and all
- *  the tenth reveals is a sliver. Nor can it be fixed by going further without standing the foot
- *  on the grid line. The reason is the board's own geometry, and it is worth writing down: the
- *  reference packs its rows 68 device px apart against a 140 px crown, so every crown there
- *  overlaps the two above it; our diagonal neighbours sit 98 px apart against a 99 px crown, so
- *  ours can only ever graze. To overlap the way the reference's do, ours would have to carry a hex
- *  and a half of foliage, which is not a tree any more, or the board would have to be squashed
- *  flat-top like the reference's. So this tier gets what it can honestly get -- crowns at nearly
- *  twice the area, a wood that is a quarter dark instead of a seventh -- and our woods still read
- *  as crowns in a clump where the reference's read as one canopy. */
+ *  screenshots say it is not what happened: with CROWN_K the main crown is wider than a tile, so a
+ *  companion 0.6 of a radius out (39 px) still stands behind it and all the tenth reveals is a
+ *  sliver. Nor can it be fixed by going further without standing the foot on the grid line. The
+ *  board's own geometry is why: the reference packs its rows 68 device px apart against a 140 px
+ *  crown, so every crown there overlaps the two ABOVE it as well as the two beside it; our diagonal
+ *  neighbours sit 98 px apart, which one crown now spans (128 px, see CROWN_K) but our rows do not
+ *  stack the way its do. To get its canopy the board would have to be squashed flat-top like the
+ *  reference's. So this tier gets what it can honestly get, and our woods still read as a clump of
+ *  crowns where the reference's read as one canopy -- a thinner gap than the "can only ever graze"
+ *  this note used to claim, but the same kind. */
 const PAIR: readonly (readonly [number, number, number])[] = [
   [-0.60, -0.17, 0.82], [0.57, -0.21, 0.78], [-0.52, -0.30, 0.72], [0.50, -0.27, 0.86],
 ];
