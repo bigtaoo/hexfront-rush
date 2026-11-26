@@ -6,12 +6,12 @@
 // Every picture stands on its foot: anchor (0.5, 1), the bottom of the frame on the ground point
 // the caller places it at. Units are drawn facing right; a negative x scale turns them.
 
-import { Assets, Sprite, Spritesheet, Texture, type SpritesheetData } from 'pixi.js';
+import { Assets, Rectangle, Sprite, Spritesheet, Texture, type SpritesheetData } from 'pixi.js';
 import atlasJson from '../assets/atlas.json';
 import atlasUrl from '../assets/atlas.webp?url';
 import type { Obstacle } from '../sim/map';
 import { TEAM_BLUE, type BuildingType, type UnitKey } from '../sim/rules';
-import { CAST, ONLY3 } from './lookB';
+import { CAST, CAST_PROP, ONLY3 } from './lookB';
 
 /** Texture pixels per view unit: tools/art3d/sprite.py draws at TEX_K = 3 over a 38 px hex radius. At
  *  2 (76) a sprite was stretched 1.2x on a 3x phone and 1.6x on a 1080p desktop, and looked soft. */
@@ -142,15 +142,31 @@ export function artSprite(t: Texture, footY = 0, face = 1): Sprite {
   return s;
 }
 
+/** The bottom `band` of a texture, cached. The atlas is packed untrimmed (tools/art/pack.py), so a
+ *  sub-frame is the frame with its top cut off and nothing else to carry over. */
+const bands = new Map<string, Texture>();
+function bandTex(t: Texture, band: number): Texture {
+  const f = t.frame;
+  const key = `${f.x},${f.y},${f.width},${f.height}|${band}`;
+  let b = bands.get(key);
+  if (!b) {
+    const h = Math.max(1, Math.round(f.height * band));
+    b = new Texture({ source: t.source, frame: new Rectangle(f.x, f.y + f.height - h, f.width, h) });
+    bands.set(key, b);
+  }
+  return b;
+}
+
 /** lookB: the shadow a picture throws, the same texture dark, flattened and leaned away from the
- *  light (lookB.ts CAST). Standing on the same foot, it is scaled like the picture with `sx, sy`. */
-export function castSprite(t: Texture, footY = 0): Sprite {
-  const s = new Sprite({ texture: t, anchor: { x: 0.5, y: 1 } });
+ *  light (lookB.ts CAST). Standing on the same foot, it is scaled like the picture with `sx, sy`.
+ *  `prop` throws only the bottom of the picture -- a trunk, not a crown (lookB.ts CAST_PROP). */
+export function castSprite(t: Texture, footY = 0, prop = false): Sprite {
+  const s = new Sprite({ texture: prop ? bandTex(t, CAST_PROP.band) : t, anchor: { x: 0.5, y: 1 } });
   s.tint = CAST.tint;
-  s.alpha = CAST.alpha;
+  s.alpha = prop ? CAST_PROP.alpha : CAST.alpha;
   s.skew.x = CAST.skew;
   s.position.set(0, footY);
-  setCast(s, 1 / PPU, 1 / PPU);
+  s.scale.set(1 / PPU, (-1 / PPU) * (prop ? CAST_PROP.squash : CAST.squash));
   return s;
 }
 /** Scales a cast shadow like its picture (x may be negative: the picture is mirrored). The picture

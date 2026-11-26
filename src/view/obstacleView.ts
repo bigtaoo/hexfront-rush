@@ -130,7 +130,9 @@ function piece(g: Container, kind: string, deco: number, theme: ThemeKey,
   // 15 degrees back toward yellow on screen and taking a tenth of its saturation with it.
   const sp = artSprite(tx, TILE_FOOT, flip ? -1 : 1);
   part.addChild(sp);
-  if (LOOK_B) part.addChildAt(castSprite(tx, TILE_FOOT), 0);
+  // scenery throws only the bottom of its picture: sixty crowns flattened onto the grass were an
+  // eighth of the board in haze (lookB.ts CAST_PROP, DECISIONS.md D123)
+  if (LOOK_B) part.addChildAt(castSprite(tx, TILE_FOOT, true), 0);
   part.position.set(dx, dy);
   part.scale.set(k);
   part.alpha = alpha;
