@@ -81,14 +81,50 @@ def model_ogre():
         ball(0.040, 'ogredark', (0, -0.172, 1.012), scale=(2.4, 0.5, 0.34), name='brow')
     for x in (-0.300, 0.300):               # arms swung clear of the belly, hands as big as feet
         with group('armL' if x < 0 else 'armR'):
-            lathe([(0.104, 0.560), (0.112, 0.700), (0.100, 0.766), (0.0, 0.776)], 'ogre',
+            # THE TOP OF THIS LATHE WAS A LID, and a lid is what "detached arm" looks like.
+            # The old profile closed (0.100, 0.766) -> (0.0, 0.776): a hundred millimetres of
+            # radius given up over ten of height, which is a six degree slope - a disc with a
+            # rim, not a shoulder. It would not have mattered if it were buried, but it is not:
+            # the belly is only 0.218 wide at z 0.776 and the arm sits at |x| 0.300, so the disc
+            # spans 0.200 to 0.400 and all but the innermost 0.018 of it is in open air. The
+            # camera is 18 degrees ABOVE the unit, which is the one angle that looks straight
+            # into a lid, so what the board got was a green pipe standing beside him with the
+            # top sawn off. Same failure as the humans' sleeve, same fix: roll it over. The
+            # radius has to start coming off EARLY, which took two tries. Rolling it over in
+            # the last twenty millimetres was not enough: the profile still held 0.108 up to
+            # z 0.724, and from 18 degrees above, forty-eight millimetres of near-vertical wall
+            # above the widest point still reads as a plateau with a chamfered rim - a thick
+            # pipe instead of a shoulder. What is sampled below is an actual hemisphere, centred
+            # on the widest point at z 0.660 and radius 0.112, so the surface is turning away
+            # from the camera from the very first step above it and there is no flat anywhere.
+            # The apex stays at 0.776 on purpose: SHOULDER below is derived as "the arm's own
+            # cap plus one log radius", and moving the cap would lift the log off him.
+            lathe([(0.104, 0.560), (0.112, 0.660), (0.107, 0.692), (0.095, 0.720),
+                   (0.074, 0.744), (0.050, 0.760), (0.021, 0.770), (0.0, 0.776)], 'ogre',
                   loc=(x, 0, 0), name='arm')
             # the arm bands are team too: two small marks right out on the silhouette's edge,
             # and the edge is the part of a 40 px sprite the eye actually lands on
             lathe([(0.116, 0.552), (0.122, 0.608)], 'team', loc=(x, 0, 0), name='band')
     with group('armL'):                     # the free arm hangs; it is the one that still walks
-        rod(0.086, 0.230, 'ogre', (-0.320, -0.030, 0.430), name='forearm')
-        ball(0.106, 'ogre', (-0.340, -0.040, 0.300), name='fist')
+        # the forearm has to START INSIDE THE SLEEVE. At 0.230 long about z 0.430 its top end
+        # was at 0.545 and the arm lathe's flat bottom rim is at 0.560: a fifteen-millimetre hole
+        # between a disc and a rod, which on a piece that renders 281 px tall is two clear pixels
+        # of background showing through the elbow - the arm was literally in two pieces. It runs
+        # to 0.610 now, fifty millimetres up inside the sleeve, and the ball closes the step from
+        # the rim's 0.104 to the rod's 0.086 so the taper is a joint and not a ledge.
+        # BOTH ENDS OF THE FOREARM NOW SIT INSIDE A BALL THAT IS BIGGER THAN IT IS. The old
+        # elbow was 0.098 against a sleeve rim of 0.104, so it was the SMALLER of the two and it
+        # was offset 0.014 outboard as well: instead of a joint you got a chip out of the arm,
+        # a step where the green narrowed and jumped sideways at the same height as the team
+        # band. The elbow is 0.116 and centred on the sleeve's own axis, which puts it proud of
+        # the rim all the way round - a bulge, which is what an elbow is. The rod stops at 0.590
+        # rather than 0.610 so that its flat cap is 0.030 from the ball's centre, where the ball
+        # is still 0.112 wide against the rod's farthest corner at 0.108. The fist goes the same
+        # way: 0.118 and pulled in line with the rod, so the bottom cap is buried by 0.020 of
+        # ball instead of grazing the surface. Nothing in this chain is a rod meeting a rod.
+        rod(0.086, 0.260, 'ogre', (-0.320, -0.030, 0.460), name='forearm')
+        ball(0.116, 'ogre', (-0.300, -0.022, 0.560), name='elbow')
+        ball(0.118, 'ogre', (-0.326, -0.036, 0.300), name='fist')
     # THE WHOLE UNIT HANGS OFF THESE TWO NUMBERS, so they are written once, above everything
     # that uses them, and the fist, the forearm and the timber are all derived from them. A club
     # that floats a hand's width off the fist, or a log whose middle is in mid-air, is what you

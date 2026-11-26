@@ -65,6 +65,12 @@ export const unitTurn = (type: UnitKey, team: number): boolean =>
  *  (tools/art3d/pose.py IDLE): without them a waiting piece is the still and nothing else. */
 export const unitIdle = (type: UnitKey, team: number): boolean =>
   !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_i0`];
+/** Whether the atlas carries the views of a troop seen from BEHIND (tools/art3d/pose.py BACK):
+ *  the still `_b0` and the walk `_u0.._u5`. A troop is drawn once, three-quarter from the front,
+ *  and the board mirrors that one picture for left and right - so without these a piece marching
+ *  up the board, away from the camera, is drawn walking towards us. */
+export const unitBack = (type: UnitKey, team: number): boolean =>
+  !!frames?.[`${ONLY3 ? only3Unit(type) : type}_${side(team)}_u0`];
 /** Whether the atlas carries the frames a troop topples through when it is killed
  *  (tools/art3d/pose.py FALL): without them a fallen piece is the still, spun in the picture. */
 export const unitFall = (type: UnitKey, team: number): boolean =>

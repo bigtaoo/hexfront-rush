@@ -416,6 +416,10 @@ export class SpriteLayer {
       LOOK.bob = Math.abs(step) * 0.06 + idle;
       LOOK.step = step;
       LOOK.phase = ph;
+      // up the board is away from us: engine.ts stamps px/py at the top of every tick, so which
+      // way a piece is walking in depth is already here and the sim needs no third facing
+      const dy = u.y - u.py, dd = Math.hypot(u.x - u.px, dy);
+      LOOK.vy = dd > 0 ? dy / dd : 0;
       // a newborn troop is still in the air: birth.ts draws the light carrying it, and hands back
       // the age of the piece itself -- below zero while there is no piece to draw yet
       const age = unitAge(eng.tick, u.bornT, f.alpha);

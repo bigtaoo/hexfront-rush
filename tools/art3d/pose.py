@@ -57,8 +57,87 @@ def _ramp(seq):
 
 
 # the attacks, four carved keyframes each: wind up, hold, drive, recover
-THRUST = _ramp((-26, -58, 48, 16))       # militia: the shaft goes straight out
-SWING_ARM = _ramp((-62, -98, 58, 18))    # shield, ogre: over the shoulder and down
+#
+# EVERY MELEE ATTACK NOW TURNS IN TWO PLACES, the shoulder and the fist, and the reason is a
+# fact about the models rather than about animation. A weapon is carved rigid with the arm
+# holding it; the sword points UP out of the fist and the arm points DOWN out of the shoulder,
+# so the two are very nearly ONE straight line through the hand. A line can only be swung to
+# point downwards by swinging its far end upwards - and that is exactly what the renders
+# showed. At 140 degrees of shoulder the shield's blade did come down, straight through the
+# top of his own helmet, with only the last hand's width of tip outside his head; the ogre's
+# log did the same through his belly. The thrust failed one storey up for the same reason:
+# the militia's shoulder socket, at these toy proportions, sits INSIDE the outline of his own
+# skull (the socket is screen right 0.121, the skull is 0.18 wide), so a haft pivoted there
+# and levelled - the one angle at which this projection does not foreshorten it to a stub -
+# swept straight across his eyes. Shoulder-only, the fork tip's height is
+# 0.5783 + 0.1613 cos(t) - 0.0903 sin(t): it can NEVER fall below 0.393, mid-chest, at any
+# angle whatever. There was no number to find.
+#
+# A wrist costs nothing here. pose.apply turns any group about any point, prim.group already
+# files every weapon under 'armR.gear', and _roots re-parents the wrist's own empty when the
+# shoulder turns after it - so the two compose, and the angle the weapon lands at is simply
+# ARM + WRIST. The arm ramps are therefore small, a haul back and a shove forward; the swing
+# itself has moved into the wrist, which is where it is on a person.
+#
+# (The sign, since it cost two render passes: an x turn sends y' = y cos - z sin. For a point
+# ABOVE the pivot a positive angle swings it forward; for a HANGING ARM, which is a point
+# below it, a positive angle swings the hand BACKWARD and up. Every ramp here hangs.)
+THRUST = _ramp((4, 14, -22, -8))         # militia: the hand hauls back, then shoves forward
+SWING_ARM = _ramp((-8, 16, -24, -8))     # shield, ogre: the same, with more haul behind it
+# What the weapon does about the fist. Quoted as the TOTAL the frame lands on (arm + wrist),
+# because that is what the picture is made of:
+#   militia  -4, -6, 90, 54    at 90 the fork is dead level at BELLY height - screen (0.100,
+#     0.319) to (0.627, 0.172), 0.55 of a body long, pointing where he points, and passing a
+#     clear fifth of a body below the chin the old thrust ran through.
+#   shield   -2, -12, 120, 62  at 120 the blade is down-right at 39 degrees and almost its
+#     whole length on screen (0.949), tip at z 0.07 - a chop that stops at the grass. 144 was
+#     tried first and put the tip through the floor: this sword is gripped low (z 0.236) and
+#     is 0.47 long, so past about 125 there is no more room under him.
+#   ogre      2, -18, 140, 70  the log runs screen (0.381, 0.705) to (0.848, 0.219), head
+#     height down to the waist, 0.67 long and ENTIRELY outboard of a body that ends at 0.27 -
+#     which is the whole point, since every earlier smash went through his own belly.
+# The negative holds are the wind-up: the weapon tips further back while the arm hauls it
+# back, so the first two frames differ in shape and not only in degree.
+# The slinger is in this table for a different reason and turns about a different axis.
+# His sling was NOT fighting the camera - it was fighting the pivot. The pouch sits at
+# (0.515, -0.052, 0.500) and the shoulder joint is the x axis through z 0.548, so in the plane
+# the shoulder turns in the pouch is 0.07 from the centre of rotation: the whole four-frame
+# attack moved it 0.06 of a body, less than its own width, and what the board saw was a man
+# holding a sling perfectly still. The sling has an 0.40 arm and ALL of it lies along +x, which
+# an x turn cannot touch. So HIS wrist turns about y, the one axis that swings that arm, and
+# his shoulder does the throw proper. It cannot do the WIND-UP: this toy's arms hang at the very
+# edge of its own torso (shoulder x 0.146 against a torso half 0.175), so any backward swing puts
+# the fist behind the chest in depth and all that reaches the render is a sliver of knuckle - 2
+# and 14 degrees is as far back as the hand stays visible, and the wind-up is the wrist's job.
+# Forward is free: at -45 the fist comes out to depth -0.20 against the torso's -0.015, a hand's
+# width clear in front of him, and the whole arm is drawn. The four pouch positions, on screen:
+#   (0.468, 0.532), (0.281, 0.626), (0.656, 0.348), (0.505, 0.506)
+# out in front, hauled back and up past the ear, whipped down and forward, then settling.
+#   35, 78, -8, 28 degrees above the fist   the pouch rides up beside the cap and whips down
+#     and forward: screen (0.353, 0.628), (0.267, 0.646), (0.580, 0.286), (0.489, 0.500) - a
+#     travel of 0.89 of a body across the cycle where there was 0.06. 78 is the
+#     ceiling: at 93 the pouch crosses in front of his own face. The far end stops at -8 because
+#     at -20 it is through the grass, and nothing in a cycle may go below z 0 (the canvas is
+#     anchored at its bottom edge, so gear under the boots lifts the boots off the hex).
+#   The release frames are the ones where troops.py has already straightened the cord and taken
+#   the stone off it (pose.nocked), so the arm reaching its farthest forward, the cord going
+#   straight and the stone leaving all happen on the SAME frame. That is what makes it read as
+#   a throw instead of a wave.
+WRIST = {'militia': _ramp((-8, -20, 112, 62)),
+         'shield': _ramp((6, -28, 144, 70)),
+         'ogre': _ramp((10, -34, 164, 78)),
+         'slinger': _ramp((4, -39, 47, 11)),
+         'adept': _ramp((-17, 12, 84, 51))}  # MORE than all of CAST, read the note on it
+WRIST_AXIS = {'slinger': 'y'}
+# where each fist closes, in model space: the point the weapon turns about. Measured off the
+# models, not guessed - militia and shield are body.arm's x + out at body.FIST, and the ogre's
+# is beasts.model_ogre's HAND_LOG, the point its forearm and its timber are both built from.
+# A wrist placed anywhere else slides the weapon out of the hand that is holding it.
+WRIST_AT = {'militia': (0.212, -0.046, 0.252),
+            'shield': (0.214, -0.098, 0.236),
+            'ogre': (0.3598, -0.1943, 0.5721),
+            'slinger': (0.204, -0.052, 0.252),
+            'adept': (0.320, -0.115, 0.252)}     # his fist, which is also where he grips
 # the guard's crossbow. Everyone else's attack is a limb travelling somewhere; his is a limb
 # NOT travelling, and then a kick. He braces, holds dead still for a beat - that stillness is
 # the whole character, the parade soldier who turns out to be the one man here who can aim -
@@ -66,10 +145,43 @@ SWING_ARM = _ramp((-62, -98, 58, 18))    # shield, ogre: over the shoulder and d
 # and it has to be: at 40 px the recoil is the only frame that says a bolt left, and the sim
 # draws the bolt itself (PROJ.bolt), so the sprite's job is just to be caught in the act.
 AIM = _ramp((-5, -9, 14, 5))
-DRAW = _ramp((-20, -48, -6, 6))          # bowman: the string hand pulls back and lets go
+# the bowman's string arm BARELY turns now. It used to swing 48 degrees about the shoulder,
+# and the swing was the whole draw - which is why the draw never read. armL turns about x, so
+# that 48 degrees carries the hand through y and z; by the camera's own right = 0.829 dx -
+# 0.559 dy a hand pushed to -y travels RIGHT on screen, towards the bow. The draw was a shove.
+# The string is now BUILT drawn instead (troops.model_bowman reads act()), the hand slides back
+# along -x with it, and all this ramp has left to do is lift the elbow and drop it again.
+DRAW = _ramp((-10, -16, 8, 2))           # bowman: the string hand pulls back and lets go
 BOW = _ramp((-2, -8, -2, 0))             # ...while the bow hand barely moves
-SLING = _ramp((-96, -36, 74, 26))        # slinger: one full whirl past the ear
-CAST = _ramp((-40, -80, -62, -30))       # adept: the staff goes up and stays up
+SLING = _ramp((2, 14, -45, -14))         # slinger: the whirl is in his WRIST now, above
+# POSITIVE, and all the way out. Both earlier numbers swung the staff the other way, and that
+# way is BEHIND HIM: at -55 the lit stone grazes the hat brim, at -65 it is gone behind the cone
+# altogether, so the flare peaked on the one frame where nothing of it could be seen. Swung
+# forward the staff comes down level and points where the spell is going, the crystal leads it
+# out into clear sky past the shoulder, and the stone is never within a hat's width of anything.
+# The wind-back is small (-14) because his silhouette is already a tall cone with a stick beside
+# it - the read is the stick LEAVING that silhouette, and anything spent rocking backwards first
+# is spent on a frame nobody can tell from the still.
+# THE SHOULDER GOES THE OTHER WAY FROM THE STAFF, and that sign is the whole repair. Seventy-
+# two degrees of pure shoulder put the hand at y +0.246 - 0.09 BEHIND the back of a robe 0.158
+# wide - and the elbow at +0.098, also behind, so on the drive frame the entire limb went in
+# behind the body. It is team blue on a team blue torso, so there was not even an edge to see
+# it by: the board got a staff growing out of the middle of his chest. Splitting the same 72 in
+# half between shoulder and fist did NOT fix it, and the reason is worth keeping. A positive
+# shoulder turn swings a hanging arm BACKWARD, i.e. away from the camera, so the arm projects
+# down the depth axis and foreshortens: at 36 the elbow and the fist landed 0.015 apart on
+# screen - the forearm had no length left to see.
+# So the shoulder now turns NEGATIVE, a small -12, which swings the arm FORWARD and throws it
+# across the screen: shoulder 0.121, elbow 0.297, fist 0.363, against a torso edge of 0.124 -
+# three separate points in open air and a forearm with real length between them. The fist is
+# then 84 degrees of wrist, more than the whole of the old swing, because it has to undo the
+# shoulder's -12 as well as carry the 72. The staff still comes down level and still points
+# where the spell is going; it also now points at the CAMERA as well as to the right, which is
+# what makes it sweep instead of merely tilt. The cost is width - the crystal reaches screen
+# 0.70 where it used to reach 0.47, and sprite.sym pays for that on both sides of every one of
+# his frames. It is paid knowingly: an arm nobody can see is not a cheaper animation, it is a
+# broken one.
+CAST = _ramp((3, -2, -12, -7))           # adept: the SHOULDER, counter to the staff above
 # the breath: rear back, then throw the head out ALONG the line of flight. On the old standing
 # drake the +28 was the head coming down off a vertical neck; on a horizontal one the same number
 # drove his face into the ground and the attack read as a crash dive.
@@ -88,7 +200,14 @@ RAM_SWING = _ramp((-5.0, -9.0, 9.0, 2.5))
 RAM_BODY = _ramp((4, 7, -10, 3))          # the cart hauls back with it, then lurches after it
 RAM_PIVOT = -1.00                        # a metre UNDERGROUND, and that is the whole trick
 LEAN = {'thrust': _ramp((3, -5, 11, 5)), 'swing': _ramp((4, -9, 14, 6)),
-        'draw': _ramp((2, -4, 2, 0)), 'sling': _ramp((6, -7, 12, 4)),
+        # the draw was (2, -4, 2, 0) - four degrees of total body motion across a whole attack.
+        # It was written when the arm carried the draw, and the arm no longer does (DRAW above
+        # is down to a shrug, because an armL turn about x pushed the hand towards the bow, not
+        # away from it). With the string carrying the pull, the BODY is what is left to carry
+        # the effort: chest out and shoulders back over the two drawn frames, then thrown
+        # forward on the loose and settling. Same shape as the cast, for the same reason -
+        # a shot you do not lean into does not look like it cost anything.
+        'draw': _ramp((-4, -11, 7, 2)), 'sling': _ramp((6, -7, 12, 4)),
         'cast': _ramp((-4, -11, 8, 3)), 'breathe': _ramp((-3, -6, 5, 2)),
         'aim': _ramp((1, -2, 5, 2))}     # braced: he leans into it, he does not swing with it
 
@@ -97,6 +216,55 @@ LEAN = {'thrust': _ramp((3, -5, 11, 5)), 'swing': _ramp((4, -9, 14, 6)),
 STYLE = {'militia': 'thrust', 'guard': 'aim', 'shield': 'swing', 'ogre': 'swing',
          'bowman': 'draw', 'slinger': 'sling', 'adept': 'cast',
          'drake': 'breathe'}
+
+# ------------------------------------------------- the frame the model is being BUILT for
+# A carved part cannot bend, so a bowstring cannot be posed: a string that comes back to a man's
+# jaw is a different SHAPE, not a turned one, and everything in this file turns. So the two
+# shooters build themselves for one frame at a time. toys.assemble sets FRAME immediately before
+# it calls the model function, the model reads it through act() below, and lays its string, its
+# limbs and its missile out for that frame. Nothing else in the file knows FRAME exists, and a
+# model that never calls act() is built exactly as it always was.
+#
+# This is the "more bones" the pre-rendered pipeline can afford: a sprite sheet does not care how
+# the geometry got there, so a part may be rebuilt per frame as cheaply as it is turned.
+FRAME = (None, 0)
+
+# how far through its own action each of the four strike frames is (wind up, hold, loose,
+# recover), and what the piece carries when it is not attacking at all:
+#   bowman   0 at rest - a walking archer's bow is slack - up to a full draw, then PAST the brace
+#            line on the loose, which is the frame that says the arrow left rather than vanished
+#   guard    the crossbow is carried with the string forward (the triangle of daylight between
+#            prod and string is how it is read at 40 px, and it has to survive the other 21
+#            frames), spanned to the nut for the aim, and snapped flat again on the shot
+#   slinger  1 at rest: the stone lives in the pouch, and the attack is the only time it leaves
+#   adept    the crystal lights on frame 2, with the hit - not on 1 with the wind-up. His crystal
+#            is the moment of the spell the way a spear tip is the moment of a thrust, and
+#            THRUST, SWING and SLING all land theirs on 2 as well.
+# the bowman's -0.05 on the recover is not a draw, it is a PLACE: troops.model_bowman puts
+# the string hand on the string whenever act() is not ~0, and at a flat 0 the hand jumped from
+# the bowstring to the hip for one frame, leaving a pale blob at his waist in the middle of a
+# shot. Just past the brace line it stays an arm that has let go, where the eye last saw it.
+ACT = {'bowman': (0.75, 1.0, -0.16, -0.05), 'guard': (1.0, 1.0, 0.0, 0.0),
+       'slinger': (1.0, 1.0, 0.0, 0.0), 'adept': (0.20, 0.55, 1.0, 0.45)}
+ACT_REST = {'slinger': 1.0}
+LOOSE = {'bowman', 'guard', 'slinger'}   # the three with a missile that can be out of the frame
+
+
+def act(name: str) -> float:
+    """How far through its attack the frame being built is: 1 at the top, 0 at rest."""
+    kind, i = FRAME
+    if kind != 'a':
+        return ACT_REST.get(name, 0.0)
+    return ACT.get(name, (0.0,) * STRIKE)[i]
+
+
+def nocked(name: str) -> bool:
+    """Whether the missile is still on the string: it is gone from the frame it is loosed on.
+
+    The sim draws the projectile itself (PROJ.arrow, PROJ.bolt, PROJ.stone), so a sprite still
+    holding one after the loose puts two of them on the board."""
+    kind, i = FRAME
+    return not (kind == 'a' and i >= 2 and name in LOOSE)
 
 AXIS = {'x': 0, 'y': 1, 'z': 2}
 
@@ -482,23 +650,29 @@ def strike(i: int, name: str):
     hip, sh = _joints(name)
     style = STYLE.get(name, 'thrust')
     turns = []
+    if name in WRIST:
+        # THE WRIST GOES FIRST. pose.apply hangs this group on an empty at the fist; the
+        # shoulder turn that follows collects that empty through _roots and carries hand and
+        # weapon together, so the weapon ends up at arm + wrist and never leaves the fist.
+        t = ('armR.gear', WRIST_AT[name], WRIST[name][i])
+        turns.append(t + (WRIST_AXIS[name],) if name in WRIST_AXIS else t)
     if style == 'thrust':
-        turns = [('armR', sh, THRUST[i])]
+        turns.append(('armR', sh, THRUST[i]))
     elif style == 'swing':
-        turns = [('armR', sh, SWING_ARM[i])]
+        turns.append(('armR', sh, SWING_ARM[i]))
     elif style == 'draw':
-        turns = [('armL', sh, DRAW[i]), ('armR', sh, BOW[i])]
+        turns += [('armL', sh, DRAW[i]), ('armR', sh, BOW[i])]
     elif style == 'sling':
-        turns = [('armR', sh, SLING[i])]
+        turns.append(('armR', sh, SLING[i]))
     elif style == 'cast':
-        turns = [('armR', sh, CAST[i])]
+        turns.append(('armR', sh, CAST[i]))
     elif style == 'aim':
         # BOTH arms, on the same curve. The crossbow hangs off armR, and the left hand is out
         # on its fore-end; let armR move alone and the stock walks out of the hand holding it.
-        turns = [('armR', sh, AIM[i]), ('armL', sh, AIM[i])]
+        turns += [('armR', sh, AIM[i]), ('armL', sh, AIM[i])]
     elif style == 'breathe':
         # no arms to swing: the head is the weapon, and the wings flare with the breath
-        turns = [('head', sh, BREATH[i]),
+        turns += [('head', sh, BREATH[i]),
                  ('wingL', WING, -abs(BREATH[i]) * 0.7, 'y'),
                  ('wingR', WING, abs(BREATH[i]) * 0.7, 'y')]
     lean = LEAN[style][i]
@@ -618,20 +792,39 @@ def fall(i: int, name: str):
 # how much of a model's own yaw each turn frame keeps: 0 is dead front, 1 is the still
 TURN_YAW = (0.0, 0.5)
 
+# The cycles seen from BEHIND (D132). Every troop is drawn once, three-quarter from the front, and
+# the board mirrors it for left and right - so a piece marching UP the board, away from the camera,
+# used to be drawn walking towards us. Yaw 0 is dead front and a troop's own yaw turns it towards
+# one side; 180 - yaw keeps that same sideways component and flips only the depth, so the back
+# view mirrors for left and right exactly as the front one does.
+BACK = {'u', 'b'}
+
+
+def stand(i: int, name: str):
+    """The still pose as a one-frame cycle: the back view of a piece that is not walking."""
+    return [], 0.0
+
 # The ROCKING walk is the one the game ships. The scissor above is kept because its comment is
 # the argument for the rock - a stride at this camera travels 85% into the screen and only 53%
 # across it, so a scissor has to open to 45 degrees to be seen at all and then reads as a pair of
 # scissors rather than a walk, while a side-to-side tip lands 85% on screen. HF_WALK=scissor puts
 # the old one back for a side-by-side.
 CYCLES = {'w': (walk_rock, WALK), 'a': (strike, STRIKE), 't': (swivel, TURN),
-          'd': (fall, FALL), 'i': (breathe, IDLE)}
+          'd': (fall, FALL), 'i': (breathe, IDLE),
+          'u': (walk_rock, WALK), 'b': (stand, 1)}
 if os.environ.get('HF_WALK') == 'scissor':
     CYCLES['w'] = (walk, WALK)
 
 
-def yaw_mul(kind, i: int) -> float:
-    """The share of the model's yaw frame i of a cycle is turned by (only the turn shortens it)."""
-    return TURN_YAW[i] if kind == 't' else 1.0
+def yaw_deg(kind, i: int, base: float) -> float:
+    """How far frame i of a cycle is turned about the vertical, in degrees.
+
+    The still's own yaw is the baseline. Only the turn shortens it (TURN_YAW), and only the back
+    cycles reflect it, which is what turns the piece away from the camera.
+    """
+    if kind in BACK:
+        return 180.0 - base
+    return base * (TURN_YAW[i] if kind == 't' else 1.0)
 
 
 def apply(groups: dict, kind: str, i: int, name: str = 'militia') -> float:

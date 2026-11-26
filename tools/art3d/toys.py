@@ -133,6 +133,7 @@ def assemble(name: str, team: str, kind, i: int) -> float:
     """Build the model, pose it for one frame of a cycle, and turn it to face the camera."""
     clear()
     mats(team)
+    pose.FRAME = (kind, i)      # before the build: the shooters carve their string for THIS frame
     span = MODELS[name]()
     groups: dict = {}
     for o in bpy.context.scene.objects:
@@ -145,7 +146,7 @@ def assemble(name: str, team: str, kind, i: int) -> float:
         if o is not pivot:
             o.parent = pivot
     pivot.location = (0, 0, lift)
-    pivot.rotation_euler = (0, 0, math.radians(YAW.get(name, 0) * pose.yaw_mul(kind, i)))
+    pivot.rotation_euler = (0, 0, math.radians(pose.yaw_deg(kind, i, YAW.get(name, 0))))
     bpy.context.view_layer.update()
     if kind == 'd':
         # a piece going over backwards on its heels swings its back under the board: set it
@@ -196,7 +197,15 @@ def build(name: str, team: str, out: Path, kind=None):
         assemble(name, team, None, 0)
         sx0, sx1, sy0, sy1 = extent(elev)
         cx, cy = (sx0 + sx1) / 2, (sy0 + sy1) / 2
-        half = max(sx1 - sx0, sy1 - sy0) * 1.08 / 2
+        # `half` is the still's own half-span, WITHOUT the 1.08 the film is drawn at, so the
+        # widening keeps that margin instead of spending it. With the 1.08 in here the sums
+        # cancel and the film lands exactly on the furthest vertex: the frame's own edge cuts the
+        # model, and sprite.py then draws its outline along the cut. It was doing that to 32 of
+        # the 343 frames - the last topple frame of every single troop, the slinger's leading
+        # walk frame (46 px of sling), the shield's head-on turn - and to the militia's new back
+        # walk, which is what turned it up. Film pixels are free: `grow` raises the resolution
+        # with the box, so a world unit is the same number of pixels whatever this comes to.
+        half = max(sx1 - sx0, sy1 - sy0) / 2
         grow = max(1.0, max(abs(fit[0] - cx), abs(fit[1] - cx)) / half,
                    max(abs(fit[2] - cy), abs(fit[3] - cy)) / half)
         fit = (sx0, sx1, sy0, sy1)

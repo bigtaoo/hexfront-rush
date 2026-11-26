@@ -9,7 +9,7 @@
 import { Container, Graphics, Texture, type Sprite } from 'pixi.js';
 import { TICK_RATE } from '../sim/fixed';
 import { LUNGE_TICKS, type UnitKey } from '../sim/rules';
-import { artH, artSprite, castSprite, PPU, setCast, unitAnim, unitFall, unitIdle, unitTex, unitTurn } from './art';
+import { artH, artSprite, castSprite, PPU, setCast, unitAnim, unitBack, unitFall, unitIdle, unitTex, unitTurn } from './art';
 import { BIRTH } from './birth';
 import { hpBar, shadowCtx } from './bodies';
 import { CAST, LOOK_B, LOOKB_UNIT_K } from './lookB';
@@ -42,6 +42,10 @@ export interface UnitLook {
   step?: number;
   /** 0..1 where it is in the walk cycle, -1 standing (sprites.ts walkPhase). */
   phase?: number;
+  /** The up-screen share of this frame's movement: -1 straight away from the camera, +1 straight
+   *  towards it, 0 standing or walking sideways. Which drawn set the piece uses is read off this,
+   *  not off `face`, which is a left/right sign and says nothing about depth. */
+  vy?: number;
   /** Seconds since it was trained (the drop-in plays in the first SPAWN_S). */
   age?: number;
   /** A shooter: rocks back from its attack instead of lunging in. */
@@ -72,6 +76,23 @@ const DRAKE_LIFT = 0.22;
 export const WALK_FRAMES = 6;
 /** Frames in the rendered strike (tools/art3d/pose.py STRIKE). */
 export const STRIKE_FRAMES = 4;
+/** Frames in the walk away from the camera (tools/art3d/pose.py, cycle 'u'). */
+export const BACK_FRAMES = 6;
+/** How much of a piece's movement has to be up-screen before it is drawn from behind, and how
+ *  far back down before it faces us again. The six hex directions give a vertical share of either
+ *  0 (the sideways pair) or 0.866 (the four diagonals), so neither threshold is anywhere near a
+ *  direction a piece actually walks in and only steering jitter ever crosses one.
+ *
+ *  The band is wide and holds what it had, standing still (0) included: a piece that pauses on
+ *  its way up the board - waiting on a tile, shouldering past another - would otherwise spin
+ *  round to face us and back again for every step it misses. */
+const AWAY_ON = -0.45, AWAY_OFF = 0.25;
+/** Whether a piece that was `prev` turned away is turned away now, moving `vy` up-screen (-1 is
+ *  straight away from the camera, +1 straight towards it). Between the two thresholds it keeps
+ *  what it had. */
+export function awayNext(prev: boolean, vy: number): boolean {
+  return vy < AWAY_ON ? true : vy > AWAY_OFF ? false : prev;
+}
 /** Frames in the rendered topple (tools/art3d/pose.py FALL), and the share of DEATH_S they play
  *  over: the piece is down well before it has finished fading out. */
 export const FALL_FRAMES = 3, FALL_S = 0.55;
@@ -169,6 +190,9 @@ export class UnitView {
   private falls = false;
   /** Whether it carries the two frames it breathes through while it stands. */
   private idles = false;
+  /** Whether it carries the still and walk seen from behind, and whether it is turned away now. */
+  private backs = false;
+  private awayCur = false;
   /** The still this troop falls back to (the strike and walk frames are read off the atlas). */
   private still = Texture.EMPTY;
   /** Picture height, view units. */
@@ -212,6 +236,7 @@ export class UnitView {
       this.turns = this.anim && unitTurn(u.type, u.team);
       this.falls = this.anim && unitFall(u.type, u.team);
       this.idles = this.anim && unitIdle(u.type, u.team);
+      this.backs = this.anim && unitBack(u.type, u.team);
       this.body.texture = t;
       this.flash.texture = t;
       if (this.cast) this.cast.texture = t;
@@ -237,7 +262,15 @@ export class UnitView {
       const d = face - this.faceCur, st = TURN_RATE * dt;
       this.faceCur = Math.abs(d) <= st ? face : this.faceCur + (d > 0 ? st : -st);
     }
-    const turn = this.turns ? turnTag(this.faceCur) : '';
+    // Which way it is walking in depth (AWAY_ON/OFF above). A blow turns it round for good:
+    // the strike is drawn from the front only, so a piece that kept its back to us would flip to
+    // the front and away again on every swing. It turns once, on the first blow of the fight,
+    // and what it turns to face is the enemy it has walked up to.
+    if (u.lunge || shot || this.lungeAt >= 0) this.awayCur = false;
+    else this.awayCur = awayNext(this.awayCur, u.vy ?? 0);
+    const away = this.backs && this.awayCur;
+    // the turn views are drawn from the front, so a piece already facing away does not use them
+    const turn = this.turns && !away ? turnTag(this.faceCur) : '';
     // A carved piece keeps its shape: everything below is a move or a tip about the foot it stands
     // on, never a change of size. The squash and stretch this used to ride on (and the matching
     // `2 - sy` width) is what made a solid, fully drawn picture read as a sheet of paper being
@@ -281,7 +314,7 @@ export class UnitView {
       rot -= face * 0.13 * u.flash;
     }
     if (this.anim) {
-      const tag = this.frameTag(u, turn);
+      const tag = this.frameTag(u, turn, away);
       if (tag !== this.kTag) {        // only on a change: a texture swap breaks the draw batch
         this.kTag = tag;
         const t = unitTex(u.type, u.team, tag);
@@ -303,7 +336,7 @@ export class UnitView {
     // per troop per frame, on the view's hottest line.
     // with turn frames the rotation is drawn, so the piece keeps its full width the whole way
     // round and only its sign flips, on the symmetrical head-on frame where nothing shows it
-    const fx = this.turns
+    const fx = this.turns || away
       ? (this.faceCur < 0 ? -1 : 1)
       : Math.abs(this.faceCur) < TURN_MIN
         ? face > 0
@@ -346,15 +379,19 @@ export class UnitView {
    *  cycle, else '' for the still it stands in. */
   /** The turn comes first: it lasts under a fifth of a second, and a piece drawn at its full
    *  width in a profile it has turned out of is the pop this frame exists to remove. */
-  private frameTag(u: UnitLook, turn: string): string {
+  private frameTag(u: UnitLook, turn: string, away: boolean): string {
     if (turn) return turn;
+    // The blow and the topple are drawn from the front only: a strike is eight more frames per
+    // troop per team in an atlas already at its 4096 px limit, and it reads as the piece swinging
+    // round to meet what it is hitting rather than as a cut.
     if (this.lungeAt >= 0) {
       const k = (u.time - this.lungeAt) / LUNGE_S;
       if (k < 1) return `_a${Math.min(STRIKE_FRAMES - 1, Math.floor(k * STRIKE_FRAMES))}`;
     }
     const ph = u.phase ?? -1;
     // standing: the breath, offset per troop so a squad does not shift its weight as one body
-    if (ph < 0) return this.idles ? idleTag(u.time + u.id * 0.41) : '';
+    if (ph < 0) return away ? '_b0' : this.idles ? idleTag(u.time + u.id * 0.41) : '';
+    if (away) return `_u${Math.min(BACK_FRAMES - 1, Math.floor(ph * BACK_FRAMES))}`;
     return `_w${Math.min(WALK_FRAMES - 1, Math.floor(ph * WALK_FRAMES))}`;
   }
 

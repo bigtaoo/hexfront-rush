@@ -23,6 +23,17 @@ TUNIC = [(0.130, 0.266), (0.148, 0.326), (0.154, 0.432), (0.146, 0.516), (0.106,
 FACE = [(0.118, 0.600), (0.150, 0.646), (0.164, 0.706), (0.157, 0.762), (0.128, 0.800),
         (0.0, 0.818)]
 SHOULDER_Z = 0.548
+# THE SLEEVE, and the reason it is a profile and not a tube. It used to end
+# [(0.060, 0.520), (0.0, 0.546)] - a cone that gains 26 mm of height over 60 mm of radius, which
+# is not a dome, it is a lid. Seen from the camera's 18 degrees above the horizon that lid turns
+# into a flat ellipse with a hard rim all the way round it, the sleeve reads as a TIN CAN stuck
+# on the side of the body, and since tunic and sleeve are usually the same material the only
+# thing separating them in the render is that rim. Every troop looked like his arms had been
+# pushed into sockets. The cap now takes 52 mm to close instead of 26 and starts rolling over at
+# 0.514, so the silhouette leaves the shoulder on a curve, and the top reaches 0.566 - past the
+# tunic's own 0.556 shoulder - so the two surfaces cross well inside the solid instead of
+# meeting at an edge.
+SLEEVE = [(0.056, 0.400), (0.062, 0.470), (0.062, 0.514), (0.046, 0.548), (0.0, 0.566)]
 
 
 def on_curve(profile, z: float) -> float:
@@ -60,18 +71,24 @@ def torso(mat='team', belt='leather', buckle='gold'):
         block((0.040, 0.014, 0.032), buckle, (0, -0.154, 0.315), bevel=0.004, name='buckle')
 
 
-def strap(mat='leather', n=49, top=(0.040, 0.536), bot=(-0.100, 0.314), w=0.026):
+def strap(mat='leather', n=49, top=(0.040, 0.536), bot=(-0.100, 0.314), w=0.026, back=False):
     """One strap over the chest, laid on the tunic's own curve: beads, not blocks, or the seams
     read as a saw blade. Default is the militia's fork strap, shoulder down to the far hip.
     `w` is the bead radius: a strap carrying the team colour has to survive the downscale, and
-    at 0.026 it came out under 2 CSS px on the board - a seam, not a sash."""
-    for i in range(n):
-        f = i / (n - 1)
-        bx = top[0] + (bot[0] - top[0]) * f
-        bz = top[1] + (bot[1] - top[1]) * f
-        r = on_curve(TUNIC, bz) + 0.002           # laid 2 mm proud of the cloth, not sunk in it
-        ball(w, mat, (bx, -(max(r * r - bx * bx, 1e-4) ** 0.5), bz),
-             scale=(1.0, 0.34, 0.78), name='strap')
+    at 0.026 it came out under 2 CSS px on the board - a seam, not a sash.
+    `back` carries the same run round the other side of the body, which is what a baldric
+    actually does: it is a loop, not a bib. It costs nothing from the front (the far beads sit
+    behind the tunic) and it is the difference between a sash and a blank back once the piece
+    walks away from the camera - D132 measured the militia's team colour halving, 13.2% of his
+    pixels to 6.2%, on this one piece being front-only."""
+    for sign in ((-1, 1) if back else (-1,)):
+        for i in range(n):
+            f = i / (n - 1)
+            bx = top[0] + (bot[0] - top[0]) * f
+            bz = top[1] + (bot[1] - top[1]) * f
+            r = on_curve(TUNIC, bz) + 0.002       # laid 2 mm proud of the cloth, not sunk in it
+            ball(w, mat, (bx, sign * (max(r * r - bx * bx, 1e-4) ** 0.5), bz),
+                 scale=(1.0, 0.34, 0.78), name='strap')
 
 
 def face(hair='hair', skin='skin', brow=True):
@@ -134,28 +151,59 @@ def arm(x, sleeve='team', out=0.0, hy=-0.016, hand=True, thumb=False, skin='skin
     `hz` RAISES the fist off the hanging height, for a weapon carried at the chest rather than at
     the waist. It is not just a different number for the hand: with the fist moved, the forearm has
     to be aimed at it, or the hand floats off the end of an arm that still points at the floor -
-    which is exactly what a crossbow held level at the waist looked like. So when hz is given the
-    forearm is built as one rod from the elbow TO the fist, however far and in whatever direction
-    that is. Everyone else keeps the original straight-down forearm untouched.
+    which is exactly what a crossbow held level at the waist looked like. So the forearm is always
+    built as one rod from the elbow TO the fist, however far and in whatever direction that is.
+
+    EVERY JOINT IS A BALL AND EVERY ROD STARTS INSIDE THE PART ABOVE IT. The hanging arm used to
+    be a 0.158 rod floating under the sleeve: its top sat at z 0.397 against a rim at 0.400, so
+    the two did not meet at all, and even where they grazed, a 0.042 rod leaving an 0.056 rim
+    leaves a 14 mm flat ledge with an ambient-occlusion ring around it. On the board that ring is
+    the darkest thing on the limb and it cuts the arm in half: what the render showed was a
+    sleeve, a dark line, and a forearm hanging in the air below it. The rod now starts at 0.430,
+    thirty millimetres up inside the sleeve, and an 0.052 ball sits at ELBOW to fill the ledge,
+    so the arm tapers out of the cloth instead of being cut off by it.
     """
     with group('armL' if x < 0 else 'armR'):
-        lathe([(0.056, 0.400), (0.060, 0.520), (0.0, 0.546)], sleeve, loc=(x, 0, 0), name='sleeve')
+        lathe(SLEEVE, sleeve, loc=(x, 0, 0), name='sleeve')
         fz = FIST if hz is None else hz
-        if hz is None:
-            tilt = math.radians(-26) if out else 0.0
-            rod(0.042, 0.158, skin, (x + out / 2, (hy - 0.014) / 2, 0.326),
-                rot=(0, tilt * (1 if x > 0 else -1), 0), name='forearm')
-        else:
-            def _rod(a, b, name):
-                d = tuple(b[k] - a[k] for k in range(3))
-                L = math.sqrt(sum(c * c for c in d)) or 1e-6
-                u = tuple(c / L for c in d)
-                rod(fr, L + 0.052, fore or skin, tuple(a[k] + d[k] / 2 for k in range(3)),
-                    rot=(math.asin(max(-1.0, min(1.0, -u[1]))), math.atan2(u[0], u[2]), 0),
-                    name=name, seg=14)
 
-            b = (x + out, hy, fz)
+        def _rod(a, b, name, r=None):
+            # NO SLACK ON EITHER END. Lengthening the rod was the wrong tool twice over: slack at
+            # the far end left a flat cap 26 mm PAST the fist, which on a 0.032 forearm against an
+            # 0.048 hand clears the ball and renders as the open mouth of a tube with a knuckle
+            # inside it; slack at the near end of a MID-CHAIN rod (the forearm below an elbow)
+            # pushes the cap 52 mm back past an elbow ball of only 0.035, so a stub of arm sticks
+            # out of the elbow pointing the wrong way - which is what put a bright skin-coloured
+            # disc beside the militia's elbow. Both ends of every rod in here now stop EXACTLY at
+            # a joint: a ball whose radius is bigger than the rod's (hand 0.048, elbow 0.035-0.052)
+            # or, at the shoulder, a point well inside the sleeve lathe. A cap at the centre of a
+            # bigger ball cannot be seen from any angle, and that is the whole trick - the arm is
+            # a chain of balls with rods buried between them, never rods butted end to end.
+            d = tuple(b[k] - a[k] for k in range(3))
+            L = math.sqrt(sum(c * c for c in d)) or 1e-6
+            u = tuple(c / L for c in d)
+            rod(r or fr, L, fore or skin, tuple(a[k] + d[k] / 2 for k in range(3)),
+                rot=(math.asin(max(-1.0, min(1.0, -u[1]))), math.atan2(u[0], u[2]), 0),
+                name=name, seg=14)
+
+        b = (x + out, hy, fz)
+        if hz is None:
+            a = (x, 0.0, 0.430)
+            _rod(a, b, 'forearm')
+            t = (a[2] - ELBOW) / max(a[2] - b[2], 1e-6)
+            ball(0.052, fore or skin, tuple(a[k] + (b[k] - a[k]) * t for k in range(3)),
+                 name='elbow')
+        else:
             if elb is None:
+                # A ROUNDED CUFF, for the same reason the jointed branch below has one. These
+                # are the arms that reach UP - the bowman's two hands on the stave - so the rod
+                # leaves the sleeve climbing, and the sleeve lathe's bottom is a flat open rim at
+                # z 0.400. Started at ELBOW the rod's cap sits 5 mm inside that rim, which is
+                # nothing once the rod is tilted: the cap's lower edge comes out through the
+                # cloth and the limb reads as snapped off at the hem. The ball is 2 mm proud of
+                # the rim, so the cuff is round instead of a cut pipe, and the rod's cap sits at
+                # its centre where nothing can see it.
+                ball(0.058, sleeve, (x, 0.0, 0.404), scale=(1.0, 1.0, 0.86), name='cuff')
                 _rod((x, 0.0, ELBOW), b, 'forearm')
             else:
                 # An arm that reaches ACROSS the body cannot be one straight rod from the
