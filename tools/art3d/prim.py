@@ -48,6 +48,13 @@ PAL = {
     'darkwood': '#4a3020', 'skin': '#e9b98b', 'green': '#2f8a7f', 'moss': '#49998e',
     'tan': '#c6a56e', 'stone': '#a99b85', 'grey': '#8a857d', 'yellow': '#f2c14e', 'pink': '#e89a8c',
     'opening': '#1b1410', 'slate': '#5d5a57',
+    # D122: the boulders' own stone, and NOT 'grey'/'slate', which the walls and engines keep.
+    # Measured against the reference (D:/new/ref IMG_3717, the rune boulder at 0,1380-130,1530)
+    # and its own ground: its stone sits at hue 202 / sat 0.627 / value 0.478 where the ground
+    # under it is 182 / 0.580 / 0.396 -- twenty degrees bluer than the grass, just as saturated,
+    # and LIGHTER than it. Ours was 'grey' (#8a857d), which comes out at sat 0.039: a neutral
+    # grey lump on a board whose grass is at 0.549, which is why the boulders read as pasted on.
+    'rock': '#6a9fa8', 'rockdark': '#4d757f',
     # the terrain props (props.py): a colder blue-white for ice, and a second,
     # darker green so a tree's crown has two values and does not read as one blob
     'ice': '#9fd8e8', 'frost': '#dff2f7', 'deepgreen': '#2a6864',

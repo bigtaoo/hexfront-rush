@@ -125,15 +125,16 @@ def model_rocks():
     """A boulder with splinters round its foot."""
     # a box with a flat top is a crate however it is tilted, so the main mass is turned on the
     # lathe with five sides: an uneven faceted lump whose top comes to no flat face at all
-    lathe([(0.30, 0), (0.38, 0.09), (0.34, 0.25), (0.20, 0.40), (0.0, 0.48)], 'grey',
+    lathe([(0.30, 0), (0.38, 0.09), (0.34, 0.25), (0.20, 0.40), (0.0, 0.48)], 'rock',
           loc=(-0.06, 0.04, 0.0), seg=5, name='boulder', scale=(1.22, 0.96, 1))
-    lathe([(0.20, 0), (0.25, 0.06), (0.20, 0.17), (0.0, 0.27)], 'slate',
+    lathe([(0.20, 0), (0.25, 0.06), (0.20, 0.17), (0.0, 0.27)], 'rockdark',
           loc=(0.26, -0.12, 0.0), seg=5, name='boulder2', scale=(1.0, 1.15, 1))
     for (x, y, z, w, d, h, rx, ry, rz) in (
             (0.34, -0.30, 0.06, 0.21, 0.18, 0.11, 0.18, -0.22, 0.70, ),
             (-0.36, -0.14, 0.06, 0.24, 0.20, 0.12, -0.16, 0.26, -0.85),
             (-0.22, 0.26, 0.09, 0.19, 0.16, 0.17, 0.12, 0.30, 0.35)):
-        block((w, d, h), 'slate', (x, y, z), rot=(rx, ry, rz), bevel=0.02, name='shard')
+        block((w, d, h), 'rockdark', (x, y, z), rot=(rx, ry, rz), bevel=0.02,
+              name='shard')
     # no moss on this one: a green patch on a curved face reads as a cut hole at map size, and
     # the grey lump over the slate splinters already carries the two values the prop needs
     return 0.8

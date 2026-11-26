@@ -122,6 +122,15 @@ GROVE_BAND = (0.263, 0.345, 0.392, 0.424)
 # an oak against the reference's 60.0%, and plates are as wrong as balloons -- it is painted in
 # tiers AND shaded within them. 0.55 lands oak at 55.0% and pine at 63.6%, averaging its 60.0%.
 GROVE_BAND_K = 0.55
+# D122: AND A STONE IS NOT A CROWN. rocks rode the grove's ceiling and the grove's tiers because it
+# is shaded like one, but the reference does not paint it like one: its boulder's value piles up at
+# 0.45-0.53 (peak 0.478, p75 0.514) over a dark side at 0.23-0.34, where its CROWNS live at
+# 0.263-0.424. That is the whole point of a rock on a meadow board -- the reference's sits 0.082
+# ABOVE its own ground, a lit mass, and a tree sits below it. On GROVE_CAP's 0.40 ceiling ours
+# topped out at 0.424 against a ground at 0.443, so the boulder read as a hole in the grass rather
+# than a thing standing on it. Its own ceiling and its own two tiers, taken off that histogram.
+ROCK_CAP = {'t': 0.48, 'c': 0.25, 'mul': 0.52}
+ROCK_BAND = (0.270, 0.345, 0.420, 0.490)
 # D118: AND THE GLOSS OFF ITS LOBES. GROVE_CAP capped the speculars' VALUE; their whiteness stayed.
 # The reference's canopy holds saturation in a narrow band -- p10/median/p90 0.760/0.822/0.884,
 # 0.38% of it under 0.7 of the median -- where ours ran 0.648/0.861/0.990 (oak) and 0.567/0.826/
@@ -263,7 +272,11 @@ def tone(im: Image.Image, geo, cap=None) -> Image.Image:
     a = np.asarray(im).astype(np.float64)
     rgb = a[..., :3] / 255
     v = rgb.max(-1)
-    down = np.where(v > TONE['floor'], TONE['floor'] + (v - TONE['floor']) * TONE['mul'], v)
+    # 'mul' off the cap dict when a piece sets one: D93 sends scenery BELOW the board because a
+    # tree is a dark mass on grass, and the reference's stone is not -- it sits above its own
+    # ground (D122). Everything without one keeps TONE's own slope exactly.
+    mul = TONE['mul'] if cap is None else cap.get('mul', TONE['mul'])
+    down = np.where(v > TONE['floor'], TONE['floor'] + (v - TONE['floor']) * mul, v)
     out = rgb * (down / np.maximum(v, 1e-6))[..., None]
     if geo is not None:
         nrm, _dep, cov = geo

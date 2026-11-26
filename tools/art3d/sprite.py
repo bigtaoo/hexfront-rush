@@ -37,7 +37,7 @@ from PIL import Image, ImageFilter
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shade import (GROVE_BAND, GROVE_CAP, GROVE_SAT, INK, LINE,  # noqa: E402  the colour passes
-                   band, cool, flat, inner_lines, read_pass, split, tone)
+                   ROCK_BAND, ROCK_CAP, band, cool, flat, inner_lines, read_pass, split, tone)
 
 # texture px per CSS px: 3 since 2026-11-15 (a 3x phone draws a sprite 1:1; at 2 it was stretched
 # 1.2-1.6x on phones and desktops and looked soft). The outline grows with it (OUTLINE_PX).
@@ -88,6 +88,7 @@ DECOR = {'tuft', 'flowers', 'pebbles', 'stones', 'drybush', 'twigs', 'drift'}
 # rocks 120 against 134, pine 180 against 169 -- which moves them a few percent either way and
 # leaves CROWN_K (obstacleView.ts, the thing that actually sets a crown's size) untouched. D106.
 GROVE = {'oak', 'pine', 'rocks'}
+STONE = {'rocks'}          # grove shading, but the reference's own stone ceiling (D122)
 GROVE_PX = 1
 GROVE_INK = (31, 66, 62)
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'art'))
@@ -277,8 +278,10 @@ def main():
         ims = make(paths, TARGET[name] * TEX_K,
                    GROVE_PX if grove else max(1, round(px / 2)) if lit else px,
                    None if lit or grove else want, geos, deepen and name in SCENERY,
-                   GROVE_INK if grove else None, GROVE_CAP if grove else None,
-                   GROVE_BAND if grove else None, name in GROVE_SAT)
+                   GROVE_INK if grove else None,
+                   (ROCK_CAP if name in STONE else GROVE_CAP) if grove else None,
+                   (ROCK_BAND if name in STONE else GROVE_BAND) if grove else None,
+                   name in GROVE_SAT)
         for f, im in zip(paths, ims):
             im.save(out / f.name)
         print(base, len(ims), ims[0].size, 'area', area(ims[0]), 'old', want)
