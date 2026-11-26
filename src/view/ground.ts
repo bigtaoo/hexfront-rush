@@ -20,7 +20,7 @@ import { SKINS, skinFor, type MapSkin } from './skins';
 
 /** Hexes from a castle: the home country, then the open field; past that is the contested middle. */
 const HOME_BAND = 4, FIELD_BAND = 8;
-import type { Pt } from './viewConst';
+import { SQUASH, type Pt } from './viewConst';
 
 /** The backdrop around the map, for the renderer's clear colour. */
 export const groundBg = (theme: ThemeKey, seed: number): string => skinFor(theme, seed).bg;
@@ -405,7 +405,7 @@ export class GroundLayer {
       for (let k = 0; k < 6; k++) {
         // pointy-top hex (corners at 60k - 30 degrees): edge k faces 60k degrees
         const ang = (60 * k * Math.PI) / 180;
-        const mx = v.x + Math.cos(ang) * 0.866, my = v.y + Math.sin(ang) * 0.866;
+        const mx = v.x + Math.cos(ang) * 0.866, my = v.y + Math.sin(ang) * 0.866 * SQUASH;
         const j = t.nb.find((n) => {
           const w = cam.tv[n]!;
           return Math.abs(w.x - (2 * mx - v.x)) < 0.05 && Math.abs(w.y - (2 * my - v.y)) < 0.05;
@@ -413,8 +413,8 @@ export class GroundLayer {
         const a0 = ang - Math.PI / 6, a1 = ang + Math.PI / 6;
         out.push({
           j,
-          a: { x: v.x + Math.cos(a0) * LINE_IN, y: v.y + Math.sin(a0) * LINE_IN },
-          b: { x: v.x + Math.cos(a1) * LINE_IN, y: v.y + Math.sin(a1) * LINE_IN },
+          a: { x: v.x + Math.cos(a0) * LINE_IN, y: v.y + Math.sin(a0) * LINE_IN * SQUASH },
+          b: { x: v.x + Math.cos(a1) * LINE_IN, y: v.y + Math.sin(a1) * LINE_IN * SQUASH },
         });
       }
       return out;

@@ -11,7 +11,7 @@ import { NTILES } from '../sim/hex';
 import { PHASE_PLAY, TEAM_BLUE, TEAM_RED } from '../sim/rules';
 import { Camera } from './camera';
 import { LOOK_B, LOOKB_VIEW } from './lookB';
-import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, SQRT3, VIEW_FLIP_Y, VIEW_HEXES, VIEW_ROWS } from './viewConst';
+import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, SQRT3, SQUASH, VIEW_FLIP_Y, VIEW_HEXES, VIEW_ROWS } from './viewConst';
 
 const MAP_W = MAP_X1 - MAP_X0, MAP_H = MAP_Y1 - MAP_Y0;
 const VIEW = LOOK_B ? LOOKB_VIEW : { hexes: VIEW_HEXES, rows: VIEW_ROWS };
@@ -114,9 +114,13 @@ describe('screen and world', () => {
     red.setView(eng, TEAM_RED);
     expect(blue.flip).toBe(false);
     expect(red.flip).toBe(true);
-    expect(blue.tv[1]).toEqual({ x: 1.5, y: 3 });
-    expect(red.tv[1]).toEqual({ x: 1.5, y: VIEW_FLIP_Y - 3 });
-    expect(red.vy(red.vy(3))).toBe(3);
+    // the board is foreshortened, so a world y arrives in view units SQUASH times shorter -- and
+    // that is why vy is no longer its own inverse on the red side: wy undoes both the flip and
+    // the squash (screenToWorld is the only caller that needs it).
+    expect(blue.tv[1]).toEqual({ x: 1.5, y: 3 * SQUASH });
+    expect(red.tv[1]).toEqual({ x: 1.5, y: (VIEW_FLIP_Y - 3) * SQUASH });
+    expect(red.wy(red.vy(3))).toBeCloseTo(3, 10);
+    expect(blue.wy(blue.vy(3))).toBeCloseTo(3, 10);
     // forward is up for both sides: the far row is above the near one on screen
     const near = blue.tv[0]!, far = blue.tv[1]!;
     expect(far.y).toBeGreaterThan(near.y);

@@ -17,7 +17,7 @@ import type { Camera } from './camera';
 import type { Frame } from './frame';
 import { type Live, liveGraphics, Pen, sharedCtx } from './pen';
 import { LOOK_B } from './lookB';
-import { COL, RARITY_COLOR } from './viewConst';
+import { COL, RARITY_COLOR, SQUASH } from './viewConst';
 
 /** Part way from one hex colour to another, for a ring that warms as its work finishes. */
 function mix(a: string, b: string, k: number): string {
@@ -55,11 +55,23 @@ export function badgeSpot(type: string): { x: number; y: number } {
  *  and inverted the models' own hierarchy: the castle is modelled widest but carries a flag, so
  *  fitting it by total height shrank it below a one-room hut. lookB instead draws the whole cast
  *  at one scale (BLD_K) and only clips the outliers, with the castle allowed its own, larger box.
- *  BLD_H 1.45 is geometry, not taste: a picture of height H tops out at TILE_FOOT - H, and the
- *  card on the up-diagonal neighbour reaches down to -1.5 + 0.47 = -1.03, so anything taller
- *  than 1.45 climbs into the card one row up. See buildingView.test.ts. */
-const BLD_K = LOOK_B ? 0.76 : 1;
-const BLD_W = LOOK_B ? 1.3 : 1.35, BLD_H = LOOK_B ? 1.45 : 1.7;
+ *  BLD_H is geometry, not taste: a picture of height H tops out at TILE_FOOT - H, and the card on
+ *  the up-diagonal neighbour reaches down to -ROW + CARD_BOX.bottom, so anything taller climbs
+ *  into the card one row up. See buildingView.test.ts.
+ *
+ *  AND THE WHOLE CAST TAKES THE BOARD'S FORESHORTENING (viewConst SQUASH, D126). The rows moved
+ *  13% closer together; a picture that kept its height would be 15% bigger relative to the cell it
+ *  stands in than the one that was already called too big, and it would reach into the card above.
+ *  Scaling the cast by the same number keeps every picture exactly the size it was ON ITS TILE --
+ *  the hierarchy inside the cast and the clearance over the card both come out where they were.
+ *  It is a uniform scale, so it narrows them by the same 13% on a cell that is still 1.73 wide --
+ *  the honest cost of this, and the cheaper one: clipping the height alone would leave the four
+ *  tall pictures shorter and the three short ones untouched, which is the cast hierarchy BLD_K
+ *  exists to protect. Troops and tree crowns keep their own size on purpose (lookB
+ *  LOOKB_UNIT_K, obstacleView CROWN_K): a troop is the thing that has to stay readable at a
+ *  phone's zoom, and a crown shrunk here would give back the canopy the squash just bought. */
+const BLD_K = (LOOK_B ? 0.76 : 1) * SQUASH;
+const BLD_W = LOOK_B ? 1.3 : 1.35, BLD_H = (LOOK_B ? 1.45 : 1.7) * SQUASH;
 /** The castle's own box: it is the one landmark per side and may stand a head above the rest.
  *  It is the one picture that breaks the rule above, and it has to: at this model's proportions
  *  nothing under 1.87 tall still comes out the widest building on its side, so a castle that
@@ -67,7 +79,7 @@ const BLD_W = LOOK_B ? 1.3 : 1.35, BLD_H = LOOK_B ? 1.45 : 1.7;
  *  is the card's face: its top stops 0.11 short of the glyph row one row up, and the price is
  *  drawn in offers.tags, over the buildings (renderer.ts), so only the card's bottom corner
  *  goes behind the wall. buildingView.test.ts holds both of those. */
-const BASE_W = LOOK_B ? 1.38 : 1.35, BASE_H = LOOK_B ? 1.95 : 1.7;
+const BASE_W = LOOK_B ? 1.38 : 1.35, BASE_H = (LOOK_B ? 1.95 : 1.7) * SQUASH;
 
 /** The boxes bldScale clips to, for the geometry tests: the rules live on these constants, not on
  *  whatever the current render of the cast happens to measure. */
@@ -133,13 +145,14 @@ export class WallLayer {
       for (let k = 0; k < 6; k++) {
         // pointy-top hex: side k faces 60k degrees, between the corners at 60k -/+ 30
         const ang = (60 * k * Math.PI) / 180;
-        const mx = v.x + Math.cos(ang) * 1.732, my = v.y + Math.sin(ang) * 1.732;
+        const mx = v.x + Math.cos(ang) * 1.732, my = v.y + Math.sin(ang) * 1.732 * SQUASH;
         const j = t.nb.find((nb) => {
           const w = cam.tv[nb]!;
           return Math.abs(w.x - mx) < 0.1 && Math.abs(w.y - my) < 0.1;
         }) ?? -1;
         const a0 = ang - Math.PI / 6, a1 = ang + Math.PI / 6;
-        out.push({ j, ax: v.x + Math.cos(a0) * R, ay: v.y + Math.sin(a0) * R, bx: v.x + Math.cos(a1) * R, by: v.y + Math.sin(a1) * R });
+        out.push({ j, ax: v.x + Math.cos(a0) * R, ay: v.y + Math.sin(a0) * R * SQUASH,
+                   bx: v.x + Math.cos(a1) * R, by: v.y + Math.sin(a1) * R * SQUASH });
       }
       return out;
     });

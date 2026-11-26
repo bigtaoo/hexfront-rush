@@ -4,6 +4,7 @@ import atlasJson from '../assets/atlas.json';
 import { PPU, TILE_FOOT } from './art';
 import { BADGE_R, badgeSpot, bldScale, BLD_BOX } from './buildingView';
 import { CARD_BOX } from './offers';
+import { SQUASH } from './viewConst';
 
 // A building's badge -- the disc that shows what it makes, with the ring that fills toward the
 // next coin or troop -- sits at the building's feet. On a barracks or a mine that is empty ground.
@@ -21,7 +22,7 @@ const GATE_HALF = 0.2;
 /** How far apart two rows of hexes are, and the lane of bare ground to leave between two
  *  buildings. Where the card on a tile one row up reaches to comes from offers.ts itself
  *  (CARD_BOX), so these tests cannot drift from the card they are measuring against. */
-const ROW = 1.5, LANE = 0.35;
+const ROW = 1.5 * SQUASH, LANE = 0.35;
 /** A frame's size in view units as the renderer sees it. artW/artH read Texture.width, which Pixi
  *  takes from `orig` -- the untrimmed canvas it restores from sourceSize -- while frame.w/h is the
  *  opaque box pack.py cropped to. 301 of the 315 frames are trimmed, so reading frame.w here would

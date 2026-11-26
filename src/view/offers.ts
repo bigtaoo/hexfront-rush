@@ -16,6 +16,7 @@ import { Num } from './digits';
 import { inView, type Frame } from './frame';
 import { LOOK_B } from './lookB';
 import { sharedCtx, type Pen } from './pen';
+import { SQUASH } from './viewConst';
 
 /** How long a new card takes to turn face-up (s). */
 const REVEAL = 0.35;
@@ -27,7 +28,11 @@ const REVEAL = 0.35;
  *  them around a castle is what the player sees as a wall of stickers. The reference's own board
  *  carries the same number of offers and reads quietly because each one is a small mark on a tile
  *  that still shows as a tile. 0.82 puts our symbol at 0.235 of a hex. */
-const GLYPH_K = LOOK_B ? 0.82 : 1.3, GLYPH_Y = LOOK_B ? -0.11 : -0.22, PRICE_Y = LOOK_B ? 0.26 : 0.46;
+/** The two rows are places ON THE TILE, so they are foreshortened with the board (viewConst
+ *  SQUASH) while the ink on them -- the symbol, the digits, the coin -- is not: a stamp lying on a
+ *  cell 13% shorter has its rows 13% closer together and the same size lettering on them. */
+const GLYPH_K = LOOK_B ? 0.82 : 1.3;
+const GLYPH_Y = (LOOK_B ? -0.11 : -0.22) * SQUASH, PRICE_Y = (LOOK_B ? 0.26 : 0.46) * SQUASH;
 /** The price's height (view units), a picture number (digits.ts). Also measured: the reference's
  *  price digits are 23-24 px tall on its 180 px hex, 0.131 of a hex width, where ours were 0.173.
  *  0.23 view units is 0.133 of a hex. */

@@ -9,7 +9,7 @@ import { FP, ticks } from '../sim/fixed';
 import { baseTile } from '../sim/map';
 import { enemyOf, INTRO_TICKS, PHASE_INTRO, TEAM_BLUE, TEAM_RED } from '../sim/rules';
 import { LOOK_B, LOOKB_VIEW } from './lookB';
-import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, SQRT3, VIEW_FLIP_Y, VIEW_HEXES, VIEW_ROWS, type Pt } from './viewConst';
+import { MAP_X0, MAP_X1, MAP_Y0, MAP_Y1, SQRT3, SQUASH, VIEW_FLIP_Y, VIEW_HEXES, VIEW_ROWS, type Pt } from './viewConst';
 
 /** The menu's match: between play zoom (0) and the whole map (1); lookB's toys want a closer look. */
 const DEMO_ZOOM = LOOK_B ? 0.45 : 1;
@@ -96,6 +96,12 @@ export class Camera {
   }
 
   vy(y: number): number {
+    return (this.flip ? VIEW_FLIP_Y - y : y) * SQUASH;
+  }
+  /** View units -> world units: vy's inverse (the board is foreshortened, so it is not vy itself
+   *  any more -- screenToWorld used to be able to reuse vy because the flip is an involution). */
+  wy(v: number): number {
+    const y = v / SQUASH;
     return this.flip ? VIEW_FLIP_Y - y : y;
   }
   /** World fixed point -> view units. */
@@ -123,7 +129,7 @@ export class Camera {
     const availW = Math.max(1, W - 12);
     const fit = Math.min(availW / (MAP_X1 - MAP_X0), availH / (MAP_Y1 - MAP_Y0));
     const vh = LOOK_B ? LOOKB_VIEW.hexes : VIEW_HEXES, vr = LOOK_B ? LOOKB_VIEW.rows : VIEW_ROWS;
-    const zoom = Math.min(availW / (SQRT3 * vh), availH / (1.5 * vr + 1.5));
+    const zoom = Math.min(availW / (SQRT3 * vh), availH / ((1.5 * vr + 1.5) * SQUASH));
     this.fitScale = fit;
     this.playScale = Math.max(fit, zoom);
     this.availH = availH;
@@ -168,7 +174,8 @@ export class Camera {
     this.oy = this.bandCY - y * this.scale;
   }
   /** The enemy castle for the first beat of the intro, then a little ahead of the own castle
-   *  (forward is always up), then wherever the player dragged it or zoomed back in on (a tap in
+   *  (forward is always up; the lead is a distance UP THE BOARD, so it carries the board's own
+   *  foreshortening -- 1.6 raw would be 1.23 rows of lead where it used to be 1.07), then wherever the player dragged it or zoomed back in on (a tap in
    *  the overview). */
   private goal(eng: Engine): Pt {
     const me = this.local;
@@ -185,9 +192,9 @@ export class Camera {
           sy += v.y;
           n++;
         }
-        return { x: sx / n, y: sy / n - 1.6 };
+        return { x: sx / n, y: sy / n - 1.6 * SQUASH };
       }
-      return { x: b.x, y: b.y - 2.2 };
+      return { x: b.x, y: b.y - 2.2 * SQUASH };
     }
     return this.camGoal;
   }
@@ -237,7 +244,7 @@ export class Camera {
   /** Screen pixel -> world fixed point (what the sim and worldToHex take). */
   screenToWorld(sx: number, sy: number): Pt {
     const vx = (sx - this.ox) / this.scale, vyy = (sy - this.oy) / this.scale;
-    return { x: Math.round(vx * FP), y: Math.round(this.vy(vyy) * FP) };
+    return { x: Math.round(vx * FP), y: Math.round(this.wy(vyy) * FP) };
   }
   /** View point -> screen pixel. */
   worldToScreen(x: number, y: number): Pt {

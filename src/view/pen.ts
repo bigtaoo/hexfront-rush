@@ -4,7 +4,7 @@
 // alpha of everything drawn after it is set (the canvas's globalAlpha).
 
 import { Graphics, GraphicsContext, Text, type TextStyleOptions } from 'pixi.js';
-import { fontStack, fontW } from './viewConst';
+import { fontStack, fontW, SQUASH } from './viewConst';
 
 export type LineCap = 'butt' | 'round' | 'square';
 
@@ -117,7 +117,7 @@ for (let k = 0; k < 6; k++) {
 }
 export function hexPts(x: number, y: number, r: number): number[] {
   const pts: number[] = [];
-  for (let k = 0; k < 6; k++) pts.push(x + HEX_COS[k]! * r, y + HEX_SIN[k]! * r);
+  for (let k = 0; k < 6; k++) pts.push(x + HEX_COS[k]! * r, y + HEX_SIN[k]! * r * SQUASH);
   return pts;
 }
 

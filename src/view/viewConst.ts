@@ -70,10 +70,35 @@ export const SQRT3 = Math.sqrt(3);
 /** view y = this - world y, for the red side */
 export const VIEW_FLIP_Y = (hexY(0) + hexY(ROWS - 1)) / FP;
 // map bounds in view units (the same for both sides: the flip maps the grid onto itself)
+/** The board's vertical foreshortening: a view-unit step across the ground is drawn this much
+ *  shorter in y than the same step across it in x.
+ *
+ *  MEASURED, NOT CHOSEN (D126). The reference (D:/new/ref) packs its rows at 0.753 of one hex
+ *  WIDTH; ours packed them at 0.866, which is simply what an unforeshortened pointy-top grid does.
+ *  That one number is why our cells read tall and narrow where its read wide and squat, and it is
+ *  also why our woods never closed: its crowns overlap the two rows ABOVE them, ours could only
+ *  reach their diagonal neighbours. The reference gets its ratio from a FLAT-TOP grid squashed to
+ *  0.87 of its height (obstacleView.ts carries that measurement). The ORIENTATION we cannot copy
+ *  -- pointy-top odd-r is baked into the sim's world coordinates (sim/hex.ts hexX / hexY /
+ *  nearest), so flipping it would change pathing, ranges and how far apart two troops stand -- but
+ *  the squash we can, and 0.753 / 0.866 = 0.87 says it is the very same number. After it our rows
+ *  sit 43.95 logical px apart against the reference's 45.2, and pitch over width is 0.754 against
+ *  its 0.753. What still differs is the CELL's own aspect, and that is the orientation: ours is
+ *  58.3 x 58.6 logical where the reference's is 60 x 45.2.
+ *
+ *  WHAT TAKES IT AND WHAT DOES NOT. It is a camera tilt, so everything measured ALONG THE GROUND
+ *  is drawn shorter: tile centres (camera.vy, with wy its inverse), every hex outline anywhere in
+ *  the game (pen.hexPts), the map's own bounds below, a prop's set-back from its tile centre
+ *  (decor.ts, obstacleView.ts), where a picture stands its foot (art.ts TILE_FOOT), the two rows
+ *  of an offer stamp (offers.ts) and the camera's lead up the board. HEIGHTS are not: no sprite is
+ *  ever scaled by it, so figures stay upright and the same shape, which is what the reference does
+ *  too. The one place it acts as a scale is the building cast (buildingView.ts BLD_K), to hold a
+ *  building's size relative to its own cell steady rather than let it grow 15% against it. */
+export const SQUASH = 0.87;
 export const MAP_X0 = -0.15;
 export const MAP_X1 = SQRT3 * (COLS + 0.5) + 0.15;
-export const MAP_Y0 = -0.35;
-export const MAP_Y1 = 1.5 * (ROWS - 1) + 2.4;
+export const MAP_Y0 = -0.35 * SQUASH;
+export const MAP_Y1 = (1.5 * (ROWS - 1) + 2.4) * SQUASH;
 /** How much of the map a play view shows at most: about this many hexes across, rows down. */
 export const VIEW_HEXES = 8.5;
 export const VIEW_ROWS = 13;

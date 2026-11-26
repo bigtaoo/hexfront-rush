@@ -12,12 +12,17 @@ import atlasUrl from '../assets/atlas.webp?url';
 import type { Obstacle } from '../sim/map';
 import { TEAM_BLUE, type BuildingType, type UnitKey } from '../sim/rules';
 import { CAST, CAST_PROP, ONLY3 } from './lookB';
+import { SQUASH } from './viewConst';
 
 /** Texture pixels per view unit: tools/art3d/sprite.py draws at TEX_K = 3 over a 38 px hex radius. At
  *  2 (76) a sprite was stretched 1.2x on a 3x phone and 1.6x on a 1080p desktop, and looked soft. */
 export const PPU = 114;
-/** Where a building, prop or map event stands its foot, below its tile's centre (view units). */
-export const TILE_FOOT = 0.42;
+/** Where a building, prop or map event stands its foot, below its tile's centre (view units).
+ *  A step across the ground, so it is foreshortened with the rest of the board (viewConst SQUASH):
+ *  0.42 of a hex radius forward is 0.42 of a hex radius forward whatever the camera's angle, and
+ *  left unsquashed in a cell 13% shorter it would walk every picture's foot out toward the cell's
+ *  front edge. */
+export const TILE_FOOT = 0.42 * SQUASH;
 
 let frames: Record<string, Texture> | null = null;
 

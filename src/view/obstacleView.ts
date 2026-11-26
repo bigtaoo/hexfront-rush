@@ -15,9 +15,11 @@
 // halves, and it is wrong because it compared two boards whose hexes are not the same shape. The
 // reference's grid is FLAT-TOP (a 5 px horizontal top edge 100 px long, column pitch 271 px for
 // two columns, so a hex radius of 90) and squashed to 0.87 of its height, giving a hex 181 x 136
-// device px -- a WIDE squat cell. Ours is pointy-top and unsquashed, 113 x 131 px at the same
-// zoom -- a TALL narrow one. The one length the two boards share is the hex's height, so that is
-// what a crown has to be measured against:
+// device px -- a WIDE squat cell. Ours was pointy-top and unsquashed, 113 x 131 px at the same
+// zoom -- a TALL narrow one. (D126 took the SQUASH, which is the same 0.87: our rows now sit 0.754
+// of a hex width apart against its 0.753. The orientation stays ours, so the cell is still the
+// taller of the two -- see viewConst.ts SQUASH.) The one length the two boards share is the hex's
+// height, so that is what a crown has to be measured against:
 //   reference  one crown 135 x 140 px = 0.99 x 1.03 of a hex height; masses of 260 x 285 px
 //   ours       one crown  73 x  68 px = 0.56 x 0.52 of a hex height; nothing touching anything
 // Ours were half the size, which is why no clump of them ever closed: our diagonal neighbours sit
@@ -39,6 +41,7 @@ import type { Tile } from '../sim/map';
 import { artSprite, castSprite, obstacleTex, TILE_FOOT } from './art';
 import { shadowCtx } from './bodies';
 import { LOOK_B } from './lookB';
+import { SQUASH } from './viewConst';
 
 /** Obstacle kinds that grow in company. Stone does not. */
 const GROVE = new Set(['tree', 'pine']);
@@ -74,14 +77,18 @@ const CROWN_K = 1.45;
  *  AND IT DOES NOT MAKE THE WOOD ONE MASS. That is what the extra tenth was tried for and the
  *  screenshots say it is not what happened: with CROWN_K the main crown is wider than a tile, so a
  *  companion 0.6 of a radius out (39 px) still stands behind it and all the tenth reveals is a
- *  sliver. Nor can it be fixed by going further without standing the foot on the grid line. The
- *  board's own geometry is why: the reference packs its rows 68 device px apart against a 140 px
- *  crown, so every crown there overlaps the two ABOVE it as well as the two beside it; our diagonal
- *  neighbours sit 98 px apart, which one crown now spans (128 px, see CROWN_K) but our rows do not
- *  stack the way its do. To get its canopy the board would have to be squashed flat-top like the
- *  reference's. So this tier gets what it can honestly get, and our woods still read as a clump of
- *  crowns where the reference's read as one canopy -- a thinner gap than the "can only ever graze"
- *  this note used to claim, but the same kind. */
+ *  sliver. Nor can it be fixed by going further without standing the foot on the grid line.
+ *
+ *  WHAT DID FIX IT WAS THE BOARD, NOT THE TREES (D126). This note read "to get its canopy the
+ *  board would have to be squashed flat-top like the reference's", and half of that turned out to
+ *  be doable: the squash is a view transform, the flat-top is not. The reference packs its rows 68
+ *  device px apart against a 140 px crown, so every crown there overlaps the two ABOVE it as well
+ *  as the two beside it. Ours sat 98 px apart against a 128 px crown -- an overlap on the diagonal
+ *  and nothing at all up the board. With viewConst's SQUASH that gap is 85 px, so a crown reaches
+ *  1.5 times across it and a clump closes into a mass. It is still the thinner canopy: the
+ *  reference's ratio is 2.1, and the rest of the difference is the cell's own shape, which is the
+ *  one thing here the sim owns. The companions' set-backs are foreshortened with everything else
+ *  (piece() below), so the grove keeps the depth it was built with. */
 const PAIR: readonly (readonly [number, number, number])[] = [
   [-0.60, -0.17, 0.82], [0.57, -0.21, 0.78], [-0.52, -0.30, 0.72], [0.50, -0.27, 0.86],
 ];
@@ -133,7 +140,8 @@ function piece(g: Container, kind: string, deco: number, theme: ThemeKey,
   // scenery throws only the bottom of its picture: sixty crowns flattened onto the grass were an
   // eighth of the board in haze (lookB.ts CAST_PROP, DECISIONS.md D123)
   if (LOOK_B) part.addChildAt(castSprite(tx, TILE_FOOT, true), 0);
-  part.position.set(dx, dy);
+  // dy is a step BACK ACROSS THE GROUND, so it is foreshortened with the board (viewConst SQUASH)
+  part.position.set(dx, dy * SQUASH);
   part.scale.set(k);
   part.alpha = alpha;
   g.addChild(part);

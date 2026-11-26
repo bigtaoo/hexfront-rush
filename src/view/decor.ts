@@ -48,6 +48,7 @@ import type { Tile } from '../sim/map';
 import { artSprite, artW, decorTex } from './art';
 import type { Camera } from './camera';
 import { LOOK_B } from './lookB';
+import { SQUASH } from './viewConst';
 
 /** How many of the tiles that can take a decoration get one. 0.22 of 281 open tiles is about 60
  *  pieces: roughly one in five hexes, and bare patches four and five tiles across in between --
@@ -147,7 +148,7 @@ export class DecorLayer {
     const s = artSprite(tx, 0, flip ? -1 : 1);
     s.scale.set(s.scale.x * k2, s.scale.y * k2);
     // y is squashed with the board's own foreshortening, so a ring of offsets stays a ring
-    s.position.set(v.x + Math.cos(a) * d, v.y + Math.sin(a) * d * 0.72);
+    s.position.set(v.x + Math.cos(a) * d, v.y + Math.sin(a) * d * SQUASH);
     if (LOOK_B) s.alpha = ALPHA;
     this.root.addChild(s);
     return s;
