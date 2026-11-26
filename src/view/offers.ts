@@ -67,6 +67,8 @@ export function priceLook(gold: number, cost: number): { tint: string; afford: b
 const FACE = LOOK_B ? '#f7ecd6' : '#fffaf0', INK = LOOK_B ? '#5a442e' : '#2b2118';
 /** Ink rim width around a filled shape, and the extra width under a stroked one. */
 const RIM = 0.07, RIM2 = 0.12;
+/** The stamp's own hairline: at a phone's zoom RIM round every limb ate the cream (D124). */
+const GLYPH_RIM = 0.05;
 
 /** A stroked path with an ink rim: drawn twice, wide in ink, then narrower in cream. */
 function inked(p: Pen, w: number, path: () => void): void {
@@ -77,57 +79,68 @@ function inked(p: Pen, w: number, path: () => void): void {
 }
 
 function barracksGlyph(p: Pen, tier: number): void {
-  // a soldier's helmet: a crest, a round dome with cheek guards, a T-shaped visor
-  p.rrect(-0.055, -0.42, 0.11, 0.2, 0.05, FACE, INK, RIM);
+  // a HORNED helmet, and above all ONE SOLID CREAM MASS: in the reference the dark is a hairline
+  // round the outside and two short lines inside it, never a frame round every limb. Our old mark
+  // was a bare dome, 0.228 of a cell pitch across against the reference's 0.420, with a 2 px crest
+  // post on top that at a phone's zoom could only read as height (DECISIONS.md D124).
   p.g.beginPath();
-  p.g.moveTo(-0.25, 0.14);
-  p.g.lineTo(-0.25, -0.06);
-  p.g.arc(0, -0.06, 0.25, Math.PI, Math.PI * 2);
-  p.g.lineTo(0.25, 0.14);
-  p.g.lineTo(0.08, 0.14);
-  p.g.lineTo(0.08, 0.02);
-  p.g.lineTo(-0.08, 0.02);
-  p.g.lineTo(-0.08, 0.14);
+  p.g.moveTo(-0.25, 0.15);
+  p.g.quadraticCurveTo(-0.385, 0.01, -0.385, -0.15);
+  p.g.quadraticCurveTo(-0.385, -0.31, -0.255, -0.36);
+  p.g.quadraticCurveTo(-0.26, -0.2, -0.185, -0.14);
+  p.g.quadraticCurveTo(-0.185, -0.29, 0, -0.29);
+  p.g.quadraticCurveTo(0.185, -0.29, 0.185, -0.14);
+  p.g.quadraticCurveTo(0.26, -0.2, 0.255, -0.36);
+  p.g.quadraticCurveTo(0.385, -0.31, 0.385, -0.15);
+  p.g.quadraticCurveTo(0.385, 0.01, 0.25, 0.15);
+  p.g.lineTo(0.12, 0.15);
+  p.g.quadraticCurveTo(0.09, 0.0, 0, 0.02);
+  p.g.quadraticCurveTo(-0.09, 0.0, -0.12, 0.15);
   p.g.closePath();
-  p.fill(FACE).stroke(INK, RIM);
-  p.rect(-0.18, -0.07, 0.36, 0.07, INK);
-  p.rect(-0.04, -0.07, 0.08, 0.12, INK);
+  p.fill(FACE).stroke(INK, GLYPH_RIM);
+  // the two short lines that make it read as horns over a dome, not as one lump
+  p.g.beginPath();
+  p.g.moveTo(-0.185, -0.14);
+  p.g.quadraticCurveTo(-0.16, -0.05, -0.15, 0.04);
+  p.g.moveTo(0.185, -0.14);
+  p.g.quadraticCurveTo(0.16, -0.05, 0.15, 0.04);
+  p.stroke(INK, GLYPH_RIM, 'round');
   // the price tier as pips: a dearer barracks card trains rarer troops more often
-  for (let k = 0; k < tier; k++) p.circle((k - (tier - 1) / 2) * 0.16, 0.27, 0.05, FACE, INK, RIM);
+  for (let k = 0; k < tier; k++) p.circle((k - (tier - 1) / 2) * 0.18, 0.3, 0.05, FACE, INK, GLYPH_RIM);
 }
 
 function towerGlyph(p: Pen): void {
-  p.poly([-0.17, 0.26, 0.17, 0.26, 0.13, -0.1, -0.13, -0.1], FACE, INK, RIM);
+  p.poly([-0.24, 0.26, 0.24, 0.26, 0.18, -0.08, -0.18, -0.08], FACE, INK, RIM);
   p.poly([
-    -0.23, -0.08, 0.23, -0.08, 0.23, -0.32, 0.13, -0.32, 0.13, -0.22, 0.05, -0.22, 0.05, -0.32,
-    -0.05, -0.32, -0.05, -0.22, -0.13, -0.22, -0.13, -0.32, -0.23, -0.32,
+    -0.34, -0.06, 0.34, -0.06, 0.34, -0.3, 0.2, -0.3, 0.2, -0.2, 0.07, -0.2, 0.07, -0.3,
+    -0.07, -0.3, -0.07, -0.2, -0.2, -0.2, -0.2, -0.3, -0.34, -0.3,
   ], FACE, INK, RIM);
-  p.rrect(-0.055, 0.1, 0.11, 0.16, 0.05, INK);
-  p.rect(-0.02, -0.02, 0.04, 0.09, INK);
+  p.rrect(-0.07, 0.08, 0.14, 0.18, 0.06, INK);
+  p.rect(-0.03, 0.0, 0.06, 0.1, INK);
 }
 
 function mineGlyph(p: Pen): void {
   // a pickaxe: the handle up to the right, the curved head across its top
-  inked(p, 0.1, () => {
+  inked(p, 0.11, () => {
     p.g.beginPath();
-    p.g.moveTo(-0.22, 0.24);
-    p.g.lineTo(0.12, -0.14);
+    p.g.moveTo(-0.26, 0.26);
+    p.g.lineTo(0.14, -0.14);
   });
-  inked(p, 0.12, () => {
+  inked(p, 0.13, () => {
     p.g.beginPath();
-    p.g.moveTo(-0.14, -0.33);
-    p.g.quadraticCurveTo(0.27, -0.29, 0.31, 0.1);
+    p.g.moveTo(-0.3, -0.3);
+    p.g.quadraticCurveTo(0.14, -0.36, 0.37, 0.04);
   });
 }
 
 function mysteryGlyph(p: Pen): void {
-  inked(p, 0.1, () => {
+  inked(p, 0.13, () => {
     p.g.beginPath();
-    p.g.moveTo(-0.13, -0.15);
-    p.g.arc(0, -0.15, 0.13, Math.PI, Math.PI * 2.45);
-    p.g.lineTo(0.005, 0.07);
+    p.g.moveTo(-0.17, -0.16);
+    p.g.arc(0, -0.16, 0.17, Math.PI, Math.PI * 2.45);
+    p.g.lineTo(0.007, 0.09);
   });
-  p.circle(0, 0.2, 0.06, FACE, INK, RIM);
+  p.circle(0, 0.24, 0.07, FACE, INK, RIM);
 }
 
 function glyphCtx(key: string) {
