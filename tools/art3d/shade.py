@@ -171,6 +171,37 @@ GROVE_COOL = {'rgb': (8, 51, 66), 'v0': 0.330, 'v1': 0.255, 'k': 0.90}
 # the silhouette it sits -- nothing within d0 of the edge is touched (that is the reference's own
 # dark rim, and the band cool() acts on), everything past d1 is lifted in full.
 GROVE_FLAT = {'v': 0.345, 'd0': 0.055, 'd1': 0.150, 'k': 0.80}
+# D121: AND THE LIT PATCH IS A MINORITY OF THE CROWN, NOT MOST OF IT. Same interior window as
+# D120, the three shares the reference's crown splits into against ours:
+#              below 0.32   0.32-0.37   above 0.37   median
+#   reference      2.1%       68.1%        29.8%     0.353
+#   oak            7.7%       33.3%        59.0%     0.384
+#   pine           8.1%       32.4%        59.5%     0.388
+# A painter gives a mass ONE mid tone and lights only what faces the sun; a render lights
+# everything the key can see, and the key here is a sun at 4.9 against a world at 0.38. It is not
+# TONE's lit ramp doing it -- only 13.4% of an oak's crown pixels get more than half of that lift --
+# it is the render's own body, which tone() lands at 0.37-0.40 where the reference's sits at 0.345.
+# So the body is pushed down between two anchors it does NOT move: lo is where D120 put the
+# interior's floor and the reference's own p10 (both 0.333), hi is the ceiling GROVE_CAP leaves.
+# Between them the normalised value is raised to a power, which is monotone -- no two values swap
+# places, so nothing in the shading structure is lost, the mass just sits lower and the faces that
+# were nearly at the ceiling stay near it. The gamma is swept against the same statistic and the
+# gain saturates: the above-0.37 share runs 41.2% (g 3.4) -> 37.7 (4.4) -> 33.3 (6.8) -> 33.2 (8.5)
+# -> 32.8 (11.0) against the reference's 29.8, and past 6.8 the median slips off the 0.345 tier that
+# band() snaps it to. So 6.8 is the knee, and the rest of the gap is not the body's level at all.
+GROVE_SPLIT = {'lo': 0.333, 'hi': 0.400, 'g': 6.80}
+
+
+def split(im: Image.Image, cfg=GROVE_SPLIT) -> Image.Image:
+    """Push a crown's body down to the mid tier, leaving the lit faces at the ceiling (D121)."""
+    a = np.asarray(im).astype(np.float64)
+    rgb = a[..., :3] / 255
+    v = rgb.max(-1)
+    m = (v > cfg['lo']) & (a[..., 3] > 128)
+    t = np.clip((v - cfg['lo']) / (cfg['hi'] - cfg['lo']), 0, 1)
+    nv = np.where(m, cfg['lo'] + (cfg['hi'] - cfg['lo']) * t ** cfg['g'], v)
+    a[..., :3] = np.clip(rgb * (nv / np.maximum(v, 1e-6))[..., None], 0, 1) * 255
+    return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
 def flat(im: Image.Image, cfg=GROVE_FLAT) -> Image.Image:
