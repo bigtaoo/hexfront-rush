@@ -38,7 +38,7 @@ from PIL import Image, ImageFilter
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from shade import (GROVE_BAND, GROVE_CAP, GROVE_SAT, INK, LINE,  # noqa: E402  the colour passes
                    ROCK_BAND, ROCK_CAP, band, cool, flat, inner_lines, read_pass, split,
-                   stone_sat, tone)
+                   stone_hue, stone_sat, tone)
 
 # texture px per CSS px: 3 since 2026-11-15 (a 3x phone draws a sprite 1:1; at 2 it was stretched
 # 1.2-1.6x on phones and desktops and looked soft). The outline grows with it (OUTLINE_PX).
@@ -210,8 +210,8 @@ def make(paths, height: int, px: int, want=None, geos=None, deep=False, ink_rgb=
             im = split(im)
         if bands is not None:          # and then into flat tiers: grove only
             im = band(im, bands, sat=sat)
-            if stone:                      # a stone's chroma falls as it lights (D130)
-                im = stone_sat(im)
+            if stone:                      # a stone's chroma and hue walk with the light
+                im = stone_hue(stone_sat(im))   # (D130, D131)
             if sat:                        # and the shade toward the sky: oak and pine (D119)
                 im = cool(im)
         if g is not None:

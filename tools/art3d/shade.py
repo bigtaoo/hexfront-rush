@@ -162,6 +162,19 @@ ROCK_BAND = (0.270, 0.345, 0.420, 0.490)
 # at the dark end came out as 0.495 against the reference's 0.443). Swept 0.62..0.75 x 0.18..0.32
 # over four ramp windows; this pair lands S 0.451/0.256/0.240 on the reference's 0.443/0.288/0.190.
 ROCK_SAT = {'v0': 0.380, 'k0': 0.68, 'v1': 0.549, 'k1': 0.30}
+
+# D131: AND ITS HUE WALKS WITH THE LIGHT TOO. Same reference pillar, same crop, binned by value:
+# shaded V 0.380 H 184.2, mid V 0.463 H 172.1, lit V 0.537 H 159.2 -- a slope of -159 degrees of hue
+# per unit value. The shade is a blue-cyan (the sky's own colour), the lit face a pale grey-green (the
+# sun's). Ours came out FLAT: H 195.0 / 194.2 / 192.0 / 193.1 across the same four value bins, i.e. the
+# rock is the one colour everywhere and only its lightness moves. That flatness is what still reads as
+# "painted lump" after D130 fixed the chroma, because a real stone's two faces are lit by two different
+# lights. Hue is rotated here rather than in prim.py because prim's single '#6a9fa8' has no notion of
+# which face is lit; only the rendered value knows that. d0/d1 are the shifts at v0/v1, fitted on the
+# FINISHED sprite for the same reason as ROCK_SAT -- sized() resamples and inner_lines() inks after
+# this pass, and blending against the ink drags hue as well. Swept eight pairs over d0 -6..-14 and
+# d1 -27..-44; this one lands H 183.2 / 173.5 / 160.0 on the reference's 184.2 / 172.1 / 159.2.
+ROCK_HUE = {'v0': 0.380, 'd0': -10.0, 'v1': 0.537, 'd1': -40.0}
 # D118: AND THE GLOSS OFF ITS LOBES. GROVE_CAP capped the speculars' VALUE; their whiteness stayed.
 # The reference's canopy holds saturation in a narrow band -- p10/median/p90 0.760/0.822/0.884,
 # 0.38% of it under 0.7 of the median -- where ours ran 0.648/0.861/0.990 (oak) and 0.567/0.826/
@@ -382,6 +395,43 @@ def stone_sat(im: Image.Image, cfg=ROCK_SAT) -> Image.Image:
     t = np.clip((v - cfg['v0']) / (cfg['v1'] - cfg['v0']), 0, 1)
     k = np.where(m, cfg['k0'] + (cfg['k1'] - cfg['k0']) * t, 1.0)[..., None]
     a[..., :3] = np.clip(v[..., None] - (v[..., None] - rgb) * k, 0, 1) * 255
+    return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
+
+
+def _hsv(rgb):
+    """Vectorised RGB->HSV on floats in 0..1. Hue in degrees."""
+    mx = rgb.max(-1)
+    mn = rgb.min(-1)
+    d = mx - mn
+    dd = np.where(d == 0, 1.0, d)
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    h = np.where(mx == r, ((g - b) / dd) % 6,
+                 np.where(mx == g, (b - r) / dd + 2, (r - g) / dd + 4)) * 60
+    return np.where(d == 0, 0.0, h), np.where(mx == 0, 0.0, d / np.where(mx == 0, 1.0, mx)), mx
+
+
+def _rgb(h, s, v):
+    """Vectorised HSV->RGB. Inverse of _hsv."""
+    i = np.floor(h / 60) % 6
+    f = h / 60 - np.floor(h / 60)
+    p, q, t = v * (1 - s), v * (1 - s * f), v * (1 - s * (1 - f))
+    out = np.stack([np.select([i == 0, i == 1, i == 2, i == 3, i == 4], [v, q, p, p, t], t),
+                    np.select([i == 0, i == 1, i == 2, i == 3, i == 4], [t, v, v, q, p], p),
+                    np.select([i == 0, i == 1, i == 2, i == 3, i == 4], [p, p, t, v, v], q)], -1)
+    return out
+
+
+def stone_hue(im: Image.Image, cfg=ROCK_HUE) -> Image.Image:
+    """Walk a stone's hue with its value: shade toward the sky, lit faces toward the sun (D131).
+
+    Saturation and value are untouched -- only the hue angle moves.
+    """
+    a = np.asarray(im).astype(np.float64)
+    h, s, v = _hsv(a[..., :3] / 255)
+    m = (v > 0.14) & (a[..., 3] > 128)
+    t = np.clip((v - cfg['v0']) / (cfg['v1'] - cfg['v0']), 0, 1)
+    d = np.where(m, cfg['d0'] + (cfg['d1'] - cfg['d0']) * t, 0.0)
+    a[..., :3] = np.clip(_rgb((h + d) % 360, s, v), 0, 1) * 255
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
