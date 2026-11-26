@@ -105,7 +105,23 @@ LINE = {
 # NOT applied to the rest of the toned props: cactus sits at 0.580 of p88 on sand at 0.84 and
 # snowpine at 0.502 on snow at 0.90-0.95, so this knee would cut their bodies by a tenth and a
 # seventh, not just their tails. The litter is out too -- the reference's forest carries none.
-GROVE_CAP = {'t': 0.40, 'c': 0.25}
+# D129: AND THE LIT SHARE IS THE KNEE, NOT THE CEILING. The reference numbers D120/D121 were swept
+# against came from a window that is NOT all crown -- read back at 4x it holds grass and the gap
+# between two trees, which is why those sweeps "saturated" without closing anything. Measured again
+# on a window verified by eye to be one crown and nothing else (IMG_3728, 778..882 x 1360..1490),
+# the reference's crown splits like this, against ours before this change:
+#               <0.28   0.28-0.32   0.32-0.36   0.36-0.40   >0.40
+#   reference   30.7%     11.8%       44.5%       11.9%      1.2%
+#   oak         24.1%      4.4%       49.3%       21.2%      1.0%
+#   pine        19.3%      4.8%       59.7%       16.0%      0.2%
+# So the body's level is right and has been since D93; what is wrong is HOW MUCH of the crown is
+# lit -- ours is nearly twice the reference's -- and that is this knee, not GROVE_SPLIT's gamma.
+# Swept (lit share, oak / pine): 0.40 -> 21.2/16.0, 0.395 -> 21.5/16.1, 0.390 -> 13.9/8.1,
+# 0.385 -> 9.0/3.3, 0.38 -> 6.9/1.5, 0.36 -> 1.0/0.3. 0.390 averages 11.0 against its 11.9.
+# GROVE_SPLIT's 'hi' was swept too and is NOT the lever: it is the ceiling every lit pixel lands
+# on, so raising it past 0.405 wipes the lit tier out entirely (oak 2.8%) instead of shrinking it,
+# and GROVE_BAND's fourth level was dropped and put back -- it changes the shares by under 1 point.
+GROVE_CAP = {'t': 0.390, 'c': 0.25}
 # AND THEN IT IS PAINTED IN STEPS, NOT IN A GRADIENT (D117). A render shades a sphere smoothly and
 # the reference paints a canopy in flat tiers, and that -- more than hue, value or outline -- is why
 # a grove of ours reads as balloons and one of theirs as foliage. Counted rather than eyeballed, by
@@ -179,7 +195,13 @@ GROVE_COOL = {'rgb': (8, 51, 66), 'v0': 0.330, 'v1': 0.255, 'k': 0.90}
 # the inside of it stays flat. So a dark pixel is lifted toward the middle tier by how deep inside
 # the silhouette it sits -- nothing within d0 of the edge is touched (that is the reference's own
 # dark rim, and the band cool() acts on), everything past d1 is lifted in full.
-GROVE_FLAT = {'v': 0.345, 'd0': 0.055, 'd1': 0.150, 'k': 0.80}
+# D129 widened the rim: d0 is how far in the shade is left alone, as a fraction of the piece's
+# height, and at 0.055 it left a band about 2.4 logical px thick on the board where the reference's
+# is about twice that. Swept against the share of the body below 0.30 (reference 36.6%): d0 0.055
+# -> 26.5% (oak), 0.075 -> 28.1, 0.095 -> 29.3, 0.115 -> 30.2, 0.140 -> 31.0. d1 keeps the same
+# 0.095 ramp above it. Past 0.140 the lift has nothing left to give -- flat() can only RESTORE dark
+# the render already made, and the render's dark is the creases between lobes, not a shadow side.
+GROVE_FLAT = {'v': 0.345, 'd0': 0.140, 'd1': 0.235, 'k': 0.80}
 # D121: AND THE LIT PATCH IS A MINORITY OF THE CROWN, NOT MOST OF IT. Same interior window as
 # D120, the three shares the reference's crown splits into against ours:
 #              below 0.32   0.32-0.37   above 0.37   median
