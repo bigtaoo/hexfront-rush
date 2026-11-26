@@ -158,7 +158,19 @@ function glyphCtx(key: string) {
   });
 }
 
-const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
+/** The coin's radius next to the price, as a multiple of the digits' own glyph height ph.
+ *  Measured on the reference (D:/new/ref IMG_3700) against our k124 capture, in logical px: its
+ *  coin is 9.3 x 11.0 with 60 px2 of gold beside a digit face 7.3 tall -- the coin is TALLER than
+ *  the number it prices, 1.27 faces across. Ours was 4.5 x 4.5, 14 px2: 0.48 of that height and
+ *  0.24 of that gold, and shorter than its own digits, so the price read as three numbers with a
+ *  speck in front of them rather than as a cost (DECISIONS.md D125). It follows ph rather than
+ *  sitting at a fixed scale, because ph is what the zoom moves. */
+const COIN_K = 0.455;
+
+// The context is built at radius 1 and scaled DOWN, never up. Pixi tessellates a Graphics in its
+// own local units, so a circle authored at radius 0.13 and then blown up 3.5x came out a visible
+// polygon -- the coin's inner ring read as a diamond.
+const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 1));
 
 /** lookB: the card is a flat stamp on the ground -- a cream glyph with a dark rim, a small coin and
  *  the price -- and nothing else. It used to be a carved wooden plaque: a body, a drop shadow, a
@@ -170,7 +182,9 @@ const coinCtx = () => sharedCtx('offer|coin', (p) => coin(p, 0, 0, 0.13));
 /** The card's geometry as the rest of the view needs it: how far below its own tile centre the
  *  stamp reaches, and the two rows on its face. buildingView.ts sizes the buildings against these
  *  so a wall never grows into the card on the tile one row up. */
-export const CARD_BOX = { bottom: PRICE_Y + PRICE_H / 2, glyphY: GLYPH_Y, priceY: PRICE_Y } as const;
+// the coin is the lowest thing on the card now, not the bottom of the digits (COIN_K)
+const PRICE_DROP = Math.max(PRICE_H / 2, COIN_K * PRICE_MAX_H);
+export const CARD_BOX = { bottom: PRICE_Y + PRICE_DROP, glyphY: GLYPH_Y, priceY: PRICE_Y } as const;
 
 /** Whether something that stands tall sits on a tile BELOW this one, where it would cover the price
  *  row. Only the two neighbours one row down can reach it: a left or right neighbour's centre is
@@ -299,6 +313,7 @@ export class OfferLayer {
       const ph = Math.min(PRICE_MAX_H, Math.max(PRICE_H, PRICE_MIN_PX / zoom));
       const look = priceLook(Tm.gold, cost);
       c.cost.set(String(cost), { h: ph, tint: look.tint, align: 'left', screen: zoom });
+      if (LOOK_B) c.coin.scale.set(COIN_K * ph);
       // the price row rides over the troops only while it can be paid (CardView.tag) -- unless
       // something stands on the tile below it, which would hide it for good instead of for the
       // second a soldier takes to walk past (coveredBelow)
@@ -329,10 +344,10 @@ export class OfferLayer {
     glyph.position.set(0, GLYPH_Y);
     glyph.scale.set(GLYPH_K);
     const cg = new Graphics(coinCtx());
-    cg.position.set(LOOK_B ? -0.14 : -0.24, PRICE_Y);
-    if (LOOK_B) cg.scale.set(0.58);
+    cg.position.set(LOOK_B ? -0.3 : -0.24, PRICE_Y);
+    if (!LOOK_B) cg.scale.set(0.13);
     const cost = new Num();
-    cost.position.set(LOOK_B ? -0.05 : -0.08, PRICE_Y);
+    cost.position.set(LOOK_B ? -0.09 : -0.08, PRICE_Y);
     root.addChild(glyph);
     const tag = new Container();
     tag.addChild(cg, cost);

@@ -30,10 +30,23 @@ CHARS = {"0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "
 # How a glyph's full height h is spent: the outline above and below the digit's face, the drop
 # shadow under that, and the face itself. The face used to be 0.7 of the height with the rest left
 # over, which drew the digit small for the room it took on screen; now it takes 0.8, which is all
-# that is left once the outline and the shadow have theirs. Under about 25 px the outline cannot
-# go under 2 px and the shadow under 1 without falling apart, so the face gives way instead, and
-# those sizes draw a slightly smaller, heavier-rimmed digit - which is what keeps a tiny number
-# on a zoomed-out board readable.
+# that is left once the outline and the shadow have theirs.
+#
+# The outline's floor used to be 2 px, on the grounds that a heavier rim keeps a tiny number
+# readable. Measured, it does the opposite at the one size the board uses most. A board price is
+# about 22 device px tall, where 2 px of outline top and bottom plus 1 of shadow is a FIFTH of the
+# glyph: in a 2-logical-px ring round the red of our "100", 82.6% of the pixels were dark ink
+# (ring value 0.220 against a tile at 0.722), so the number carried about as much dark as number.
+# The reference (D:/new/ref IMG_3700) draws its prices and its HUD with no outline and no drop
+# shadow at all -- the same ring round its red "100" is 18.6% dark and its median value 0.749,
+# which is the tile's own 0.749. The floor is 1 px instead (DECISIONS.md D125).
+#
+# The small sizes are not left bare by that. A 1 px rim on an 8 px glyph is still 12.5% of its
+# height against the 7.5% a big one gets, so a tiny number keeps a relatively heavier rim -- what
+# goes is the DOUBLE weight, which at 8 px was spending a quarter of the glyph on outline and
+# left a 3.0 px face. The face there is 5.0 px now, and at the board's own 22 px the ink falls
+# from 22.7% of the height to 13.6%. 28 px and up are untouched: int(h * OUTLINE) already gives
+# them 2 px or more.
 CAP = 0.80
 OUTLINE = 0.075
 SHADOW = 0.05
@@ -41,7 +54,7 @@ SHADOW = 0.05
 
 def parts(h: int) -> tuple[int, int, float]:
     """The outline width, the drop shadow's drop and the cap height of a glyph h pixels tall."""
-    ow = max(2, int(h * OUTLINE))
+    ow = max(1, int(h * OUTLINE))
     sh = max(1, int(h * SHADOW))
     return ow, sh, min(h * CAP, h - 2 * ow - sh)
 INK = (36, 26, 18, 255)
