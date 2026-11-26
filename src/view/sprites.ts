@@ -55,6 +55,17 @@ class EventView {
 
 /** The castle guard's foot, below its position. */
 const GUARD_FOOT = 0.36;
+/** The guard's picture scale over the art's own size. It is a FIGURE, so when the figures came
+ *  down (lookB LOOKB_UNIT_K 1.3 -> 1.05, D128) it had to come down with them, or the cast's own
+ *  ladder would have broken the other way: the guard was already drawn taller than the castle it
+ *  guards (58.8 logical px against 55.5), and leaving it where it was while every soldier shrank
+ *  a fifth would have made that the loudest thing on the plot.
+ *
+ *  1.05 / 1.3 = 0.81, so the guard keeps EXACTLY the size it had relative to a troop (1.12x a
+ *  militia, before and after) and only the figures-against-buildings ratio moves, which is the
+ *  one that was wrong. Drawn: 47.6 logical px, 0.82 of a cell's width, under the castle's 0.95
+ *  and over a militia's 0.73. See DECISIONS.md D128. */
+const GUARD_K = LOOK_B ? 0.81 : 1;
 
 /** Tiles covered per hop: the hop keeps pace with the feet, so a slow giant plods and a quick
  *  troop trots (one rate for all looked like every troop was scurrying). */
@@ -70,7 +81,7 @@ function walkPhase(t: number, speed: number): number {
 
 class GuardView {
   readonly root = new Container();
-  private shadow = new Graphics(shadowCtx(0.4));
+  private shadow = new Graphics(shadowCtx(0.4 * GUARD_K));
   private body: Sprite;
   private flash: Sprite;
   private hp: Live = liveGraphics();
@@ -118,7 +129,7 @@ class GuardView {
       this.body.texture = t;
       this.flash.texture = t;
       if (this.cast) this.cast.texture = t;
-      this.h = artH(t);
+      this.h = artH(t) * GUARD_K;
     }
     const ph = g.moving ? walkPhase(f.time + g.id, g.aim ? GUARD.chaseSpeed : GUARD.speed) : -1;
     const step = ph < 0 ? 0 : Math.sin(ph * 2 * Math.PI);
@@ -154,7 +165,7 @@ class GuardView {
           ? TURN_MIN
           : -TURN_MIN
         : this.faceCur;
-    const kx = fx / PPU, ky = 1 / PPU, by = GUARD_FOOT - bob;
+    const kx = (fx * GUARD_K) / PPU, ky = GUARD_K / PPU, by = GUARD_FOOT - bob;
     // rocks from foot to foot like the troops (unitView.ts), and sways while it stands. With the
     // walk frames in the atlas the legs do the walking: the rock would be a picture swaying on top
     // of a figure that is already striding, which is the tell it was there to hide.
@@ -242,7 +253,7 @@ class GuardView {
       this.body.rotation = -face * 1.35 * (1 - (1 - k) * (1 - k));
     }
     this.body.position.set(0, GUARD_FOOT);
-    this.body.scale.set(face / PPU, 1 / PPU);
+    this.body.scale.set((face * GUARD_K) / PPU, GUARD_K / PPU);
     this.body.alpha = fade;
     this.shadow.alpha = fade;
     if (this.cast) this.cast.alpha = CAST.alpha * fade * (1 - k);

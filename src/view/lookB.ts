@@ -25,8 +25,31 @@ export const ONLY3 = LOOK_B && !!q?.has('only3');
 /** The play zoom: about this many hexes across and rows down (viewConst VIEW_HEXES / VIEW_ROWS). */
 export const LOOKB_VIEW = { hexes: 7.2, rows: 8.5 };
 
-/** Troops are drawn this much bigger than their hit size (the sim is untouched). */
-export const LOOKB_UNIT_K = 1.3;
+/** Troops are drawn this much bigger than their hit size (the sim is untouched).
+ *
+ *  MEASURED, in logical px and as a share of the cell's WIDTH -- the one yardstick both boards
+ *  share, since the reference's cell is 60.0 logical wide and ours 58.3 (D127: the reference's
+ *  screenshots are dpr 3 and ours dpr 2, so device px cannot be compared). Off D:/new/ref,
+ *  IMG_3728 and IMG_3717, whose lattice pitch comes out at 134 source px both times -- a flat-top
+ *  column pitch of 0.75 W, so W = 179 source = 60 logical:
+ *
+ *    reference, a house on its tile   34.0 x 48.0 logical   0.57 w  0.80 h
+ *    reference, a figure on its tile  24.0 x 37.3 logical   0.40 w  0.62 h
+ *    ours, the castle                 38   x 56     "       0.65 w  0.96 h
+ *    ours, a militia at K 1.3         35   x 54     "       0.60 w  0.93 h
+ *
+ *  So the cast hierarchy was inverted: the reference's building stands 1.29x its own figure, and
+ *  ours stood 1.04 -- a castle exactly as tall as the footsoldier walking past it, and SHORTER
+ *  than a guard (59). The castle cannot grow: its box is already within 4% of the geometry limit
+ *  (buildingView BASE_H, the card one row up), and our ordinary buildings already come out
+ *  SMALLER than the reference's (mine 0.70, barracks 0.58-0.67 against its 0.80). The one piece
+ *  out of line is the troop, so the troop is what moves. 1.3 -> 1.05 puts a militia at 43.6
+ *  logical, 0.75 of a cell, and the castle at 1.28x it -- the reference's own ratio.
+ *
+ *  It does NOT go all the way down to the reference's 0.62: a troop is the thing that has to stay
+ *  readable at a phone's zoom, and 1.05 still draws it 18% larger than the reference does, which
+ *  is the trade this look was built on. See DECISIONS.md D128. */
+export const LOOKB_UNIT_K = 1.05;
 
 /** The cast shadow: the picture flattened onto the ground and leaned away from the light. */
 // skew leans the flipped picture right as it goes down: drop = squash·cos(skew), lean = squash·sin(skew)

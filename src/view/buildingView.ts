@@ -67,9 +67,16 @@ export function badgeSpot(type: string): { x: number; y: number } {
  *  It is a uniform scale, so it narrows them by the same 13% on a cell that is still 1.73 wide --
  *  the honest cost of this, and the cheaper one: clipping the height alone would leave the four
  *  tall pictures shorter and the three short ones untouched, which is the cast hierarchy BLD_K
- *  exists to protect. Troops and tree crowns keep their own size on purpose (lookB
- *  LOOKB_UNIT_K, obstacleView CROWN_K): a troop is the thing that has to stay readable at a
- *  phone's zoom, and a crown shrunk here would give back the canopy the squash just bought. */
+ *  exists to protect. Tree crowns keep their own size on purpose (obstacleView CROWN_K): a crown
+ *  shrunk here would give back the canopy the squash just bought.
+ *
+ *  THE CAST HIERARCHY IS NOT SET HERE (D128). Measured against D:/new/ref as a share of the
+ *  cell's width, our ordinary buildings already come out SMALLER than the reference's (mine 0.70,
+ *  barracks 0.58-0.67 against its 0.80) and only the castle stands over it (0.96). What was wrong
+ *  was the troop, drawn as tall as the castle; it came down instead (lookB LOOKB_UNIT_K 1.3 ->
+ *  1.05). Nothing on these constants moved, and nothing on them should move to chase that ratio:
+ *  the castle has 4% of headroom left before it reaches the card, and the rest of the cast is
+ *  already under the reference. */
 const BLD_K = (LOOK_B ? 0.76 : 1) * SQUASH;
 const BLD_W = LOOK_B ? 1.3 : 1.35, BLD_H = (LOOK_B ? 1.45 : 1.7) * SQUASH;
 /** The castle's own box: it is the one landmark per side and may stand a head above the rest.
