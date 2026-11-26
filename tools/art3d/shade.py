@@ -147,6 +147,21 @@ GROVE_BAND_K = 0.55
 # than a thing standing on it. Its own ceiling and its own two tiers, taken off that histogram.
 ROCK_CAP = {'t': 0.48, 'c': 0.25, 'mul': 0.52}
 ROCK_BAND = (0.270, 0.345, 0.420, 0.490)
+# D130: AND A STONE'S CHROMA FALLS AS IT LIGHTS. The reference's stone prop (IMG_3728, 688..722 x
+# 1364..1392, dpr 3) walks its saturation DOWN as its value walks up: shaded face V 0.380 S 0.443,
+# mid V 0.463-0.529 S 0.288, lit face V 0.529-0.549 S 0.190 -- a slope of -1.50 S per unit V. That
+# is what makes it read as stone and not as a painted lump: its lit faces go toward the light's own
+# grey. Ours ran FLAT -- S 0.541/0.611/0.605/0.592/0.571 across V 0.235..0.537, median 0.595 -- so
+# the whole body sat at the grass's own chroma (0.571) and the rock read as a cyan smudge on it.
+# The cause is upstream: tone()'s chroma multiply (TONE['sat'] 1.62) ramps in over s0 0.12 -> s1
+# 0.28 to spare grey materials, and the note above GROVE_SAT still says "rock is grey at 0.04" --
+# but prim.py paints it '#6a9fa8', S 0.374, clear of the ramp, so stone takes the FULL 1.62x.
+# Rather than unpick that ramp for every piece, chroma is scaled here by a ramp in value. v0/v1 are
+# the reference's own two faces; k0/k1 are fitted on the FINISHED sprite, because sized() resamples
+# and inner_lines() inks after this pass, so a scale applied here does not survive as itself (0.75
+# at the dark end came out as 0.495 against the reference's 0.443). Swept 0.62..0.75 x 0.18..0.32
+# over four ramp windows; this pair lands S 0.451/0.256/0.240 on the reference's 0.443/0.288/0.190.
+ROCK_SAT = {'v0': 0.380, 'k0': 0.68, 'v1': 0.549, 'k1': 0.30}
 # D118: AND THE GLOSS OFF ITS LOBES. GROVE_CAP capped the speculars' VALUE; their whiteness stayed.
 # The reference's canopy holds saturation in a narrow band -- p10/median/p90 0.760/0.822/0.884,
 # 0.38% of it under 0.7 of the median -- where ours ran 0.648/0.861/0.990 (oak) and 0.567/0.826/
@@ -355,6 +370,18 @@ def band(im: Image.Image, levels, k: float = GROVE_BAND_K, sat: bool = False) ->
         f = np.where(m & (sv > 1e-6), (med + (sv - med) * GROVE_SAT_K) / np.maximum(sv, 1e-6), 1.0)
         out = vv[..., None] - (vv[..., None] - out) * f[..., None]
     a[..., :3] = np.clip(out, 0, 1) * 255
+    return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
+
+
+def stone_sat(im: Image.Image, cfg=ROCK_SAT) -> Image.Image:
+    """Walk a stone's chroma down as its value walks up (D130). Hue and value untouched."""
+    a = np.asarray(im).astype(np.float64)
+    rgb = a[..., :3] / 255
+    v = rgb.max(-1)
+    m = (v > 0.14) & (a[..., 3] > 128)
+    t = np.clip((v - cfg['v0']) / (cfg['v1'] - cfg['v0']), 0, 1)
+    k = np.where(m, cfg['k0'] + (cfg['k1'] - cfg['k0']) * t, 1.0)[..., None]
+    a[..., :3] = np.clip(v[..., None] - (v[..., None] - rgb) * k, 0, 1) * 255
     return Image.fromarray(np.clip(a + 0.5, 0, 255).astype(np.uint8), 'RGBA')
 
 
