@@ -62,11 +62,14 @@ describe('replays', () => {
   const m = playMatch(31337);
   const text = JSON.stringify(makeReplay(m.config, m.log, m.engine));
 
+  // the whole match played a second time from its log, which since D134 is a long match: 19 s
+  // here and 32 s on a CI runner, where the 30 s default timed it out. The forfeit test below
+  // stops at the first bad tick and stays cheap, so it keeps the default.
   it('reproduce the match from JSON', () => {
     const back = runReplay(JSON.parse(text) as Replay);
     expect(back.ok).toBe(true);
     expect(back.engine.hash()).toBe(m.engine.hash());
-  });
+  }, 180_000);
 
   it('notice a forfeit slipped in halfway', () => {
     const bad = JSON.parse(text) as Replay;
