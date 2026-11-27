@@ -437,10 +437,10 @@ def model_guard():
     38 degrees apart and the whole thing read as a rifle, a single pale stick with a dark block
     behind it, in every frame where the string is flat - the still, all six walk frames, and
     the two release frames. Canted to 66 the gap is 54 degrees, which is a cross, and the
-    triangle of empty air between stock, limb and string goes from 0.07 of a body to 0.20 -
-    forty pixels of daylight at this figure's height, where fifteen were being eaten whole by
-    the outlines. The full derivation, and why widening the prod would not have helped, is in
-    the comment on the tips below.
+    triangle of empty air between limb and string goes from 0.04 of a body to 0.16 - thirty
+    pixels of daylight at this figure's height, where eight were being eaten whole by the
+    outlines. The derivation, and why the first version of it bought those pixels by making
+    one limb half again as long as the other, is in the comment on the tips below.
 
     The trousers were white and they disappeared on snow (#d5d9d3), taking the legs with them,
     which is fatal for a unit whose whole joke is what its legs are doing. Stone fixed the snow
@@ -608,35 +608,43 @@ def model_guard():
         # world x: x is the one axis the camera spreads almost fully, so a prod laid on it is
         # the widest line the model can draw.
         nose = on(0.430 * W)
-        bar = on(0.235 * W)                           # the limb roots, well BACK from the nose.
-        # At 0.330 they were barely behind it, the two limbs came out within sixteen degrees of
-        # each other and of the string, and three collinear pale lines are one line: the prod
-        # read as a plain stick with a dark lump behind it. From 0.235 the limbs open and the
-        # string, drawn tip to tip, cuts a triangle of daylight across them. That triangle is
-        # the whole reason anyone reads "crossbow", and it needs TWO more corrections - both
-        # of them projection, neither of them bow-making.
+        # THE TWO LIMBS ARE THE SAME LIMB MIRRORED, in the model, with nothing added to one
+        # side. They were not. The prod used to be rooted at the nose but hung off a point
+        # 0.195 BACK down the stock, and then slid 0.095 along +x to put the nose over the
+        # middle of the string on screen. Both moves were projection fixes and both were
+        # wrong in the same way: the stock does not run straight up the screen, it runs up at
+        # 66 degrees, so anything measured back along it lands sideways as well as down, and
+        # the sideways part is what had to be slid back. The slide bought screen symmetry by
+        # spending real symmetry - the near limb came out 0.46 longer than the far one IN
+        # THREE DIMENSIONS - and a crossbow whose two limbs are different lengths is a
+        # crossbow nobody believes, at any size, from any angle.
         #
-        # CENTRE. The tips are symmetric about bar in the model and are NOT symmetric on
-        # screen, because the nose they spring from is a long way up the stock and the stock's
-        # screen direction has a component along the prod. Measured: 0.42 of screen for the
-        # near limb against 0.25 for the far one, and a chevron with one arm nearly twice the
-        # other reads as a bent stick, not a bow. Sliding the whole prod 0.095 along +x drops
-        # the nose over the middle of the string; the limbs come out 0.35 and 0.30.
+        # Take the back-sweep out and the slide has nothing left to correct. The tips hang off
+        # the nose itself, SPAN either side and DROOP below, so they differ by the sign of one
+        # number and by nothing else. What is left on screen is 0.353 against 0.295, a fifth,
+        # and that fifth is not a modelling error: it is the 0.173*dx term in the camera's up
+        # vector, the same term that lays the prod over at 12 degrees instead of flat. A bar
+        # laid across the view tilts, and the far half of a tilted bar is shorter. Every
+        # straight thing in this scene does it. The old slide hid that fifth - it got the
+        # screen lengths to within a seventh - and the model paid 0.46 for the hiding. Taking
+        # the fifth back is the trade: a shape that is wrong by a fifth in one projection
+        # against a shape that was wrong by a half in every projection there is.
         #
-        # DROP. This is what opens the triangle, and it is the correction that took longest to
-        # find because the obvious move does nothing. Work the projection through and the
-        # daylight between the nose and a flat string is
-        #     0.506 * (nose - bar, along the stock)  +  0.931 * (drop)
-        # with the tip SPREAD cancelling out of it exactly - spread is along x, the string is
-        # along x, and sliding a line along itself does not move it. So widening the prod,
-        # which is what one reaches for, buys silhouette and not one pixel of hole. Only the
-        # drop buys hole, and it buys it at nearly twice the rate of the sweep. 0.050 takes
-        # the daylight from 0.074 of a body as shipped to 0.198 - at this sprite's 203 px,
-        # forty pixels of sky where there were fifteen, which is the difference between a
-        # triangle and a seam. It costs 12 degrees of cant out of square with the stock. That
-        # is a recurve, and nobody is going to measure it.
-        tips = [(bar[0] + 0.095 - 0.225 * W, bar[1], bar[2] - 0.050 * W),
-                (bar[0] + 0.095 + 0.225 * W, bar[1], bar[2] - 0.050 * W)]
+        # DROOP is what opens the triangle of daylight between the limbs and the string, and
+        # it is the only thing that does. Work the projection through: the gap between the
+        # nose and a flat string is 0.506 * (back-sweep) + 0.931 * (droop), with the SPAN
+        # cancelling out of it exactly - span is along x, the string is along x, and sliding a
+        # line along itself does not move it. So widening the prod buys silhouette and not one
+        # pixel of hole, and the back-sweep that buys hole at 0.506 is the very term that
+        # broke the symmetry. Droop buys it at 0.931 and costs only cant. At 0.125 the
+        # daylight is 0.158 of a body, 0.04 less than the lopsided version had, against the
+        # flat NOTHING a straight prod leaves - a straight prod puts the limbs on the string's
+        # own line and the three of them come out as one bar. The price is a prod sitting 27
+        # degrees out of square with the stock, which is a deep recurve and is the one liberty
+        # this weapon still takes.
+        SPAN, DROOP = 0.245 * W, 0.125 * W            # SPAN went up with DROOP to hold the
+        tips = [(nose[0] - SPAN, nose[1], nose[2] - DROOP),   # triangle's AREA, not just its
+                (nose[0] + SPAN, nose[1], nose[2] - DROOP)]   # height: 0.045 against 0.051
         ball(0.028 * W, 'leather', nose, scale=(1.0, 1.2, 1.0), name='nose')
         for tp in tips:
             seg(nose, tp, 0.016 * W, 'tan', 'limb')  # LONG and THIN: the prod has to be the
