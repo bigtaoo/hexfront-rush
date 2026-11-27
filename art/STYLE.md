@@ -30,6 +30,18 @@ one set of lights and one outline, which is what makes the set read as one hand.
 The camera elevation is per model, because a prop is read from much further above than a soldier:
 `UNIT_ELEV` 18 for troops, 26-36 for buildings, 30-44 for props (`builds.ELEVS`, `props.ELEVS`).
 
+At the troop camera (yaw 34, elevation 18) a world point lands at
+`right = 0.829*dx - 0.559*dy`, `up = 0.173*dx + 0.256*dy + 0.951*dz`, depth
+`= 0.532*dx + 0.788*dy - 0.309*dz` (smaller is nearer); **-y is towards the camera**. Two
+consequences are worth knowing before you measure anything on a render:
+
+* The `0.173*dx` term **lays any bar along world x over at 12 degrees on screen**, and the far
+  half of a tilted bar is always shorter. Every straight thing in the scene does it. A symmetric
+  pair of arms along x will project 1.2 to 1 and that is correct, not a modelling error.
+* A displacement along **-z goes only into `up`**, so it is the one move that cannot break
+  left/right screen symmetry. Anything measured back along a tilted shaft goes sideways as well
+  as down.
+
 The old painted-reference route (`refs.py` -> `tools/art/generate_image.sh` -> `fromref.py` ->
 `paint.py`) and the Tripo route (`tripo.py` -> `paint.py` -> `sprite.py`) are gone from the cast.
 They stay in the tree for the UI art, which is still painted (see the UI section below).
@@ -64,6 +76,11 @@ Each of these was learned by rendering the thing and looking at it, not by reaso
 * Thin crossed shapes (two swords, a crossed banner) collapse into a bow tie: use one bold shape.
 * `flag(pole_top, ...)` takes the TOP of the pole and `pole_h` runs DOWNWARD - lengthening the
   pole drives it into the ground, it does not raise the flag.
+* **Never buy screen symmetry with model asymmetry.** The guard's crossbow had its prod hung off
+  a point back down the tilted stock and then slid along x to re-centre it on screen; it projected
+  at 1.15 and the two limbs were 0.368 against 0.536 in the model, half as long again. A shape
+  that is wrong in three dimensions is wrong in every frame of every cycle, and the player sees it
+  at board size. Mirror the model and let the projection tilt whatever it tilts.
 
 Scale on the board (lookB): troops are drawn 1.3x their hit size (LOOKB_UNIT_K); the whole building
 cast is drawn at one scale (buildingView.ts BLD_K 0.76) and only the outliers are clipped, so the
