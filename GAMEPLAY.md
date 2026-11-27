@@ -4,9 +4,9 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 
 ## Match flow
 1. **Intro:** show a map overview, count down 3-2-1, then "FIGHT!".
-2. **No clock:** a match runs until a castle falls; the player whose castle falls loses. The HUD clock counts up. AI-vs-AI matches last about 4¼ minutes (median; 90 % are over by 7:45, and every one of them ends on a castle).
+2. **No clock:** a match runs until a castle falls; the player whose castle falls loses. The HUD clock counts up. AI-vs-AI matches last about 3½ minutes (median). Since D134 the spread is wide at the top: most end sooner than they used to, but 7 % of them never break through at all and run to the valve below (120 matches: median 3:27, p90 21:11).
 3. **Siege:** from 6:00 on, every minute both sides' troops hit buildings 45 % harder and the troop cap rises by 10 ("SIEGE!" banner, a "siege +N%" tag by the clock). It is the same for both: the side with more and better barracks fills the new room first and breaks through.
-4. **Stalemate valve:** only past 25:00 does the match end on tiles (more tiles wins, equal is a draw). AI-vs-AI balance runs never get there; since D134 the last campaign stages (6-5, 6-7) occasionally do.
+4. **Stalemate valve:** only past 25:00 does the match end on tiles (more tiles wins, equal is a draw). Since D134 it is no longer a corner case: 7 % of AI-vs-AI balance matches end here, and so do the last campaign stages (6-5, 6-7) now and then. A side pressed back onto its own buildings cannot be pushed off them -- a hex with a building on it is not bare ground -- so a front can set where neither side can walk in.
 5. **Results screen:** shows the outcome and both tile counts. "Play again" leads to an interstitial ad. "Watch replay" plays the match back (speed button 1×/2×/4×/8× beside the exit flag; the flag goes back to the menu).
 6. **Replays:** solo matches are sent anonymously to the relay so the game can be tuned from real play. A menu switch turns this off, and online matches are recorded by the relay itself. See ENGINE.md, **Replays**.
 

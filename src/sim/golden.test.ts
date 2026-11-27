@@ -17,13 +17,18 @@ describe('golden hashes', () => {
     expect(golden.v).toBe(ENGINE_VERSION);
   });
   for (const seed of SEEDS) {
+    // Two whole matches per seed, and since D134 a whole match is a much longer thing than it was:
+    // the rule that keeps a card off the enemy's ground made the endgame slower, so a match that
+    // used to end at minute six now often runs to the 25-minute valve -- seed 42 went from under a
+    // second to 23 s here, which the 30 s default timed out on CI. It is the work the test is for,
+    // so it gets the same room as the replay tests below rather than waiting to go red.
     it(`seed ${seed}: AI vs AI and scripted vs AI end on the pinned state`, () => {
       const ai = hex(playMatch(seed, { aiBlue: true }).engine.hash());
       const human = hex(playMatch(seed).engine.hash());
       if (process.env.UPDATE_GOLDEN) console.log(`golden v${ENGINE_VERSION} seed ${seed}: ai ${ai} human ${human}`);
       expect(ai).toBe(golden.ai[String(seed) as keyof typeof golden.ai]);
       expect(human).toBe(golden.human[String(seed) as keyof typeof golden.human]);
-    });
+    }, 180_000);
   }
 });
 
