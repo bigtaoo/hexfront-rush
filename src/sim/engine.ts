@@ -14,7 +14,8 @@
 // guard.ts (the castle guards), troops.ts (marching, separation, projectiles) and ai.ts.
 
 import { aiUpdate } from './ai';
-import { cardLayout, fillerCard, type CardLayout } from './cardLayout';
+import { claimAround, recomputeOffers } from './claims';
+import { cardLayout, type CardLayout } from './cardLayout';
 import { spawnUnit, updateBuildings } from './combat';
 import { tryBuy, updateEconomy, updateQuests } from './economy';
 import { ticks, TICK_RATE } from './fixed';
@@ -129,7 +130,7 @@ export class Engine {
     }
     this.guards = [null as unknown as Guard, this.makeGuard(TEAM_BLUE), this.makeGuard(TEAM_RED)];
     for (const t of TEAMS) this.startBuildings(t);
-    for (const t of TEAMS) this.recomputeOffers(t);
+    for (const t of TEAMS) recomputeOffers(this, t);
 
     // quests: one shuffled list for both teams, so neither side gets an easier run
     const qs = [0, 1, 2, 3];
@@ -274,35 +275,10 @@ export class Engine {
     this.team[team].open[ti] = 1;
     t.rubble = 0;
     t.owner = team;
-    // a new building also claims the neutral ground around it (never an enemy's)
-    for (const n of t.nb) {
-      const nt = this.tiles[n];
-      if (!nt.obst && nt.owner === TEAM_NONE) nt.owner = team;
-    }
+    claimAround(this, team, ti);
     this.blds.push(b);
     this.ents.set(b.id, b);
     return b;
-  }
-
-  /** A card on every free tile next to a tile the team has flipped (T.open): the layout's card
-   *  (a filler card on rubble); a tile that keeps its card keeps the same one. */
-  recomputeOffers(team: number): void {
-    const T = this.team[team];
-    const cand = new Uint8Array(NTILES);
-    for (let i = 0; i < NTILES; i++) {
-      if (!T.open[i]) continue;
-      for (const n of this.tiles[i].nb) {
-        const nt = this.tiles[n];
-        if (!nt.obst && !nt.bld && !T.open[n]) cand[n] = 1;
-      }
-    }
-    for (let i = 0; i < NTILES; i++) {
-      if (!cand[i]) T.offers[i] = -1;
-      else if (T.offers[i] < 0) {
-        const lay = this.layout.card[team]![i];
-        T.offers[i] = this.tiles[i].rubble || lay < 0 ? fillerCard(this.rng.offer) : lay;
-      }
-    }
   }
 
   /** What the side's setup puts next to its castle from the start: a barracks, then towers, each
@@ -415,6 +391,10 @@ export class Engine {
       }
       for (const u of this.units) if (u.team !== winner) u.alive = 0;
       this.units = this.units.filter((u) => u.alive);
+      // and the cards follow the ground, as they do all match (offerable): the loser's board is
+      // the winner's colour now, and the victory screen is the last thing a player looks at --
+      // a card left standing on it there is the one place the rule would be seen to break.
+      for (const t of TEAMS) recomputeOffers(this, t);
     }
     this.countTiles();
     this.result = { winner, reason, blue: this.team[TEAM_BLUE].tiles, red: this.team[TEAM_RED].tiles, tick: this.tick };

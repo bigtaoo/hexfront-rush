@@ -1,6 +1,7 @@
 // Fighting: spawning troops, targeting, missiles, damage and deaths, claiming tiles, and the
 // buildings that shoot or train. The castle guard is in guard.ts.
 
+import { offerAt, pushBack, reachNow, recomputeOffers } from './claims';
 import type { Engine } from './engine';
 import { dist, dist2, muldiv } from './fixed';
 import type { Tile } from './map';
@@ -135,6 +136,12 @@ function kill(e: Engine, t: Entity, srcTeam: number): void {
     e.team[t.team].open[t.tile] = 0;
     tile.rubble = 1;
     tile.owner = srcTeam;
+    // razing is the third way ground changes hands, so it moves the colour like the other two: the
+    // bare hexes beside the wreck go back to no-man's-land (D134). It is the one that matters most
+    // at the end of a match -- an enemy's built-up core is ground no building and no troop can push
+    // back, since a hex with a building on it is not bare, so without this the last cards stop a
+    // ring short of their castle and the siege has to be walked in by troops alone
+    pushBack(e, srcTeam, t.tile, reachNow(e));
     e.blds.splice(e.blds.indexOf(t), 1);
     e.ents.delete(t.id);
     e.emit('burst', { x: t.x, y: t.y, burst: 'rubble', n: 22 });
@@ -143,17 +150,27 @@ function kill(e: Engine, t: Entity, srcTeam: number): void {
       e.endMatch(srcTeam, 'base');
       return;
     }
-    e.recomputeOffers(TEAM_BLUE);
-    e.recomputeOffers(TEAM_RED);
+    recomputeOffers(e, TEAM_BLUE);
+    recomputeOffers(e, TEAM_RED);
   }
 }
 
 /** A troop or guard stands on tile t: it becomes the team's, unless it is a rock or under an
- *  enemy building. */
+ *  enemy building. Ground changing hands moves the cards on it: the side that just lost it can
+ *  no longer buy there and the side that took it can (claims.offerable, D134). Only this one
+ *  tile's card can have moved, so this is two O(6) checks and not a sweep of the board -- which
+ *  matters, because every troop on the field runs this every time it steps onto a free tile. */
 export function claimTile(e: Engine, team: number, t: Tile): void {
   if (t.obst || t.owner === team) return;
   const b = e.ent(t.bld);
-  if (!(b && b.team !== team)) t.owner = team;
+  if (b && b.team !== team) return;
+  // taken FROM the enemy, not just picked up off no-man's-land: that is what pushes their claim
+  // off the bare ground beyond (D134), the same hex-at-a-time advance a new building makes
+  const taken = t.owner === enemyOf(team);
+  t.owner = team;
+  offerAt(e, TEAM_BLUE, t.i);
+  offerAt(e, TEAM_RED, t.i);
+  if (taken) pushBack(e, team, t.i);
 }
 
 // ---------- buildings ----------

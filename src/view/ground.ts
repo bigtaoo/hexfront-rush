@@ -154,68 +154,69 @@ export function mix(a: string, b: string, t: number): string {
 /** The lit lip along a tile's two LOWER edges, and THE ONLY SHADING A TILE HAS. Measured three
  *  times now, and this is the first reading taken off enough of the reference to trust.
  *
- *  HOW IT WAS MEASURED THIS TIME. One scan down one column is worth nothing: the first reading
- *  (D92) found a vertical gradient that is not there, the second (D94) read +0.027 off two columns,
- *  and the third read +0.010 off a column of ours that happened to cross the guard leash's dashed
- *  ring -- a pale line at 0.13 of white that put a +0.07 band across the scan and was taken for the
- *  lip. So: in the reference's open forest field (D:/new/ref IMG_3717, rows 1700-2300) every column
- *  is walked, its dark grid runs found, and every pair of runs 132-140 px apart whose interior has
- *  no prop in it is resampled to 69 samples and folded -- 148 cells, median, each cell normalised by
- *  its own interior so the ground's patches (PATCH_D below) cannot tilt the result.
+ *  HOW IT WAS MEASURED THIS TIME. One scan down one column is worth nothing: D92 found a vertical
+ *  gradient that is not there, D94 read +0.027 off two columns, and the third read +0.010 off a
+ *  column of ours crossing the guard leash's dashed ring -- 0.13 of white, a +0.07 band across the
+ *  scan, taken for the lip. So: in the reference's open forest field (D:/new/ref IMG_3717, rows
+ *  1700-2300) every column is walked, its dark grid runs found, and every pair of runs 132-140 px
+ *  apart with no prop between them is resampled to 69 samples and folded -- 148 cells, median, each
+ *  normalised by its own interior so the patches below cannot tilt the result.
  *
  *  WHAT 148 CELLS SAY. The interior is FLAT to within 0.002 for the first 0.78 of the cell -- no
  *  gradient, and no lift at all on the upper edges, which is why the ring this used to stroke around
  *  the whole hex at +0.012 is gone. Then a RAMP over the last 0.23: +0.006, +0.012, +0.018, +0.024,
- *  peaking at +0.025 four pixels before the line and easing back to +0.017 at it. So the lift is
- *  +0.025 of value, absolute (the same step the grid line's rule takes, skins.ts), it is directional
- *  -- a lit bottom rim is a thickness where a ring is an outline -- and it is a RAMP and not a step.
+ *  peaking at +0.025 four px before the line and easing back to +0.017 at it. So the lift is +0.025
+ *  of value, absolute (the grid line's own step, skins.ts), directional -- a lit bottom rim is a
+ *  thickness where a ring is an outline -- and a RAMP, not a step.
  *  A step is what one band draws, and at this depth the eye reads a single band as a drawn plate.
  *  Hence RIM_N: four bands, each one deeper and a quarter dimmer, which is 0.42 of a radius of ramp
  *  (the measured 0.23 of a cell's height, turned back into a depth perpendicular to a 30-degree
  *  edge) for four polygon fills in a context that is cached per colour.
  *
- *  D87 was right to delete the bevel it found -- a hard lit edge on three sides and a shaded groove
- *  on the other three, plus wood grain and two dome highlights -- and wrong to leave nothing in its
- *  place. This is a tenth of that ink: a ramp in one colour, no texture, no second hue.
- *  See DECISIONS.md D87, D89, D94, D110. */
+ *  D87 was right to delete the bevel it found -- a hard lit edge on three sides, a shaded groove on
+ *  the other three, wood grain and two dome highlights -- and wrong to leave nothing in its place.
+ *  This is a tenth of that ink: one colour, no texture, no second hue. DECISIONS.md D87, D89, D94,
+ *  D110. */
 const RIM_W = 0.42, RIM_D = 0.025, RIM_N = 4;
 
 /** The ground's patches, and the one thing a flat fill cannot fake.
  *
  *  MEASURED, not chosen (D98). Scanning the reference's open forest field (D:/new/ref, IMG_3717)
- *  along four horizontal lines and reading the plateaus between its grid lines, its bare tiles do
- *  not take two alternating shades: they sit at four levels -- 0.441, 0.456, 0.487 and 0.505 of
- *  value -- in RUNS OF THREE TO FIVE TILES. y=2030 reads 488 488 488 488, then 454 454 454, then
- *  441 441 441. That is ground with patches in it. Ours had a per-tile checker whose two shades are
- *  one 255th of value apart (skins.ts, and one 255th is no checker at all) over a smooth
- *  three-band zone gradient, so twenty tiles at a stretch of the open field came out one flat
- *  colour -- which is the whole of "our tiles look like pure colour painted on".
+ *  along four horizontal lines and reading the plateaus between its grid lines, its bare tiles sit
+ *  at four levels -- 0.441, 0.456, 0.487, 0.505 of value -- in RUNS OF THREE TO FIVE TILES: y=2030
+ *  reads 488 488 488 488, then 454 454 454, then 441 441 441. Ours had a per-tile checker whose two
+ *  shades are one 255th of value apart (skins.ts, which is no checker at all) over a smooth
+ *  three-band zone gradient, so twenty tiles at a stretch came out one flat colour -- which is the
+ *  whole of "our tiles look like pure colour painted on".
  *
- *  So sixteen seeded spots are scattered over the board and every tile takes its nearest spot's
- *  level as an absolute step of value. A Voronoi and not a block grid, because the reference's
- *  patches have ragged hex outlines where a block grid draws rectangles; sixteen spots over 325
- *  tiles is about twenty tiles a patch, four or five across, which is the run length measured.
+ *  So seeded spots are scattered over the board and every tile takes its nearest spot's level as an
+ *  absolute step of value -- a Voronoi, not a block grid, because the reference's patches have
+ *  ragged hex outlines where a block grid draws rectangles.
+ *
+ *  AND THE STEP IS HALF WHAT IT WAS, over patches two-thirds the size (D134). Fifteen spots over
+ *  325 tiles is twenty-odd tiles a patch and the extremes were 0.048 of value apart, so a top patch
+ *  meeting a bottom one drew one straight boundary twenty tiles long with a 5% step across it: in
+ *  the open field beside the home castle that reads as a seam, and it is the one thing on the board
+ *  a player asked about. The reference's own runs are three to five tiles, so the spots go to 24
+ *  and the span to 0.026, inside the 0.015-to-0.031 its adjacent tiers sit at. More edges at half
+ *  the step is texture; fewer at twice the step is a join.
  *
  *  AND THEY ARE CENTRED ON THE SKIN, NOT STACKED ON IT (D115). This note held for ten versions that
- *  the skins' green was the reference's FLOOR -- its levels 0, 0.015, 0.046, 0.064 above 0.441 --
- *  so the steps only went up. Read the careful way, by the MODAL colour of each bare cell at FULL
- *  resolution (a resize blends and pulls the extremes in, which is how the old reading went wrong),
- *  the reference's forest is two populations, 0.486 (#347c72) and 0.443 (#357167), over a dark tier
- *  at 0.396 and 0.322: 0.441 is its MIDDLE, and skins.ts's zones -- 0.478, 0.439, 0.396 -- sit on
- *  those tiers already. So the ramp was not pitching the board onto the reference's mean, it lifted
- *  it 0.022 clear of its own skin -- the camera sits over the home country, a third of its tiles
- *  take the top step, the commonest colour on screen came out 0.510-0.518 against 0.486 and the
- *  ground-teal median 0.482 against 0.439, and light.ts only multiplies. So the three keep their
- *  measured shape, 0.018 then 0.030 apart, shifted down by their own mean: the skin is their CENTRE.
+ *  the skins' green was the reference's FLOOR, so the steps only went up. Read by the MODAL colour
+ *  of each bare cell at FULL resolution (a resize blends the extremes in, which is how the old
+ *  reading went wrong), the reference's forest is two populations, 0.486 (#347c72) and 0.443
+ *  (#357167), over a dark tier at 0.396 and 0.322: 0.441 is its MIDDLE, and skins.ts's zones --
+ *  0.478, 0.439, 0.396 -- sit on those tiers already. A ramp that only went up lifted the board
+ *  0.022 clear of its own skin. So the three keep their measured shape, shifted down by their own
+ *  mean: the skin is their CENTRE.
  *
- *  And the levels are dealt out k % 3, not rolled: rolling them put eleven of sixteen spots on the
- *  brightest level on seed 2, which is 237 of 325 tiles, and that is not patchiness -- it is the
- *  whole board 0.048 brighter than skins.ts pitched it, with a few dark corners. Dealing holds the
- *  mean at zero while the spots' positions, which are rolled, still make every board different.
+ *  And the levels are dealt out k % 3, not rolled: rolling them put eleven of the then sixteen
+ *  spots on the brightest level on seed 2 -- 237 of 325 tiles, which is not patchiness but the
+ *  whole board lifted, with a few dark corners. Dealing holds the mean at zero while the spots'
+ *  positions, which are rolled, still make every board different.
  *
- *  Territory tiles are left flat: the reference's own territory patches are one colour from end to
- *  end (teamLook below), and so is its water. */
-export const PATCH_N = 15, PATCH_D = [-0.022, -0.004, 0.026] as const;
+ *  Territory tiles are left flat: the reference's own are one colour end to end (teamLook). */
+export const PATCH_N = 24, PATCH_D = [-0.012, -0.002, 0.014] as const;
 
 /** Which patch each tile fell in: nearest of PATCH_N spots scattered over the board from the map
  *  seed, so both clients of one match lay the same patches (nothing here is networked). */

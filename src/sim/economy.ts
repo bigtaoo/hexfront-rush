@@ -1,6 +1,7 @@
 // Gold, map events, quests and buying: what a flipped card does.
 
 import { rollRarity } from './cardLayout';
+import { claimAround, recomputeOffers } from './claims';
 import type { Engine } from './engine';
 import { baseTile, type Tile } from './map';
 import {
@@ -115,6 +116,11 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
   if (oi < 0) return false;
   const tile = e.tiles[ti];
   if (tile.bld || tile.obst) return false;
+  // not on ground the enemy holds (D134). Engine.offerable keeps a card off those tiles in the
+  // first place, so nothing the board shows can reach here -- but buying is where a move becomes
+  // a building and a stale offer, a replayed command or a hostile client all arrive through this
+  // one door, so the rule is written on the door and not only on the sign.
+  if (tile.owner === enemyOf(team)) return false;
   const off = OFFER_LIST[oi];
   const cost = cardCost(oi);
   if (T.gold < cost) {
@@ -129,6 +135,7 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
     T.open[ti] = 1;
     T.offers[ti] = -1;
     tile.owner = team;
+    claimAround(e, team, ti);
     let r = e.rng.loot.int(MYSTERY_W_TOTAL), roll = 0;
     while (roll < MYSTERY.length - 1 && r >= MYSTERY[roll].w) {
       r -= MYSTERY[roll].w;
@@ -146,13 +153,13 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
       e.addBuilding(team, 'barracks', ti, { unit, rarity: m.barracks });
       T.built.barracks++;
       e.emit('mysteryWin', { team, x: tile.x, y: tile.y, unit, rarity: m.barracks, kind: 'barracks', r: roll });
-      e.recomputeOffers(TEAM_BLUE);
-      e.recomputeOffers(TEAM_RED);
+      recomputeOffers(e, TEAM_BLUE);
+      recomputeOffers(e, TEAM_RED);
       return true;
     } else {
       e.emit('mysteryNothing', { team, x: tile.x, y: tile.y, r: roll });
     }
-    e.recomputeOffers(team);
+    recomputeOffers(e, team);
     return true;
   }
   if (off.kind === 'barracks') {
@@ -167,7 +174,7 @@ export function tryBuy(e: Engine, team: number, ti: number): boolean {
     e.emit('built', { team, kind: off.kind, x: tile.x, y: tile.y });
   }
   e.emit('burst', { x: tile.x, y: tile.y, team, burst: 'claim', n: 12 });
-  e.recomputeOffers(TEAM_BLUE);
-  e.recomputeOffers(TEAM_RED);
+  recomputeOffers(e, TEAM_BLUE);
+  recomputeOffers(e, TEAM_RED);
   return true;
 }

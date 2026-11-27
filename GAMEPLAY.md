@@ -6,7 +6,7 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 1. **Intro:** show a map overview, count down 3-2-1, then "FIGHT!".
 2. **No clock:** a match runs until a castle falls; the player whose castle falls loses. The HUD clock counts up. AI-vs-AI matches last about 4¼ minutes (median; 90 % are over by 7:45, and every one of them ends on a castle).
 3. **Siege:** from 6:00 on, every minute both sides' troops hit buildings 45 % harder and the troop cap rises by 10 ("SIEGE!" banner, a "siege +N%" tag by the clock). It is the same for both: the side with more and better barracks fills the new room first and breaks through.
-4. **Stalemate valve:** only past 25:00 does the match end on tiles (more tiles wins, equal is a draw). Balance runs never get there.
+4. **Stalemate valve:** only past 25:00 does the match end on tiles (more tiles wins, equal is a draw). AI-vs-AI balance runs never get there; since D134 the last campaign stages (6-5, 6-7) occasionally do.
 5. **Results screen:** shows the outcome and both tile counts. "Play again" leads to an interstitial ad. "Watch replay" plays the match back (speed button 1×/2×/4×/8× beside the exit flag; the flag goes back to the menu).
 6. **Replays:** solo matches are sent anonymously to the relay so the game can be tuned from real play. A menu switch turns this off, and online matches are recorded by the relay itself. See ENGINE.md, **Replays**.
 
@@ -28,10 +28,10 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
 
 ## The player's move: flipping cards
 - The player has no avatar. The **only** action is tapping a card.
-- Cards (offers) stand on the free tiles next to the tiles the player has flipped (the castle counts as flipped), each showing what it builds and its price. An affordable card has a breathing gold rim; one you can't afford is grey with its price faded (not red: red is the rival's colour).
+- Cards (offers) stand on the free tiles next to the tiles the player has flipped (the castle counts as flipped) that the rival does not hold, each showing what it builds and its price. An affordable card has a breathing gold rim; one you can't afford is grey with its price faded (not red: red is the rival's colour).
 - Tapping an affordable card flips it and the building appears on that tile. Tapping one you can't afford shakes the gold pill.
 - **Every flip opens the tiles around it,** whatever the card gave, a mystery that gave nothing included: the free tiles next to it turn face-up as new cards. A flipped mystery tile is spent (its card does not come back). A building that falls closes its tile again, so the tile gets a card again if it is next to another flipped tile.
-- **Ground:** every new building claims the neutral tiles around it (never enemy tiles). Troops claim every tile they walk over, so most ground is won by the army.
+- **Ground:** the colour on a tile says whose it is, and **you may only put a card on your own ground or on no-man's-land** — never on ground the rival holds. Ground changes hands three ways: a new building claims the neutral tiles around it, a troop claims every tile it walks over, and razing a building takes the tile it stood on. All three also **push the rival's claim off the bare ground around them**, back to no-man's-land, so the front keeps moving — the colour first, the card after. A tile with a building or a rock on it is not bare and is never pushed: that ground stays theirs until it is razed. The push reaches one hex, and from the siege on it grows a hex a minute up to three, which is what ends a long match.
 - A drag of more than 10 px moves the camera instead of tapping.
 
 ## Castle and guard
@@ -49,7 +49,7 @@ An original 1v1 real-time territory battle on a portrait hex map. It is derived 
   - The castle gives +10 every 3 s.
   - Each gold mine gives +10 every 5 s.
   - Map events (below) pay gold or troops to whoever flips their card first.
-- **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a type and price. Tapping a card you can afford builds it. The price fades when you can't afford it.
+- **Offers:** every free tile next to a tile you have flipped becomes an offer (a card) with a type and price, unless the rival holds it. Tapping a card you can afford builds it. The price fades when you can't afford it.
 - **Falling behind pays (the first four minutes):** count the tiles. Past a slack of 3 tiles behind, each further tile makes your mines pay **+5 % more** (up to +60 %, shown as a green `+N +X%` over the mine). It fades out linearly and is gone by 4:00 — the comeback window is the part of a match still being played for. It is the trailing side's only outlet: prices themselves never move (below).
 - **Network:** every flip, a building or a mystery, extends your network and reveals the offers around it.
 - **Fixed prices:** a price is a property of the ground, not of what you already own. Every card costs the same at minute one and at minute ten, and the same to both sides, all match long. Three grades of land (50 / 100 / 200) and a 25 gamble: what the dearer ground buys is **better odds**, and the odds are the only thing the price promises.

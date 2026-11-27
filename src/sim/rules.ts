@@ -6,7 +6,7 @@ import { perTick, TICK_RATE, ticks, toFp } from './fixed';
 import { TILE } from './hex';
 
 /** Bump when a rules change alters the outcome of a replay. */
-export const ENGINE_VERSION = 19;
+export const ENGINE_VERSION = 21;
 
 /** No clock: a match ends when a castle falls (or a player leaves). This is only a safety valve
  *  for a stalemate, far past any real match; then the tiles decide. */
@@ -21,6 +21,17 @@ export const siegeLevel = (playT: number, after: number = SIEGE.after): number =
   playT < after ? 0 : 1 + Math.trunc((playT - after) / SIEGE.every);
 /** The siege bonus on damage to buildings, in percent (100 = none). */
 export const siegePct = (playT: number, after: number = SIEGE.after): number => 100 + SIEGE.dmgStep * siegeLevel(playT, after);
+/** How deep a new building, or a razed wreck, pushes the enemy's claim off the bare ground around
+ *  it (D134, Engine.pushBack): one hex normally, a hex more per siege step, up to PUSH_REACH_MAX.
+ *  A stalled front is why this grows. Since no card may stand on the enemy's ground, the line can
+ *  only move where the colour has moved first, and two armies at the same troop cap can hold a
+ *  line for ten minutes -- measured on 6-7, where neither side's troops came within two hexes of
+ *  the other's castle until minute thirteen. The siege is the valve the match already has for
+ *  that ("a long match must end"), so it opens this too: the longer it drags, the less of the
+ *  contested middle either side can hold claim to, and the cards come back up to the fighting. */
+export const PUSH_REACH_MAX = 3;
+export const pushReach = (playT: number, after: number = SIEGE.after): number =>
+  Math.min(1 + siegeLevel(playT, after), PUSH_REACH_MAX);
 export const INTRO_TICKS = ticks(3.6);
 
 export const TEAM_NONE = 0, TEAM_BLUE = 1, TEAM_RED = 2;

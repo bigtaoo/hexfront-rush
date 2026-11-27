@@ -88,27 +88,37 @@ function barracksGlyph(p: Pen, tier: number): void {
   // round the outside and two short lines inside it, never a frame round every limb. Our old mark
   // was a bare dome, 0.228 of a cell pitch across against the reference's 0.420, with a 2 px crest
   // post on top that at a phone's zoom could only read as height (DECISIONS.md D124).
+  //
+  // THE HORNS GO UP, NOT OUT (D134). The first cut of the mass hung them off the helmet's SIDES --
+  // roots at x 0.185, tips at 0.385 and no higher than the dome's own crown -- so the widest, most
+  // contrasted thing in the mark was a pair of wings and the dome was the gap between them: at the
+  // 26 px the glyph is actually drawn at (GLYPH_K over a 38 px hex) it read as a bull's skull.
+  // What makes a helmet a helmet is the DOME, so the dome is now the mark: it carries the full
+  // half-width, its crown is the top of the shape, and the horns are two short tapering wedges
+  // rooted on its shoulders that sweep out and up to tips level with the crown. The old pair was
+  // 0.20 wide at the root and 0.31 long; these are 0.155 at the root and 0.24 long -- thicker in
+  // proportion, so they survive the rim at 26 px, and short enough that the eye reads the dome first.
   p.g.beginPath();
-  p.g.moveTo(-0.25, 0.15);
-  p.g.quadraticCurveTo(-0.385, 0.01, -0.385, -0.15);
-  p.g.quadraticCurveTo(-0.385, -0.31, -0.255, -0.36);
-  p.g.quadraticCurveTo(-0.26, -0.2, -0.185, -0.14);
-  p.g.quadraticCurveTo(-0.185, -0.29, 0, -0.29);
-  p.g.quadraticCurveTo(0.185, -0.29, 0.185, -0.14);
-  p.g.quadraticCurveTo(0.26, -0.2, 0.255, -0.36);
-  p.g.quadraticCurveTo(0.385, -0.31, 0.385, -0.15);
-  p.g.quadraticCurveTo(0.385, 0.01, 0.25, 0.15);
-  p.g.lineTo(0.12, 0.15);
-  p.g.quadraticCurveTo(0.09, 0.0, 0, 0.02);
-  p.g.quadraticCurveTo(-0.09, 0.0, -0.12, 0.15);
+  p.g.moveTo(-0.25, 0.155);
+  p.g.lineTo(-0.245, -0.04);
+  p.g.quadraticCurveTo(-0.345, -0.135, -0.42, -0.345);   // left horn, outer edge up to the tip
+  p.g.quadraticCurveTo(-0.305, -0.305, -0.2, -0.195);    // and back down its inner edge to the dome
+  p.g.quadraticCurveTo(-0.155, -0.335, 0, -0.335);       // the dome: wide, and the top of the mark
+  p.g.quadraticCurveTo(0.155, -0.335, 0.2, -0.195);
+  p.g.quadraticCurveTo(0.305, -0.305, 0.42, -0.345);
+  p.g.quadraticCurveTo(0.345, -0.135, 0.245, -0.04);
+  p.g.lineTo(0.25, 0.155);
+  p.g.lineTo(0.115, 0.155);
+  p.g.quadraticCurveTo(0.085, 0.025, 0, 0.04);           // the nasal, a shallow dip in the brow
+  p.g.quadraticCurveTo(-0.085, 0.025, -0.115, 0.155);
   p.g.closePath();
   p.fill(FACE).stroke(INK, GLYPH_RIM);
-  // the two short lines that make it read as horns over a dome, not as one lump
+  // the two short lines that carry a horn's root on past the outline, so it reads as attached
   p.g.beginPath();
-  p.g.moveTo(-0.185, -0.14);
-  p.g.quadraticCurveTo(-0.16, -0.05, -0.15, 0.04);
-  p.g.moveTo(0.185, -0.14);
-  p.g.quadraticCurveTo(0.16, -0.05, 0.15, 0.04);
+  p.g.moveTo(-0.2, -0.195);
+  p.g.quadraticCurveTo(-0.225, -0.115, -0.245, -0.04);
+  p.g.moveTo(0.2, -0.195);
+  p.g.quadraticCurveTo(0.225, -0.115, 0.245, -0.04);
   p.stroke(INK, GLYPH_RIM, 'round');
   // the price tier as pips: a dearer barracks card trains rarer troops more often
   for (let k = 0; k < tier; k++) p.circle((k - (tier - 1) / 2) * 0.18, 0.3, 0.05, FACE, INK, GLYPH_RIM);
@@ -125,17 +135,30 @@ function towerGlyph(p: Pen): void {
 }
 
 function mineGlyph(p: Pen): void {
-  // a pickaxe: the handle up to the right, the curved head across its top
-  inked(p, 0.11, () => {
-    p.g.beginPath();
-    p.g.moveTo(-0.26, 0.26);
-    p.g.lineTo(0.14, -0.14);
-  });
-  inked(p, 0.13, () => {
-    p.g.beginPath();
-    p.g.moveTo(-0.3, -0.3);
-    p.g.quadraticCurveTo(0.14, -0.36, 0.37, 0.04);
-  });
+  // a pickaxe, drawn as TWO SOLID MASSES and not as line art (D134). It used to be two stroked
+  // paths of all but the same width -- a straight 0.11 handle under a curved 0.13 head -- and two
+  // bars of one weight meeting at a corner is a hammer, not a pick: nothing in the mark said which
+  // end was the iron. A pick's whole silhouette is the taper, so the head is now a crescent 0.16
+  // thick at its middle and sharpening to blunt tips at both ends, and the haft a wedge hanging
+  // straight down from under it. Every other glyph on the board is a filled shape with a hairline
+  // round it (towerGlyph, barracksGlyph, and every mark in the reference); this one was the
+  // exception and it was the one that would not read.
+  p.g.beginPath();
+  p.g.moveTo(-0.4, -0.1);
+  p.g.quadraticCurveTo(-0.17, -0.37, 0, -0.37);
+  p.g.quadraticCurveTo(0.17, -0.37, 0.4, -0.1);
+  p.g.lineTo(0.35, -0.05);                               // a blunt tip: a point dies under the rim
+  p.g.quadraticCurveTo(0.17, -0.205, 0.085, -0.21);
+  p.g.lineTo(-0.085, -0.21);
+  p.g.quadraticCurveTo(-0.17, -0.205, -0.35, -0.05);
+  p.g.closePath();
+  p.fill(FACE).stroke(INK, GLYPH_RIM);
+  p.poly([-0.075, -0.235, 0.075, -0.235, 0.058, 0.3, -0.058, 0.3], FACE, INK, GLYPH_RIM);
+  // the collar, where the iron is wedged onto the wood
+  p.g.beginPath();
+  p.g.moveTo(-0.072, -0.115);
+  p.g.lineTo(0.072, -0.115);
+  p.stroke(INK, GLYPH_RIM, 'round');
 }
 
 function mysteryGlyph(p: Pen): void {

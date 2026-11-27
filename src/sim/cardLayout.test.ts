@@ -1,6 +1,7 @@
 // The card layout: fixed by the seed, mirrored between the teams, and true to CARD_LAYOUT's quotas.
 
 import { describe, expect, it } from 'vitest';
+import { recomputeOffers } from './claims';
 import { tryBuy } from './economy';
 import { cardLayout, mirrorTile, zoneOf } from './cardLayout';
 import { Engine } from './engine';
@@ -113,7 +114,7 @@ describe('cards in play', () => {
       e.tiles[i]!.rubble = 1;
       T.offers[i] = -1;
     }
-    e.recomputeOffers(TEAM_BLUE);
+    recomputeOffers(e, TEAM_BLUE);
     let n = 0;
     for (let i = 0; i < NTILES; i++) {
       const o = T.offers[i]!;

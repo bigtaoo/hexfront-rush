@@ -278,8 +278,10 @@ describe('the ground patches', () => {
         }
       }
       // a per-tile roll over three levels would agree with a third of its neighbours; PATCH_N
-      // spots over 325 tiles is about twenty tiles a patch, so most neighbours agree
-      expect(same / pairs).toBeGreaterThan(0.8);
+      // spots over 325 tiles is about thirteen tiles a patch, so most neighbours agree. The bar
+      // was 0.8 while there were 15 spots (0.85 measured); 24 of them read 0.78, and the thing
+      // this pins is patches against a scatter, which 0.78 against 0.33 says just as plainly.
+      expect(same / pairs).toBeGreaterThan(0.72);
     }
   });
 

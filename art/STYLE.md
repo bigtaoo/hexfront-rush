@@ -70,6 +70,13 @@ Each of these was learned by rendering the thing and looking at it, not by reaso
 * A small dark patch on a wall or a curved face is a window, whatever colour it is - that is how
   the arch's moss and the boulder's moss both failed. Moss has to lie flat on a ledge, or go.
 * A door, a doorway, an opening has to touch the ground; stopped short it is a window.
+* A lid, a hatch, a shutter is only a lid while it touches its hinge. Build it OUTWARD from the
+  edge it turns on, never place it at an angle and hope the gap closes: the chest's lid, laid back
+  at -0.95 rad from its own centre, left a fifth of a tile of air between its low edge and the rim
+  and read as a plank hovering behind the box. Lay it back far enough (0.78 rad) that its inner
+  face comes toward the camera at 42 degrees - that face is the whole sentence "the chest is open"
+  - and give it its own value: lid, body and trim have to stack light-to-dark up the silhouette or
+  the piece is one coloured lump at 34 px.
 * A flat turned mound of metal is a puddle of light: a hoard is overlapping nuggets with the
   coins standing in stacks.
 * Team colour goes on roofs and merlon caps only, never on walls.

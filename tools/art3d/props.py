@@ -211,13 +211,26 @@ def model_chest():
     for (dx, dy, r) in ((-0.13, 0.02, 0.075), (0.04, -0.04, 0.08), (0.14, 0.04, 0.07),
                         (-0.02, 0.07, 0.065)):
         ball(r, 'nugget', (dx, dy, 0.31), scale=(1, 1, 0.8), name='gold')
-    # the lid, thrown back: a half barrel leaning away from the player
-    block((0.56, 0.36, 0.07), 'brown', (0, 0.30, 0.44), rot=(-1.15, 0, 0), bevel=0.02,
+    # The lid, thrown back: ON ITS HINGE, and DARKER THAN THE BODY (D128). Two faults, and the
+    # second only showed once the first was fixed. It was the body's own 'brown' with 'darkwood'
+    # bands, like the box -- so at the 34 px it is drawn at, box and lid were one brown mass with
+    # gold on top and the chest read as a heap; the two are now swapped, so the plane leaning back
+    # behind the gold is plainly a second thing and not more box -- and it comes off the render
+    # LIGHTER than the box for all that the wood is darker, because a lid thrown back takes the
+    # key square on the face while the box shows us only its shaded front: dark box, bright gold,
+    # pale lid, three values from the ground up. And it was hung in the air: at
+    # rot -0.95 about x the slab's low edge came out at z 0.53 while the box's rim is at 0.30, a
+    # fifth of a hex of nothing between them, and a lid is only a lid while it is ATTACHED. It is
+    # now built from the hinge outwards -- the box's own back-top edge, y 0.20 z 0.305 -- and
+    # leaning back over it at 0.78 rad, which at the 42-degree camera turns its inner face almost
+    # square to us: the one wide plane that says the box is open.
+    block((0.56, 0.36, 0.07), 'darkwood', (0, 0.303, 0.456), rot=(0.78, 0, 0), bevel=0.02,
           name='lid')
     for x in (-0.19, 0.19):
-        block((0.055, 0.38, 0.085), 'darkwood', (x, 0.30, 0.44), rot=(-1.15, 0, 0), bevel=0.008,
+        block((0.055, 0.38, 0.085), 'brown', (x, 0.303, 0.456), rot=(0.78, 0, 0), bevel=0.008,
               name='lidband')
-    block((0.58, 0.07, 0.045), 'gold', (0, 0.155, 0.325), rot=(-1.15, 0, 0), bevel=0.008,
+    # the gold cap on the lid's free edge, answering the rim on the box's
+    block((0.58, 0.07, 0.045), 'gold', (0, 0.406, 0.558), rot=(0.78, 0, 0), bevel=0.008,
           name='lidrim')
     block((0.10, 0.09, 0.09), 'gold', (0, -0.205, 0.265), bevel=0.012, name='lock')
     return 0.7
@@ -246,17 +259,28 @@ def model_hoard():
 
 
 def model_camp():
-    """A traveller's camp: a tent, a fire and a log to sit on. Three things, well apart, because
-    at 46 px a camp drawn as one cluster is a smudge."""
-    _ground(0.46, scale=(1.18, 1.0, 1))
-    prism(0.50, 0.44, 0.38, 'cream', (-0.18, 0.12, 0.03))
-    rod(0.024, 0.56, 'darkwood', (-0.18, 0.12, 0.415), rot=(0, math.pi / 2, 0), name='ridge')
-    for s in (1, -1):  # the guy ropes' pegs, which is what pins a tent to the ground
-        rod(0.016, 0.26, 'darkwood', (-0.18 + s * 0.30, 0.12, 0.17), rot=(0, s * 0.5, 0),
-            name='guy')
-    block((0.155, 0.04, 0.33), 'opening', (-0.175, -0.098, 0.175), bevel=0.0, name='door')
-    block((0.06, 0.05, 0.35), 'cream', (-0.272, -0.115, 0.185), rot=(0, 0.14, 0), bevel=0.012,
-          name='flap')
+    """A traveller's camp: a tent with its door facing you, a fire, and a log to sit on.
+
+    THE GABLE FACES THE CAMERA (D128). prism() always puts its two triangles on x, so a tent built
+    straight off it shows the camera one long unbroken slope -- and that is what this was: at 46 px
+    the piece came off the board as a white rhombus with a black hole in its face, which is a shed
+    with a window, not a tent. A tent is read by its TRIANGLE, so the prism is turned a quarter
+    turn on z and the ridge runs away from the player; the door is a second, smaller gable of its
+    own, nested in the front one and standing on the ground, because a dark patch that stops short
+    of the grass is a window however it is shaped (art/STYLE.md).
+
+    The guy ropes and the ridge pole are gone with it. At this size they are 1.8 and 2.7 px across,
+    under the 4 px ink sprite.py lays round the trim, so they were never two values in a mass --
+    they were grit on the outline. What carries the tent instead is the turn itself: the front
+    triangle faces away from the key and comes off dark, the slope behind it catches it and comes
+    off cream, and the door is darker than both.
+    """
+    _ground(0.44, scale=(1.25, 1.0, 1))
+    tent = prism(0.52, 0.40, 0.38, 'cream', (-0.19, 0.05, 0), overhang=0.05, name='tent')
+    tent.rotation_euler = (0, 0, math.pi / 2)
+    door = prism(0.26, 0.17, 0.26, 'opening', (-0.19, -0.16, 0), overhang=0.0, name='door')
+    door.rotation_euler = (0, 0, math.pi / 2)
+    # the fire, clear of the tent and nearer the player, so nothing of it is behind anything
     lathe([(0.17, 0), (0.17, 0.03), (0.0, 0.03)], 'slate', loc=(0.30, -0.14, 0.02), seg=14,
           name='hearth')
     for (fa, fz) in ((0.4, 0.06), (1.9, 0.07), (-0.8, 0.05)):
@@ -265,6 +289,14 @@ def model_camp():
           seg=10, name='flame')
     lathe([(0.06, 0), (0.04, 0.07), (0.0, 0.13)], 'pink', loc=(0.30, -0.14, 0.22), seg=8,
           name='flametip')
+    # the log to sit on: the third thing the camp is made of, and the first version never drew it
+    # -- its only log was 0.034 of firewood lying inside the hearth. It lies in FRONT of the fire,
+    # not behind it: at y +0.26 it came off the 42-degree camera high on the picture, beside the
+    # flame's tip and with bare grass under it, so it read as a bar hanging in the air rather than
+    # as a thing on the ground. Here it is the nearest thing in the camp, and it keeps a tile's
+    # eighth of clear grass between its near end and the doorway: a doorway must reach the ground
+    # (art/STYLE.md) and a log lying across its sill is a doorway that stops at a log.
+    rod(0.052, 0.28, 'brown', (0.16, -0.37, 0.052), rot=(0, math.pi / 2, 0.2), name='seat')
     return 0.8
 
 
